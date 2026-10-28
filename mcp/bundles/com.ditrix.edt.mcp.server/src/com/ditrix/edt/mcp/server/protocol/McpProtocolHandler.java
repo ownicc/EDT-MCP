@@ -589,10 +589,8 @@ public class McpProtocolHandler
     private String buildToolCallResponse(IMcpTool tool, String result, UserSignal signal,
         boolean plainTextMode, Object requestId, Map<String, String> params, ClientCapabilities capabilities)
     {
-        // Per-call response type: a tool whose caller can choose the output format (e.g.
-        // list_projects' format=md|json) decides from the arguments; every other tool falls back to
-        // its fixed getResponseType().
-        switch (tool.getResponseType(params))
+        // Bind delivery to this completed call; the default retains argument-selected formats.
+        switch (tool.getResponseType(params, result))
         {
             case JSON:
                 return buildJsonToolResponse(tool, result, signal, plainTextMode, requestId, capabilities);

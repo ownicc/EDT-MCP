@@ -1153,6 +1153,66 @@ public class McpProtocolHandlerTest
     }
 
     @Test
+    public void resultDeliveryUsesCompletedPayloadAfterPreferenceToggle()
+    {
+        String id = "review-123";
+        registry.register(new StubTypedTool("review_write", "", IMcpTool.ResponseType.MARKDOWN)
+        {
+            private boolean reviewEnabled = true;
+
+            @Override
+            public String execute(Map<String, String> params)
+            {
+                String result = reviewEnabled ? "{\"reviewId\":\"review-123\"}" : "Written";
+                reviewEnabled = false;
+                return result;
+            }
+
+            @Override
+            public ResponseType getResponseType(Map<String, String> params)
+            {
+                return reviewEnabled ? ResponseType.JSON : ResponseType.MARKDOWN;
+            }
+
+            public ResponseType getResponseType(Map<String, String> params, String result)
+            {
+                return result.startsWith("{") ? ResponseType.JSON : ResponseType.MARKDOWN;
+            }
+        });
+
+        JsonObject response = parseResponse(handler.processRequest(
+            buildToolCallRequest(1, "review_write", null)));
+        assertNotNull(response.toString(), response.getAsJsonObject("result").get("structuredContent"));
+        assertEquals(id, response.getAsJsonObject("result")
+            .getAsJsonObject("structuredContent").get("reviewId").getAsString());
+
+        JsonObject direct = parseResponse(handler.processRequest(
+            buildToolCallRequest(2, "review_write", null))).getAsJsonObject("result");
+        assertFalse(direct.toString(), direct.has("structuredContent"));
+        assertEquals("text/markdown", direct.getAsJsonArray("content").get(0)
+            .getAsJsonObject().getAsJsonObject("resource").get("mimeType").getAsString());
+    }
+
+    @Test
+    public void resultDeliveryKeepsArgumentSelectedFormats()
+    {
+        registry.register(new StubTypedTool("format_choice", "{\"value\":7}", IMcpTool.ResponseType.MARKDOWN)
+        {
+            @Override
+            public ResponseType getResponseType(Map<String, String> params)
+            {
+                return "json".equals(params.get("format")) ? ResponseType.JSON : ResponseType.MARKDOWN;
+            }
+        });
+        JsonObject json = parseResponse(handler.processRequest(
+            buildToolCallRequest(1, "format_choice", "{\"format\":\"json\"}"))).getAsJsonObject("result");
+        assertEquals(7, json.getAsJsonObject("structuredContent").get("value").getAsInt());
+        JsonObject markdown = parseResponse(handler.processRequest(
+            buildToolCallRequest(2, "format_choice", "{}"))).getAsJsonObject("result");
+        assertFalse(markdown.toString(), markdown.has("structuredContent"));
+    }
+
+    @Test
     public void testToolCallSuccessPayloadOmitsIsError()
     {
         registry.register(new StubJsonTool("ok_tool", "{\"value\":7}"));

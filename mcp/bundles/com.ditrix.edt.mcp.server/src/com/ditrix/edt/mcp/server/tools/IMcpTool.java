@@ -109,8 +109,8 @@ public interface IMcpTool
      * <p>
      * Override it for a tool that lets the caller choose the output format, e.g.
      * {@code list_projects}' {@code format} parameter: {@code md} (the default) renders the human
-     * Markdown table, {@code json} returns the machine payload in {@code structuredContent}. The
-     * dispatcher calls THIS method (never the no-arg one) when delivering a tool result.
+     * Markdown table, {@code json} returns the machine payload in {@code structuredContent}.
+     * Delivery delegates here unless the completed-payload overload is overridden.
      *
      * @param params the same parameters passed to {@link #execute(Map)}
      * @return the response type for this call
@@ -118,6 +118,20 @@ public interface IMcpTool
     default ResponseType getResponseType(Map<String, String> params)
     {
         return getResponseType();
+    }
+
+    /**
+     * Selects delivery from this call's completed payload. Tools with settings-dependent
+     * execution can override this without rereading mutable settings during serialization.
+     * The default preserves fixed and argument-selected formats.
+     *
+     * @param params the arguments passed to execute
+     * @param result the completed result to deliver
+     * @return the response type for this result
+     */
+    default ResponseType getResponseType(Map<String, String> params, String result)
+    {
+        return getResponseType(params);
     }
 
     /**
