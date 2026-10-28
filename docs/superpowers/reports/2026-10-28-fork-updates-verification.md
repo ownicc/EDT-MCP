@@ -43,4 +43,23 @@
   восстанавливается существующим tearDown. Повторный локальный прогон:
   ModulePathCaseRoundTwoTest + WriteModuleSourceReviewTest + ConsentSettingsServiceTest
   + BslWriteReviewsTest — 50 тестов, 0 ошибок/падений, BUILD SUCCESS.
-- Повторный полный CI запускается для `v1.0.3`; теги не переписываются.
+- Повторный полный CI для `v1.0.3` прошёл: 12 006 тестов плагина, 0 падений,
+  0 ошибок, 5 пропусков; 179 тестов proxy, 0 падений/ошибок/пропусков.
+  Python-тесты валидатора также прошли. Теги не переписывались.
+
+## Опубликованный результат
+
+- Релиз: https://github.com/ownicc/EDT-MCP/releases/tag/v1.0.3.
+- Полный успешный workflow, включая deploy:
+  https://github.com/ownicc/EDT-MCP/actions/runs/40769228367.
+- Публичный p2: https://ownicc.github.io/EDT-MCP/.
+- Скачанный release ZIP прошёл валидатор p2. JAR плагина и feature на сайте
+  побайтно совпадают с JAR из ZIP; Bundle-Version равна 1.0.3.
+- Настоящий установленный EDT через p2 director `-list` вернул
+  `com.ditrix.edt.mcp.server.feature.feature.group=1.0.3`, exit 0.
+- SHA256 `MCP-EDT.v1.0.3.zip`:
+  `7cefa47e4d4fb607c7198a499e88816cb04d17a69e0e5fde715d4e51276fe228`.
+- Команда для установки после закрытия EDT:
+  `bash /tmp/edt-fork-updates-20261028/install-fork.sh`.
+  Синтаксис проверен; при работающем EDT она корректно отказывается от установки.
+  Текущая установка остаётся 1.0.0.202610282006 до выполнения команды пользователем.

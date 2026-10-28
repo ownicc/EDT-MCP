@@ -508,7 +508,7 @@ Workmate's restricted-types list — so the in-process bridge is its only route.
 
 ## Multi-EDT Proxy
 
-Running more than one EDT instance at once? [`edt-mcp-proxy`](proxy/) is a standalone router that exposes a single, stable MCP endpoint on `:8764` and forwards each call to the right EDT-MCP instance by `projectName`, discovering live instances in the background. It ships as `edt-mcp-proxy-<version>.jar` alongside the plugin archive in every [release](https://github.com/DitriXNew/EDT-MCP/releases). See [proxy/README.md](proxy/README.md) for setup, CLI options and configuration.
+Running more than one EDT instance at once? [`edt-mcp-proxy`](proxy/) is a standalone router that exposes a single, stable MCP endpoint on `:8764` and forwards each call to the right EDT-MCP instance by `projectName`, discovering live instances in the background. It ships as `edt-mcp-proxy-<version>.jar` alongside the plugin archive in every [release](https://github.com/ownicc/EDT-MCP/releases). See [proxy/README.md](proxy/README.md) for setup, CLI options and configuration.
 
 ## Available Tools
 
