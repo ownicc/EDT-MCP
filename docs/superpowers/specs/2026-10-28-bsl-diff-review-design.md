@@ -1,6 +1,6 @@
 # BSL write review in the EDT compare editor
 
-Status: proposed design, awaiting user approval before implementation.
+Status: approved by the user on 2026-10-28. Implementation has not started.
 
 Every actual BSL text change made through `write_module_source` must, by
 default, be reviewed by a person in a nonmodal EDT editor tab. The person
