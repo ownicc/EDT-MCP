@@ -111,6 +111,8 @@ def test_append_lands_on_disk():
         "mode": "append", "source": "// e2e_probe_append\n",
     })
     assert_ok(r, "append happy path")
+    if r.structured is not None:
+        raise E2EAssertion("Unattended writes require the explicit test-workspace review opt-out; got: %r" % r.structured)
     # On-disk truth: the new line must be in the .bsl file on disk (git sees it).
     assert_diff_contains("// e2e_probe_append", "append must persist to the .bsl on disk")
     # Read-back: the model now serves the appended line too.

@@ -41,7 +41,7 @@ Short form:
 1. `read_method_source` -> remember the body.
 2. Prepare the full new version of the method (or fragment for `searchReplace`).
 3. `write_module_source` with `mode: "searchReplace"`, `oldSource` (what to replace) and `source` (replacement). Do not disable the syntax check (`skipSyntaxCheck`) without a reason.
-4. Inspect the response for syntax / semantic errors. If any — fix them.
+4. If `reviewId` is returned, poll `get_write_review_status` until the human applies or rejects the proposal in EDT. Awaiting approval is not a completed edit. Inspect terminal errors; reread before retrying a stale or uncertain write.
 5. `get_project_errors` with `projectName` and `objects: ["<FQN>"]` — final check on the changed object. For larger edits — `get_problem_summary` on the project for an overall picture.
 
 ## 5. A new 1C query

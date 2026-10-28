@@ -2,6 +2,10 @@
 
 > The most dangerous area. Choosing the wrong mode can **overwrite the entire module** or lose part of the code. Read this file **before** the first write.
 
+## Human review
+
+Review is enabled by default. When a call returns `reviewId`, poll `get_write_review_status` until terminal; the human must press Apply or Reject in the nonmodal EDT diff tab. Awaiting approval does not mean source was written. Both sides are read-only. Closing an awaiting tab rejects it; a changed base requires a new read and proposal. Only the human preference can disable review for future calls. Never blindly retry append after a connection loss or `mutationOutcomeUnknown`; `mutationCommitted: true` means source was written even if follow-up failed.
+
 ## Available modes
 
 `write_module_source` supports three modes (`mode`):

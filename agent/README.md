@@ -11,6 +11,15 @@ detailed project policy and compatibility guidance, while `agent/` supplies
 compact workflows loaded for one task. Neither layer overrides the other; use
 both when installed, and stop to resolve any apparent conflict.
 
+## BSL write completion
+
+By default, `write_module_source` returns a review ID while a human decides in
+the nonmodal EDT diff tab. `get_write_review_status` reports the decision and
+mutation outcome. `awaitingApproval` is not a completed write; source remains
+unchanged until Apply. A committed append must not be repeated after an export
+failure, and an unknown outcome requires rereading source before retrying.
+The review preference is controlled by the human in EDT and has no MCP bypass.
+
 ## How the pack is organized
 
 - [`ROUTER.md`](ROUTER.md) is the small intent router that may be loaded by a

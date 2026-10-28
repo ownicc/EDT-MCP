@@ -2,7 +2,7 @@
 
 One page per tool: what it does, every parameter, and how it works. Generated from the live server by `docs/generate_tool_docs.py` (re-run to refresh; the source of truth is each tool's Java).
 
-**102 tools.**
+**103 tools.**
 
 ## Core
 
@@ -57,10 +57,11 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 | [`get_method_call_hierarchy`](get_method_call_hierarchy.md) | Trace which BSL methods call a method or are called by it; optional depth walks the chain transitively for impact analysis (callers only, max 5). Finds STATI… |
 | [`get_outgoing_structures`](get_outgoing_structures.md) | Discover the fields passed to outgoing or qualified BSL method calls. BEST-EFFORT and incomplete by design: only top-level LITERAL keys of the first argument… |
 | [`get_symbol_info`](get_symbol_info.md) | Inspect the type and documentation of a BSL symbol at its source location. Parameters and examples: get_tool_guide('get_symbol_info'). |
+| [`get_write_review_status`](get_write_review_status.md) | Get the status of a BSL write review by reviewId. Poll until terminal; only the human can apply it in EDT. Parameters and examples: get_tool_guide('get_write… |
 | [`go_to_definition`](go_to_definition.md) | Locate the source definition of a BSL symbol or metadata object. Parameters and examples: get_tool_guide('go_to_definition'). |
 | [`read_method_source`](read_method_source.md) | Inspect the source of one BSL procedure or function. Parameters and examples: get_tool_guide('read_method_source'). |
 | [`validate_query`](validate_query.md) | Check a 1C query for syntax and metadata-reference errors. Parameters and examples: get_tool_guide('validate_query'). |
-| [`write_module_source`](write_module_source.md) | Create or edit BSL source in a metadata module. Parameters and examples: get_tool_guide('write_module_source'). |
+| [`write_module_source`](write_module_source.md) | Create or edit BSL source in a metadata module. When reviewId is returned, poll get_write_review_status; only human approval in EDT applies the change. Param… |
 
 ## Debug
 

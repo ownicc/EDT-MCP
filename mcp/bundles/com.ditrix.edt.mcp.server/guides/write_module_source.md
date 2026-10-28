@@ -1,5 +1,15 @@
 Writes BSL source to a single 1C metadata object module (a `.bsl` file under `src/`). Six edit modes, a mandatory BSL syntax check, and lost-update guards.
 
+## Human review and completion
+
+By default, a changing call opens a nonmodal read-only comparison in EDT and returns JSON with `reviewId`, `status`, `applied: false`, and the decision deadline. No source or metadata is written before the person presses **Apply** in the tab header. **Reject** or closing an awaiting tab writes nothing. Both comparison sides are read-only; saving or merge-copy shortcuts cannot accept a proposal.
+
+Poll `get_write_review_status(reviewId)` about every three seconds until the status is terminal. Awaiting approval is not a completed write. The decision deadline is 30 minutes. A changed base becomes `stale`; read it again and submit a new proposal. Save or discard unsaved target edits before submitting or applying. Server/project closure cancels work that has not entered mutation; IDs are lost on plugin restart.
+
+When `mutationCommitted: true`, source was written even if a later metadata/export step failed. An unknown mutation outcome requires reading source before retrying. Never blindly resend an append after a lost connection or uncertain result.
+
+The human can turn off **Review BSL changes before applying** in the plugin General preferences. This affects new calls only, preserves the historical immediate Markdown result, and leaves pending proposals awaiting their own decisions. Destructive-consent allowances and `skipSyntaxCheck` do not bypass review; no MCP approval or preference-bypass parameter exists. Without a workbench, review-enabled changing writes are refused. Byte-identical proposals return JSON `noChange` without metadata follow-up.
+
 ## When to use
 
 - Editing existing BSL: prefer `searchReplace` (the default) — surgical and safe.
@@ -100,6 +110,8 @@ Each of these is a success: the module text is written. The state is never switc
 When the step cannot finish, the call returns an error with `mutationCommitted:true`: the module text IS written - do not re-send the original edit. The error names the cause and the fix: EDT's model of the extension was not available - a transient window in which an adopted object cannot be told from an own one, so this error can come for any module of the extension, its own objects included; the step failed; or the state is `Extended` in EDT's model - switched or already - but its `.mdo` export was not confirmed: the `.mdo`, read back, did not carry its line within 60s or could not be read back, or the export could not be scheduled and the `.mdo`, read once if time was left and no earlier read of the project's files was out, was not seen carrying it. The root's ordinary-application module is the exception: EDT does not list it among the properties an extension can extend, so none of these fails a write into it - the body notes it instead. To run the step again, call `write_module_source` on the same module with `mode=append` and an empty `source`: it rewrites the module's current text, line ends normalized (add `skipSyntaxCheck=true` if the module was written with it).
 
 Not covered - these modules are written as text only, so set their state to `Extended` in EDT: the modules of an external data source's tables, cubes and dimension tables, and `Bot`, `IntegrationService` and `WebSocketClient` modules. A recalculation's record-set module has no extension state at all. A form module needs nothing: the form's own state (`<form>Extended</form>`) is set when the form is adopted.
+
+The empty-append retry above is available when review is disabled. With review enabled, byte-identical output returns `noChange` without running the adopted-module step. Inspect the module and metadata in EDT before recovering from a failed export.
 
 ## Examples
 

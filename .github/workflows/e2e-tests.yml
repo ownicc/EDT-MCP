@@ -405,6 +405,7 @@ jobs:
           # -vmargs REPLACES the eclipse.ini block, so repeat the osgi flags too.
           xvfb-run -a -s "-screen 0 1920x1080x24" \
             "$ECLIPSE/eclipse" -data "$WS" -clean -nosplash -consoleLog \
+            -pluginCustomization "$GITHUB_WORKSPACE/tests/e2e/plugin-customization.ini" \
             --launcher.suppressErrors \
             -vmargs \
             "-javaagent:$JACOCO_AGENT=output=tcpserver,address=127.0.0.1,port=6300,includes=com.ditrix.edt.mcp.*" \
