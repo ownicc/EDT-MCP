@@ -123,6 +123,29 @@ public class BslWriteReviewCommitTest
     }
 
     @Test
+    public void dirtyBufferForAnotherPathToTheSamePhysicalFileIsDetected() throws Exception
+    {
+        var directory = Files.createTempDirectory("bsl-review-alias");
+        var target = directory.resolve("module.bsl");
+        var alias = directory.resolve("alias.bsl");
+        try
+        {
+            Files.writeString(target, "old\r\n");
+            Files.createLink(alias, target);
+            ITextFileBuffer buffer = mock(ITextFileBuffer.class);
+            var store = mock(org.eclipse.core.filesystem.IFileStore.class);
+            when(buffer.isDirty()).thenReturn(true);
+            when(buffer.getLocation()).thenReturn(Path.fromOSString(alias.toString()));
+            when(buffer.getFileStore()).thenReturn(store);
+            when(store.toURI()).thenReturn(alias.toUri());
+            assertTrue("A dirty physical alias must not be overwritten",
+                BslWriteReviewCommit.isDirty(file(target, true), new IWorkbenchWindow[0],
+                    new ITextFileBuffer[] { buffer }));
+        }
+        finally { Files.deleteIfExists(alias); Files.deleteIfExists(target); Files.delete(directory); }
+    }
+
+    @Test
     public void timeoutRevokesAnApplicationBeforeMutationEntry()
     {
         var gate = new BslWriteReviewCommit.EntryGate();

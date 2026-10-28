@@ -6,7 +6,9 @@ package com.ditrix.edt.mcp.server.utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -283,7 +285,7 @@ public final class BslWriteReviewCommit
         {
             if (buffer.isDirty() && (Objects.equals(file.getFullPath(), buffer.getLocation())
                 || (file.getLocation() != null && file.getLocation().equals(buffer.getLocation()))
-                || (buffer.getFileStore() != null && Objects.equals(file.getLocationURI(), buffer.getFileStore().toURI()))))
+                || (buffer.getFileStore() != null && samePhysicalFile(file.getLocationURI(), buffer.getFileStore().toURI()))))
                 return true;
         }
         for (IWorkbenchWindow window : windows)
@@ -292,10 +294,19 @@ public final class BslWriteReviewCommit
                 {
                     var editor = reference.getEditor(false);
                     if (editor != null && editor.isDirty() && editor.getEditorInput() instanceof IFileEditorInput input
-                        && (file.equals(input.getFile()) || Objects.equals(file.getLocationURI(), input.getFile().getLocationURI())))
+                        && (file.equals(input.getFile()) || samePhysicalFile(file.getLocationURI(), input.getFile().getLocationURI())))
                         return true;
                 }
         return false;
+    }
+
+    private static boolean samePhysicalFile(URI left, URI right)
+    {
+        if (left == null || right == null) return false;
+        if (left.equals(right)) return true;
+        if (!"file".equalsIgnoreCase(left.getScheme()) || !"file".equalsIgnoreCase(right.getScheme())) return false;
+        try { return Files.isSameFile(Path.of(left), Path.of(right)); }
+        catch (java.io.IOException | IllegalArgumentException e) { return false; }
     }
 
     private static Outcome failure(String message)
