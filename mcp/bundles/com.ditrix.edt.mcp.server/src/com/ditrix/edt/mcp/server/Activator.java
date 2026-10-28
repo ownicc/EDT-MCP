@@ -46,6 +46,8 @@ import com.ditrix.edt.mcp.server.bridge.EdtMcpBridge;
 import com.ditrix.edt.mcp.server.bridge.IEdtMcpBridge;
 import com.ditrix.edt.mcp.server.history.McpCallHistoryFileLog;
 import com.ditrix.edt.mcp.server.utils.BackgroundJobs;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
+import com.ditrix.edt.mcp.server.ui.BslWriteReviewUi;
 import com.ditrix.edt.mcp.server.utils.FormAttributeDeletion;
 import com.ditrix.edt.mcp.server.utils.Log;
 import com.ditrix.edt.mcp.server.utils.NativeRenderModeProbe;
@@ -166,6 +168,8 @@ public class Activator extends AbstractUIPlugin
 
         // Cancel Workmate conversations and stop their non-UI worker/deadline threads
         // before the bundle's services and class loader are torn down.
+        BslWriteReviews.shutdownShared();
+        BslWriteReviewUi.closePending();
         BackgroundJobs.shutdownShared();
 
         if (mcpServer != null && mcpServer.isRunning())

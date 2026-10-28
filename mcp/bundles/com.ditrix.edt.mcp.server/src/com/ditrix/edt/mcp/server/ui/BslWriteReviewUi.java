@@ -102,9 +102,17 @@ public final class BslWriteReviewUi
     /** Lifecycle cleanup is asynchronous, including when the caller holds the server monitor. */
     public static void closePending()
     {
-        if (!PlatformUI.isWorkbenchRunning()) return;
+        if (!PlatformUI.isWorkbenchRunning())
+        {
+            INPUTS.clear();
+            return;
+        }
         var display = PlatformUI.getWorkbench().getDisplay();
-        if (display.isDisposed()) return;
+        if (display.isDisposed())
+        {
+            INPUTS.clear();
+            return;
+        }
         display.asyncExec(() -> {
             for (BslWriteReviewInput input : INPUTS.values())
             {

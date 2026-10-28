@@ -26,6 +26,8 @@ import com.ditrix.edt.mcp.server.transport.HealthHandler;
 import com.ditrix.edt.mcp.server.transport.HttpTransport;
 import com.ditrix.edt.mcp.server.transport.InterruptibleToolExecutor;
 import com.ditrix.edt.mcp.server.transport.McpHttpHandler;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
+import com.ditrix.edt.mcp.server.ui.BslWriteReviewUi;
 import com.sun.net.httpserver.HttpServer;
 
 /**
@@ -177,6 +179,7 @@ public class McpServer
                 return t;
             });
         server.start();
+        BslWriteReviews.shared().beginGeneration();
         running = true;
         
         Activator.logInfo("MCP Server started on port " + port); //$NON-NLS-1$
@@ -263,6 +266,8 @@ public class McpServer
      */
     public synchronized void stop()
     {
+        BslWriteReviews.cancelSharedPending("server-stopped");
+        BslWriteReviewUi.closePending();
         if (server != null)
         {
             server.stop(1);

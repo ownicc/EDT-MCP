@@ -149,6 +149,12 @@ public final class BslWriteReviews implements AutoCloseable
         shared = null;
     }
 
+    /** Server shutdown must not instantiate a registry that has never been used. */
+    public static synchronized void cancelSharedPending(String reason)
+    {
+        if (shared != null) shared.cancelPending(reason);
+    }
+
     public synchronized long projectToken(String projectName)
     {
         return projectTokens.getOrDefault(projectName, 0L);

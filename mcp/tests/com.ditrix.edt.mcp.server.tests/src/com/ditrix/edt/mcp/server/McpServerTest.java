@@ -29,6 +29,68 @@ public class McpServerTest
     private static final int PORT = 8765;
 
     @Test
+    public void serverStopRevokesAwaitingProposal()
+    {
+        var reviews = com.ditrix.edt.mcp.server.utils.BslWriteReviews.shared();
+        var write = new com.ditrix.edt.mcp.server.utils.PreparedBslWrite("p", "file:/p", 0,
+            "a.bsl", "file:/p/a.bsl", false, "", "", "new", new byte[] { 1 }, 0, 1, "replace", false, null);
+        String id = reviews.register(write, "x", (key, value) -> { fail("Stopped review must not apply"); return null; })
+            .snapshot().reviewId();
+        try
+        {
+            new McpServer().stop();
+            reviews.apply(id);
+            assertEquals(com.ditrix.edt.mcp.server.utils.BslWriteReviews.State.CANCELLED, reviews.get(id).status());
+        }
+        finally { com.ditrix.edt.mcp.server.utils.BslWriteReviews.shutdownShared(); }
+    }
+
+    @Test
+    public void successfulStartAndRestartBeginNewReviewGenerations() throws Exception
+    {
+        var reviews = com.ditrix.edt.mcp.server.utils.BslWriteReviews.shared();
+        var write = new com.ditrix.edt.mcp.server.utils.PreparedBslWrite("p", "file:/p", 0,
+            "a.bsl", "file:/p/a.bsl", false, "", "", "new", new byte[] { 1 }, 0, 1, "replace", false, null);
+        String beforeStart = reviews.register(write, "x", (key, value) -> null).snapshot().reviewId();
+        McpServer server = new McpServer()
+        {
+            @Override BindConfig readBindConfig() { return new BindConfig(false, null); }
+        };
+        try
+        {
+            server.start(0);
+            assertEquals(com.ditrix.edt.mcp.server.utils.BslWriteReviews.State.CANCELLED, reviews.get(beforeStart).status());
+            String beforeStop = reviews.register(write, "x", (key, value) -> null).snapshot().reviewId();
+            server.stop();
+            server.start(0);
+            reviews.apply(beforeStop);
+            assertEquals(com.ditrix.edt.mcp.server.utils.BslWriteReviews.State.CANCELLED, reviews.get(beforeStop).status());
+            assertNotNull(reviews.register(write, "x", (key, value) -> null).snapshot());
+        }
+        finally { server.stop(); com.ditrix.edt.mcp.server.utils.BslWriteReviews.shutdownShared(); }
+    }
+
+    @Test
+    public void refusedStartupLeavesExistingReviewsIntact() throws Exception
+    {
+        var reviews = com.ditrix.edt.mcp.server.utils.BslWriteReviews.shared();
+        var write = new com.ditrix.edt.mcp.server.utils.PreparedBslWrite("p", "file:/p", 0,
+            "a.bsl", "file:/p/a.bsl", false, "", "", "new", new byte[] { 1 }, 0, 1, "replace", false, null);
+        String id = reviews.register(write, "x", (key, value) -> null).snapshot().reviewId();
+        McpServer server = new McpServer()
+        {
+            @Override BindConfig readBindConfig() { return new BindConfig(true, ""); }
+        };
+        try
+        {
+            try { server.start(0); fail("Unauthenticated remote startup must be refused"); }
+            catch (IOException expected) { }
+            assertEquals(com.ditrix.edt.mcp.server.utils.BslWriteReviews.State.AWAITING_APPROVAL, reviews.get(id).status());
+        }
+        finally { com.ditrix.edt.mcp.server.utils.BslWriteReviews.shutdownShared(); }
+    }
+
+    @Test
     public void testRemoteAccessWithNoTokenIsRefused()
     {
         String refusal = McpServer.remoteBindRefusal(true, "", PORT);
