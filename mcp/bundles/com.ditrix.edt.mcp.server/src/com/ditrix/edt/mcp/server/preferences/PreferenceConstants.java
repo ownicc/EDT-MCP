@@ -150,6 +150,9 @@ public final class PreferenceConstants
 
     // === Destructive-operation consent preferences ===
 
+    /** Human review of every changing BSL write; independent of destructive consent. */
+    public static final String PREF_BSL_WRITE_REVIEW_ENABLED = "bslWriteReviewEnabled"; //$NON-NLS-1$
+
     /**
      * Consent level for destructive MCP write operations. One of the level tokens
      * below; controls whether the human is asked for consent before a destructive

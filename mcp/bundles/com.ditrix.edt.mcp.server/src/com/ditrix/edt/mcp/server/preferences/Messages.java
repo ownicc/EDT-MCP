@@ -138,6 +138,9 @@ public class Messages extends NLS {
     public static String PiiRuleDialog_InvalidRegexMessage; // NOSONAR Eclipse NLS field: value injected by NLS.initializeMessages, cannot be final; Eclipse NLS field name must equal its .properties key
     public static String PiiRuleDialog_EmptyRegexMessage; // NOSONAR Eclipse NLS field: value injected by NLS.initializeMessages, cannot be final; Eclipse NLS field name must equal its .properties key
 
+    public static String GeneralTab_BslWriteReview; // NOSONAR Eclipse NLS field
+    public static String GeneralTab_BslWriteReview_Tooltip; // NOSONAR Eclipse NLS field
+
     static {
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);
     }

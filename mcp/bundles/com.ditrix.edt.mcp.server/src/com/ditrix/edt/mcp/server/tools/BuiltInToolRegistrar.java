@@ -49,6 +49,7 @@ import com.ditrix.edt.mcp.server.tools.impl.GetEventLogTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetFormLayoutSnapshotTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetFormScreenshotTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetJobStatusTool;
+import com.ditrix.edt.mcp.server.tools.impl.GetWriteReviewStatusTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetMarkersTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetMcpHistoryTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetMetadataDetailsTool;
@@ -229,6 +230,7 @@ public final class BuiltInToolRegistrar
         // BSL code analysis tools
         catalogue.add(new ReadModuleSourceTool());
         catalogue.add(new WriteModuleSourceTool());
+        catalogue.add(new GetWriteReviewStatusTool());
         catalogue.add(new GetModuleStructureTool());
         catalogue.add(new ListModulesTool());
         catalogue.add(new SearchInCodeTool());

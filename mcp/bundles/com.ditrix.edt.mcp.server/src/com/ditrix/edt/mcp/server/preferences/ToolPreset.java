@@ -238,6 +238,7 @@ public enum ToolPreset
         disabled.addAll(ToolGroup.APPLICATIONS.getToolNames());
         disabled.addAll(ToolGroup.DEBUG.getToolNames());
         disabled.addAll(ToolGroup.BSL_CODE.getToolNames());
+        disabled.remove("get_write_review_status"); // Polling remains available for outstanding reviews.
         disabled.addAll(ToolGroup.REFACTORING.getToolNames());
         disabled.addAll(ToolGroup.TRANSLATION.getToolNames());
         disabled.addAll(ReadOnlyPolicy.READ_ONLY_EXCLUDED_BY_NAME);

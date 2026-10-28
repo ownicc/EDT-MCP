@@ -6,7 +6,8 @@
 
 package com.ditrix.edt.mcp.server.preferences;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import org.junit.Test;
 
@@ -68,4 +69,44 @@ public class ConsentSettingsServiceTest
             assertEquals(level, Level.fromPreferenceValue(level.getPreferenceValue()));
         }
     }
+    @Test
+    public void missingStoreStillRequiresReview() throws Exception
+    {
+        var field = com.ditrix.edt.mcp.server.Activator.class.getDeclaredField("plugin");
+        field.setAccessible(true);
+        Object saved = field.get(null);
+        try
+        {
+            field.set(null, null);
+            assertTrue(ConsentSettingsService.getInstance().isBslWriteReviewEnabled());
+        }
+        finally { field.set(null, saved); }
+    }
+
+    @Test
+    public void upgradesDefaultOnAndExplicitOptOutIsIndependentOfDestructiveConsent() throws Exception
+    {
+        var store = new org.eclipse.jface.preference.PreferenceStore();
+        var plugin = mock(com.ditrix.edt.mcp.server.Activator.class);
+        when(plugin.getPreferenceStore()).thenReturn(store);
+        var field = com.ditrix.edt.mcp.server.Activator.class.getDeclaredField("plugin");
+        field.setAccessible(true);
+        Object saved = field.get(null);
+        try
+        {
+            field.set(null, plugin);
+            var service = ConsentSettingsService.getInstance();
+            assertTrue(service.isBslWriteReviewEnabled());
+            new PreferenceInitializer().initializeDefaultPreferences();
+            service.setLevel(Level.ALLOW_ALL);
+            assertTrue(service.isBslWriteReviewEnabled());
+            service.setBslWriteReviewEnabled(false);
+            assertFalse(service.isBslWriteReviewEnabled());
+            assertEquals(Level.ALLOW_ALL, service.getLevel());
+            store.setToDefault(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED);
+            assertTrue(service.isBslWriteReviewEnabled());
+        }
+        finally { field.set(null, saved); }
+    }
+
 }

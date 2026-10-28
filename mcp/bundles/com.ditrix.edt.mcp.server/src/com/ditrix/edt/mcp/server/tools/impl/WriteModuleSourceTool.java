@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -31,6 +32,9 @@ import org.eclipse.core.runtime.preferences.IScopeContext;
 import org.eclipse.core.runtime.preferences.InstanceScope;
 
 import com.ditrix.edt.mcp.server.protocol.JsonSchemaBuilder;
+import com.ditrix.edt.mcp.server.protocol.GsonProvider;
+import com.ditrix.edt.mcp.server.preferences.ConsentSettingsService;
+import com.ditrix.edt.mcp.server.ui.BslWriteReviewUi;
 import com.ditrix.edt.mcp.server.protocol.JsonUtils;
 import com.ditrix.edt.mcp.server.protocol.ToolResult;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
@@ -90,7 +94,8 @@ public class WriteModuleSourceTool implements IMcpTool
     @Override
     public String getDescription()
     {
-        return "Create or edit BSL source in a metadata module. Parameters and examples: " //$NON-NLS-1$
+        return "Create or edit BSL source in a metadata module. When reviewId is returned, poll get_write_review_status; "
+            + "only human approval in EDT applies the change. Parameters and examples: " //$NON-NLS-1$
             + "get_tool_guide('write_module_source')."; //$NON-NLS-1$
     }
 
@@ -151,6 +156,12 @@ public class WriteModuleSourceTool implements IMcpTool
     }
 
     @Override
+    public ResponseType getResponseType(Map<String, String> params, String result)
+    {
+        return result != null && result.stripLeading().startsWith("{") ? ResponseType.JSON : ResponseType.MARKDOWN;
+    }
+
+    @Override
     public String getResultFileName(Map<String, String> params)
     {
         String modulePath = JsonUtils.extractStringArgument(params, MODULE_PATH);
@@ -165,6 +176,7 @@ public class WriteModuleSourceTool implements IMcpTool
     @Override
     public String execute(Map<String, String> params)
     {
+        boolean reviewEnabled = ConsentSettingsService.getInstance().isBslWriteReviewEnabled();
         // 1. Extract and default the request parameters.
         WriteRequest req = WriteRequest.from(params);
 
@@ -213,6 +225,13 @@ public class WriteModuleSourceTool implements IMcpTool
                     ". Only 'replace' mode can create new files.").toJson(); //$NON-NLS-1$
             }
 
+            if (reviewEnabled)
+            {
+                if (!project.isOpen()) return ToolResult.error("Open the project in EDT before submitting a BSL review.").toJson();
+                String refusal = BslWriteReviewCommit.preparationRefusal(file);
+                if (refusal != null) return ToolResult.error(refusal).toJson();
+            }
+
             // 6. The metadata root, resolved ONCE and here - where the vendor guard always resolved it, so
             // the order of the refusals is unchanged - for the guard and for the adopted-module step after
             // the write (#711). Then vendor support: the module and the object that owns it must be
@@ -228,10 +247,12 @@ public class WriteModuleSourceTool implements IMcpTool
                 return locked;
             }
 
-            return writeModule(req, file, fileExists, root.scope(), mutationEntered, mutationCommitted);
+            return reviewEnabled ? reviewWrite(req, file)
+                : writeModule(req, file, fileExists, root.scope(), mutationEntered, mutationCommitted);
         }
         catch (Exception e)
         {
+            if (!mutationEntered.get() && ToolResult.isErrorPayload(e.getMessage())) return e.getMessage();
             String refusal = Refusals.messageOf(e);
             String message = refusal != null && !mutationEntered.get() ? refusal
                 : (mutationEntered.get() ? "Failed to write file: " : "Failed to prepare module write: ") //$NON-NLS-1$ //$NON-NLS-2$
@@ -512,11 +533,51 @@ public class WriteModuleSourceTool implements IMcpTool
                 encodeOutput(computed.newLines, hasBom, delimiter), fix.summary());
     }
 
+    private String reviewWrite(WriteRequest req, IFile file) throws Exception
+    {
+        String digest = requestDigest(req);
+        PreparedBslWrite write = prepareReviewedWrite(req, file);
+        if (write.baseExists() && write.baseHash().equals(PreparedBslWrite.sha256(write.outputBytes())))
+            return ToolResult.success().put("status", "noChange").put("applied", false)
+                .put("mutationCommitted", false).put(PROJECT_NAME, write.projectName())
+                .put(MODULE_PATH, write.modulePath()).toJson();
+        BslWriteReviews reviews = BslWriteReviews.shared();
+        var admission = reviews.register(write, digest, (id, accepted) -> BslWriteReviewCommit.commit(accepted,
+            () -> reviews.tryEnterMutation(id), this::finishReviewedWrite));
+        if (admission.errorJson() != null) return admission.errorJson();
+        String id = admission.snapshot().reviewId();
+        if (admission.reused()) BslWriteReviewUi.focus(id);
+        else
+        {
+            String error = BslWriteReviewUi.open(write, id);
+            if (error != null) return error;
+        }
+        var current = reviews.get(id);
+        return current == null ? ToolResult.error("Review status is no longer retained. Read the module before retrying.").toJson()
+            : current.toJson();
+    }
+
+    /** All effective public behavior arguments, defaulted and ordered, without resource handles. */
+    private static String requestDigest(WriteRequest req)
+    {
+        Map<String, Object> arguments = new TreeMap<>();
+        arguments.put(PROJECT_NAME, req.projectName);
+        arguments.put(MODULE_PATH, req.modulePath);
+        arguments.put("mode", req.mode);
+        arguments.put("source", req.source);
+        arguments.put("oldSource", req.oldSource);
+        arguments.put("methodName", req.methodName);
+        arguments.put("skipSyntaxCheck", req.skipSyntaxCheck);
+        arguments.put("normalizeInvalidCharacters", req.normalizeInvalidCharacters);
+        arguments.put("expectedSource", req.expectedSource);
+        arguments.put("expectedHash", req.expectedHash);
+        arguments.put("overwrite", req.overwrite);
+        return PreparedBslWrite.sha256(GsonProvider.toJson(arguments).getBytes(StandardCharsets.UTF_8));
+    }
+
     private PreparedBslWrite prepareReviewedWrite(WriteRequest req, IFile file) throws Exception
     {
         long token = BslWriteReviews.shared().projectToken(req.projectName);
-        String dirty = BslWriteReviewCommit.preparationRefusal(file);
-        if (dirty != null) throw new IllegalStateException(dirty);
         boolean exists = file.exists();
         byte[] raw = exists ? BslWriteReviewCommit.readBytes(file) : new byte[0];
         boolean bom = raw.length >= 3 && raw[0] == UTF8_BOM[0]

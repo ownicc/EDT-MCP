@@ -54,6 +54,8 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer
         store.setDefault(PreferenceConstants.PREF_AUTH_TOKEN,
             PreferenceConstants.DEFAULT_AUTH_TOKEN);
 
+        store.setDefault(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED, true);
+
         // Destructive-operation consent (default: always ask)
         store.setDefault(PreferenceConstants.PREF_DESTRUCTIVE_CONSENT_LEVEL,
             PreferenceConstants.DEFAULT_DESTRUCTIVE_CONSENT_LEVEL);

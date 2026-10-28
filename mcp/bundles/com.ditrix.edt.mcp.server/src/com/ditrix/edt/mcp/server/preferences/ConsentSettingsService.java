@@ -151,6 +151,21 @@ public final class ConsentSettingsService // NOSONAR intentional singleton (Ecli
         return toolName != null && getAllowedTools().contains(toolName);
     }
 
+    /** Defaults on for upgrades and for unavailable preference stores. */
+    public boolean isBslWriteReviewEnabled()
+    {
+        IPreferenceStore store = getStore();
+        return store == null || !store.contains(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED)
+            || store.getBoolean(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED);
+    }
+
+    /** Used by the human preference UI, never by an MCP tool. */
+    public void setBslWriteReviewEnabled(boolean enabled)
+    {
+        IPreferenceStore store = getStore();
+        if (store != null) store.setValue(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED, enabled);
+    }
+
     private IPreferenceStore getStore()
     {
         Activator activator = Activator.getDefault();

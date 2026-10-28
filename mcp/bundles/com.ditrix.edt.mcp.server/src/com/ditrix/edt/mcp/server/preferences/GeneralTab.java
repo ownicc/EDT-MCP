@@ -62,6 +62,7 @@ public class GeneralTab
     private Button showTagsCheck;
     private Combo tagStyleCombo;
     private Combo consentLevelCombo;
+    private Button bslWriteReviewCheck;
     private Combo updateCheckCombo;
     private Label statusLabel;
     private Label endpointLabel;
@@ -255,6 +256,14 @@ public class GeneralTab
         consentLevelCombo.select(levelIndex);
         consentLevelCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
         createLabel(""); //$NON-NLS-1$
+
+        bslWriteReviewCheck = new Button(composite, SWT.CHECK);
+        bslWriteReviewCheck.setText(Messages.GeneralTab_BslWriteReview);
+        bslWriteReviewCheck.setToolTipText(Messages.GeneralTab_BslWriteReview_Tooltip);
+        bslWriteReviewCheck.setSelection(ConsentSettingsService.getInstance().isBslWriteReviewEnabled());
+        GridData reviewData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+        reviewData.horizontalSpan = 3;
+        bslWriteReviewCheck.setLayoutData(reviewData);
 
         // The PII redaction master toggle lives on the dedicated Privacy tab
         // (see PrivacyTab); it is not duplicated here.
@@ -681,6 +690,7 @@ public class GeneralTab
      */
     public void performOk()
     {
+        ConsentSettingsService.getInstance().setBslWriteReviewEnabled(bslWriteReviewCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_PORT, portSpinner.getSelection());
         store.setValue(PreferenceConstants.PREF_AUTO_START, autoStartCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_CHECKS_FOLDER, checksFolderText.getText());
@@ -723,6 +733,7 @@ public class GeneralTab
      */
     public void performDefaults()
     {
+        bslWriteReviewCheck.setSelection(true);
         portSpinner.setSelection(PreferenceConstants.DEFAULT_PORT);
         autoStartCheck.setSelection(PreferenceConstants.DEFAULT_AUTO_START);
         checksFolderText.setText(PreferenceConstants.DEFAULT_CHECKS_FOLDER);
