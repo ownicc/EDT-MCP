@@ -52,6 +52,7 @@ import org.eclipse.emf.common.util.BasicEList;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
+import org.eclipse.jface.preference.PreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.junit.After;
 import org.junit.Before;
@@ -63,6 +64,7 @@ import com._1c.g5.v8.dt.core.platform.IConfigurationProvider;
 import com._1c.g5.v8.dt.metadata.mdclass.Configuration;
 import com._1c.g5.v8.dt.metadata.mdclass.MdClassFactory;
 import com.ditrix.edt.mcp.server.Activator;
+import com.ditrix.edt.mcp.server.preferences.PreferenceConstants;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.tools.symbol.SymbolInfoService;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
@@ -116,6 +118,12 @@ public class ModulePathCaseRoundTwoTest
         replace(null, workbenchType.getDeclaredField("instance"), workbench);
 
         Activator activator = mock(Activator.class);
+        // These path/IO regressions exercise the explicit direct-write preference.
+        // Default-on approval and its workbench requirements have separate coverage.
+        PreferenceStore preferences = new PreferenceStore();
+        preferences.setDefault(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED, true);
+        preferences.setValue(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED, false);
+        when(activator.getPreferenceStore()).thenReturn(preferences);
         IConfigurationProvider provider = mock(IConfigurationProvider.class);
         Configuration config = MdClassFactory.eINSTANCE.createConfiguration();
         config.setName("CaseFixture");

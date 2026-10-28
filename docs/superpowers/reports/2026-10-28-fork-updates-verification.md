@@ -33,3 +33,14 @@
 - Повторный выпуск: `v1.0.2`, коммит `db4be5ba`. Старый тег не переписывался.
 - В профиле текущей установки EDT источник ditrixnew.github.io не зарегистрирован;
   установлен предыдущий наш локальный ZIP. Работающий EDT не перезапускался.
+- Полный CI `v1.0.2`: 12 006 Java-тестов, 4 падения, 5 пропусков. Все падения
+  в старой тестовой среде `ModulePathCaseRoundTwoTest`, которая не задавала
+  прямую запись при включённом по умолчанию diff. Падали
+  `firstModuleWriteCreatesInsideCanonicalParent`, `writeResponseEchoesCanonicalModulePath`,
+  `preparationFailureDoesNotClaimAWriteWasAttempted`, `objectNameFirstModuleWriteUsesCanonicalParent`.
+  Локально воспроизведены те же 4 падения из 30. Исправлена только тестовая
+  среда: отдельный PreferenceStore с явным отключением review; прежний Activator
+  восстанавливается существующим tearDown. Повторный локальный прогон:
+  ModulePathCaseRoundTwoTest + WriteModuleSourceReviewTest + ConsentSettingsServiceTest
+  + BslWriteReviewsTest — 50 тестов, 0 ошибок/падений, BUILD SUCCESS.
+- Повторный полный CI запускается для `v1.0.3`; теги не переписываются.
