@@ -9,6 +9,8 @@ package com.ditrix.edt.mcp.server.tools.impl;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +36,9 @@ import com.ditrix.edt.mcp.server.protocol.ToolResult;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.AdoptedModuleState;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
+import com.ditrix.edt.mcp.server.utils.PreparedBslWrite;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviewCommit;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
 import com.ditrix.edt.mcp.server.utils.BslSyntaxChecker;
 import com.ditrix.edt.mcp.server.utils.ContentHash;
 import com.ditrix.edt.mcp.server.utils.FrontMatter;
@@ -295,7 +300,7 @@ public class WriteModuleSourceTool implements IMcpTool
      * did; {@code modulePath} is mutable because {@link #resolveModuleTarget} may resolve it
      * from {@code objectName}.
      */
-    private static final class WriteRequest
+    static final class WriteRequest
     {
         final String projectName;
         String modulePath;
@@ -483,6 +488,64 @@ public class WriteModuleSourceTool implements IMcpTool
             () -> AdoptedModuleState.ensureExtended(file.getProject(), scope, file.getProjectRelativePath().toString()),
             moduleState -> buildSuccessResponse(req.projectName, req.modulePath, req.mode, req.skipSyntaxCheck,
                 newLines, fileExists, totalOriginal, charFix.summary(), moduleState));
+    }
+
+    record ContentPreparation(String error, List<String> lines, byte[] outputBytes,
+        String normalizedCharacters) { }
+
+    /** Computes all six modes against one detached base; never rereads a workspace file. */
+    static ContentPreparation prepareContent(WriteRequest req, String base, boolean exists,
+        boolean hasBom, String delimiter)
+    {
+        req.source = req.source.replace("\r\n", "\n");
+        InvalidFileCharacters.Result fix = req.normalizeInvalidCharacters
+            ? InvalidFileCharacters.normalize(req.source) : InvalidFileCharacters.unchanged(req.source);
+        req.source = fix.text();
+        String current = base.replace("\r\n", "\n");
+        String error = evaluateExpectedHash(current, req.expectedHash, exists);
+        if (error != null) return new ContentPreparation(error, null, null, null);
+        NewLinesResult computed = computeNewLines(req, exists, splitSourceLines(base), current);
+        if (computed.error != null) return new ContentPreparation(computed.error, null, null, null);
+        error = req.skipSyntaxCheck ? null : runSyntaxCheck(computed.newLines);
+        return error != null ? new ContentPreparation(error, null, null, null)
+            : new ContentPreparation(null, List.copyOf(computed.newLines),
+                encodeOutput(computed.newLines, hasBom, delimiter), fix.summary());
+    }
+
+    private PreparedBslWrite prepareReviewedWrite(WriteRequest req, IFile file) throws Exception
+    {
+        long token = BslWriteReviews.shared().projectToken(req.projectName);
+        String dirty = BslWriteReviewCommit.preparationRefusal(file);
+        if (dirty != null) throw new IllegalStateException(dirty);
+        boolean exists = file.exists();
+        byte[] raw = exists ? BslWriteReviewCommit.readBytes(file) : new byte[0];
+        boolean bom = raw.length >= 3 && raw[0] == UTF8_BOM[0]
+            && raw[1] == UTF8_BOM[1] && raw[2] == UTF8_BOM[2];
+        Charset charset = bom || !exists ? StandardCharsets.UTF_8 : Charset.forName(file.getCharset());
+        String base = new String(raw, bom ? 3 : 0, raw.length - (bom ? 3 : 0), charset);
+        ContentPreparation content = prepareContent(req, base, exists, !exists || bom,
+            resolveLineDelimiter(file.getProject(), exists ? base : null));
+        if (content.error() != null) throw new IllegalStateException(content.error());
+        String proposed = new String(content.outputBytes(), StandardCharsets.UTF_8);
+        if (proposed.startsWith("\uFEFF")) proposed = proposed.substring(1);
+        return new PreparedBslWrite(req.projectName, file.getProject().getLocationURI().toString(), token,
+            req.modulePath, BslWriteReviewCommit.canonicalLocation(file), exists,
+            PreparedBslWrite.sha256(raw), base, proposed, content.outputBytes(),
+            splitSourceLines(base).size(), content.lines().size(), req.mode, req.skipSyntaxCheck,
+            content.normalizedCharacters());
+    }
+
+    private String finishReviewedWrite(PreparedBslWrite write)
+    {
+        ProjectContext ctx = ProjectContext.of(write.projectName());
+        ProjectContext.ConfigurationResult root = ctx.resolveMetadataRoot();
+        if (!root.ok()) return ToolResult.markErrorAfterMutation(root.errorJson());
+        IFile file = BslModuleUtils.resolveModuleFile(ctx.project(), write.modulePath());
+        return finishWrite(
+            () -> AdoptedModuleState.ensureExtended(ctx.project(), root.scope(), file.getProjectRelativePath().toString()),
+            state -> buildSuccessResponse(write.projectName(), write.modulePath(), write.mode(),
+                write.skipSyntaxCheck(), splitSourceLines(write.proposedText()), write.baseExists(),
+                write.linesBefore(), write.normalizedCharacters(), state));
     }
 
     /**
@@ -704,6 +767,16 @@ public class WriteModuleSourceTool implements IMcpTool
     private NewLinesResult computeNewLines(WriteRequest req, IFile file, boolean fileExists,
         List<String> originalLines) throws Exception
     {
+        String currentText = (MODE_SEARCH_REPLACE.equals(req.mode)
+            || (MODE_REPLACE.equals(req.mode) && req.expectedSource != null
+                && (req.expectedHash == null || req.expectedHash.isEmpty())))
+            ? BslModuleUtils.readFileText(file).replace("\r\n", "\n") : null;
+        return computeNewLines(req, fileExists, originalLines, currentText);
+    }
+
+    private static NewLinesResult computeNewLines(WriteRequest req, boolean fileExists,
+        List<String> originalLines, String currentText)
+    {
         String source = req.source;
         switch (req.mode)
         {
@@ -720,7 +793,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 if (fileExists && !hashGuardSatisfied)
                 {
                     String preconditionError =
-                        checkReplacePrecondition(file, req.expectedSource, req.overwrite);
+                        evaluateReplacePrecondition(currentText, req.expectedSource, req.overwrite);
                     if (preconditionError != null)
                     {
                         return new NewLinesResult(preconditionError, null);
@@ -744,7 +817,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 // String.join dropped that final newline, so an oldSource fragment
                 // that ended at EOF (including the final newline) was reported
                 // "not found".
-                String currentContent = BslModuleUtils.readFileText(file).replace("\r\n", "\n"); //$NON-NLS-1$ //$NON-NLS-2$
+                String currentContent = currentText;
 
                 SearchReplaceResult sr = applySearchReplace(currentContent, oldSource, source);
                 if (sr.occurrences == 0)
@@ -1468,27 +1541,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private void writeFile(IFile file, List<String> lines, boolean withBom,
         boolean fileExists, String lineDelimiter) throws Exception
     {
-        String content = String.join(lineDelimiter, lines);
-
-        // Ensure file ends with a newline, in the file's own delimiter
-        if (!content.endsWith(lineDelimiter))
-        {
-            content += lineDelimiter;
-        }
-
-        byte[] contentBytes = content.getBytes("UTF-8"); //$NON-NLS-1$
-
-        byte[] output;
-        if (withBom)
-        {
-            output = new byte[UTF8_BOM.length + contentBytes.length];
-            System.arraycopy(UTF8_BOM, 0, output, 0, UTF8_BOM.length);
-            System.arraycopy(contentBytes, 0, output, UTF8_BOM.length, contentBytes.length);
-        }
-        else
-        {
-            output = contentBytes;
-        }
+        byte[] output = encodeOutput(lines, withBom, lineDelimiter);
 
         InputStream stream = new ByteArrayInputStream(output);
 
@@ -1502,6 +1555,33 @@ public class WriteModuleSourceTool implements IMcpTool
             createParentFolders(file);
             file.create(stream, true, null);
         }
+    }
+
+    static byte[] encodeOutput(List<String> lines, boolean withBom, String lineDelimiter)
+    {
+        String content = String.join(lineDelimiter, lines);
+
+        // Ensure file ends with a newline, in the file's own delimiter
+        if (!content.endsWith(lineDelimiter))
+        {
+            content += lineDelimiter;
+        }
+
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8); //$NON-NLS-1$
+
+        byte[] output;
+        if (withBom)
+        {
+            output = new byte[UTF8_BOM.length + contentBytes.length];
+            System.arraycopy(UTF8_BOM, 0, output, 0, UTF8_BOM.length);
+            System.arraycopy(contentBytes, 0, output, UTF8_BOM.length, contentBytes.length);
+        }
+        else
+        {
+            output = contentBytes;
+        }
+
+        return output;
     }
 
     /**

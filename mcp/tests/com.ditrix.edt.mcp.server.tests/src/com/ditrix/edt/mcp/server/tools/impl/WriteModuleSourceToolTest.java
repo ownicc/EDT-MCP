@@ -2792,4 +2792,58 @@ public class WriteModuleSourceToolTest
         int to = guide.indexOf('\n', at);
         return guide.substring(guide.lastIndexOf('\n', at) + 1, to < 0 ? guide.length() : to);
     }
+    @Test
+    public void encodedOutputPreservesCrLfAndFinalNewline()
+    {
+        assertArrayEquals("a\r\nb\r\n".getBytes(java.nio.charset.StandardCharsets.UTF_8),
+            WriteModuleSourceTool.encodeOutput(List.of("a", "b"), false, "\r\n"));
+        assertArrayEquals(new byte[] { (byte)239, (byte)187, (byte)191, 97, 10 },
+            WriteModuleSourceTool.encodeOutput(List.of("a"), true, "\n"));
+        assertArrayEquals(new byte[] { 10 }, WriteModuleSourceTool.encodeOutput(List.of(), false, "\n"));
+    }
+
+    @Test
+    public void preparesEveryModeFromTheProvidedSnapshotWithoutFileAccess()
+    {
+        String base = "Procedure Anchor()\n    Old();\nEndProcedure\n";
+        String incoming = "Procedure Added()\nEndProcedure";
+        String[] modes = { "replace", "append", "searchReplace", "replaceMethod", "insertBefore", "insertAfter" };
+        String[] expected = {
+            incoming + "\n", base + incoming + "\n",
+            "Procedure Anchor()\n    New();\nEndProcedure\n", "Procedure Anchor()\nEndProcedure\n",
+            incoming + "\n" + base, base + incoming + "\n"
+        };
+        for (int i = 0; i < modes.length; i++)
+        {
+            Map<String,String> params = new HashMap<>();
+            params.put("projectName", "Project"); params.put("mode", modes[i]);
+            params.put("source", modes[i].equals("searchReplace") ? "New();"
+                : modes[i].equals("replaceMethod") ? "Procedure Anchor()\nEndProcedure" : incoming);
+            params.put("oldSource", "Old();"); params.put("methodName", "Anchor");
+            params.put("expectedHash", ContentHash.of(base));
+            var prepared = WriteModuleSourceTool.prepareContent(WriteModuleSourceTool.WriteRequest.from(params),
+                base, true, false, "\n");
+            assertNull(modes[i] + ": " + prepared.error(), prepared.error());
+            assertEquals(modes[i], expected[i], new String(prepared.outputBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        }
+    }
+
+    @Test
+    public void preparationPreservesUnicodeAndNormalizedHashContract()
+    {
+        String base = "Процедура Якорь()\r\nКонецПроцедуры\r\n";
+        Map<String,String> params = new HashMap<>();
+        params.put("mode", "replaceMethod"); params.put("methodName", "Якорь");
+        params.put("source", "Процедура Якорь()\n    Возврат;\nКонецПроцедуры");
+        params.put("expectedHash", ContentHash.of(base));
+        var prepared = WriteModuleSourceTool.prepareContent(WriteModuleSourceTool.WriteRequest.from(params),
+            base, true, false, "\r\n");
+        assertNull(prepared.error());
+        assertEquals("Процедура Якорь()\r\n    Возврат;\r\nКонецПроцедуры\r\n",
+            new String(prepared.outputBytes(), java.nio.charset.StandardCharsets.UTF_8));
+        params.put("expectedHash", "outdated");
+        assertNotNull(WriteModuleSourceTool.prepareContent(WriteModuleSourceTool.WriteRequest.from(params),
+            base, true, false, "\r\n").error());
+    }
+
 }
