@@ -15,6 +15,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Update site validator tests
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
       # The MCP plugin is BUILT on 25: Tycho 5 needs Maven on JDK 21+, and tycho-surefire runs
       # the EDT 2026.2 platform bundles, which are Java 25. The bundle itself still compiles to
       # release 17 (mcp/bom/pom.xml), so one artifact keeps loading on EDT 2026.1.
@@ -49,9 +52,15 @@ jobs:
 
       - name: Extract version from tag
         id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          # tag: v1.26.0 → 1.26.0
-          VERSION="${GITHUB_REF_NAME#v}"
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Expected a stable release tag vX.Y.Z" >&2
+            exit 1
+          }
+          VERSION="${RELEASE_TAG#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Set version from tag
@@ -92,3 +101,13 @@ jobs:
             MCP-EDT.v*.zip
             edt-mcp-proxy-v*.jar
           generate_release_notes: true
+
+  deploy-update-site:
+    needs: release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-update-site.yml
+    with:
+      tag: ${{ github.ref_name }}

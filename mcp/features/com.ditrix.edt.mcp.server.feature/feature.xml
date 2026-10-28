@@ -18,8 +18,8 @@
     </license>
 
     <url>
-        <update label="EDT MCP Server Update Site" url="https://ditrixnew.github.io/EDT-MCP/"/>
-        <discovery label="EDT MCP Server Update Site" url="https://ditrixnew.github.io/EDT-MCP/"/>
+        <update label="EDT MCP Server — ownicc fork" url="https://ownicc.github.io/EDT-MCP/"/>
+        <discovery label="EDT MCP Server — ownicc fork" url="https://ownicc.github.io/EDT-MCP/"/>
     </url>
 
     <plugin

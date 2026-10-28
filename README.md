@@ -1,4 +1,8 @@
-[![GitHub all releases](https://img.shields.io/github/downloads/DitriXNew/EDT-MCP/total)](https://github.com/DitriXNew/EDT-MCP/releases)
+[![GitHub all releases](https://img.shields.io/github/downloads/ownicc/EDT-MCP/total)](https://github.com/ownicc/EDT-MCP/releases)
+
+> This is the **ownicc fork** of [DitriXNew/EDT-MCP](https://github.com/DitriXNew/EDT-MCP).
+> Install and update from this fork's releases and update site to retain its BSL diff approval.
+> See [fork update and release instructions](docs/FORK_UPDATES.md) (Russian).
 
 [![Build & Unit Tests](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml)
 [![Proxy](https://github.com/DitriXNew/EDT-MCP/actions/workflows/proxy.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/proxy.yml)
@@ -63,7 +67,7 @@ MCP (Model Context Protocol) server plugin for 1C:EDT, enabling AI assistants (C
 ### From Update Site
 
 1. In EDT: **Help → Install New Software...**
-2. Add update site URL: `https://ditrixnew.github.io/EDT-MCP/`
+2. Add update site URL: `https://ownicc.github.io/EDT-MCP/`
 3. Select **EDT MCP Server Feature**
 4. Restart EDT
 
@@ -77,7 +81,7 @@ set VER_EDT=2025.2.3+30
 
 "\your\path\to\EDT\components\1c-edt-%VER_EDT%-x86_64\1cedt.exe" -nosplash ^
     -application org.eclipse.equinox.p2.director ^
-    -repository https://ditrixnew.github.io/EDT-MCP/ ^
+    -repository https://ownicc.github.io/EDT-MCP/ ^
 	-installIU com.ditrix.edt.mcp.server.feature.feature.group ^
 	-profileProperties org.eclipse.update.reconcile=true
 ```
@@ -90,7 +94,12 @@ Once the installation has been completed successfully, we will see the following
 ![MCP Server After Install](img/AfterInstall.png)
 </details>
 
-After that, EDT will automatically monitor the update site and install available updates when detected.
+For an existing installation, disable `https://ditrixnew.github.io/EDT-MCP/` in
+**Preferences → Install/Update → Available Software Sites** and add the fork's site.
+Both builds use the same plugin IDs, so an original release can replace the fork.
+If the installed original version is higher than the fork's version, uninstall
+its feature, restart EDT, and install the fork; see [migration details](docs/FORK_UPDATES.md).
+EDT checks the enabled sites according to its automatic-update preferences.
 
 As well, we can also manually check via **Help → About → Installation Details → Select MCP → Update**
 

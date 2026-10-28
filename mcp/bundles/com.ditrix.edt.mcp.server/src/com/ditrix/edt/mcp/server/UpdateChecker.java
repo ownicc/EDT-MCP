@@ -35,11 +35,11 @@ public final class UpdateChecker // NOSONAR intentional singleton (Eclipse servi
 {
     /** GitHub API URL for the latest release. */
     private static final String RELEASES_API_URL =
-        "https://api.github.com/repos/DitriXNew/EDT-MCP/releases/latest"; //$NON-NLS-1$
+        "https://api.github.com/repos/ownicc/EDT-MCP/releases/latest"; //$NON-NLS-1$
 
     /** GitHub Releases page URL opened in a browser on "Download". */
     public static final String RELEASES_PAGE_URL =
-        "https://github.com/DitriXNew/EDT-MCP/releases/latest"; //$NON-NLS-1$
+        "https://github.com/ownicc/EDT-MCP/releases/latest"; //$NON-NLS-1$
 
     /** Initial delay before the very first check (ms). */
     private static final long INITIAL_DELAY_MS = 10_000L;

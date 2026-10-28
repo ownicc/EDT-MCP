@@ -26,6 +26,9 @@ jobs:
       - name: Validate business-project skills
         run: python3 docs/validate_agent_skills.py
 
+      - name: Update site validator tests
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
       - name: Tool documentation generator tests
         run: python3 -m unittest discover -s docs/tests -p "test_*.py" -v
 

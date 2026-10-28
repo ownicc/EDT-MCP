@@ -4,6 +4,17 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Stable release tag (vX.Y.Z); empty uses the latest stable release'
+        type: string
+        required: false
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Exact stable release tag to deploy'
+        type: string
+        required: true
 
 jobs:
   deploy:
@@ -22,33 +33,54 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Extract version
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
-          if [[ "$GITHUB_REF_NAME" == v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            # workflow_dispatch: use the latest published release tag
-            VERSION=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName -q '.[0].tagName | ltrimstr("v")')
+          set -euo pipefail
+          TAG="$REQUESTED_TAG"
+          if [[ -z "$TAG" ]]; then
+            TAG=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')
           fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Expected a stable release tag vX.Y.Z" >&2
+            exit 1
+          }
+          STABLE=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+            --jq '(.draft == false) and (.prerelease == false)')
+          [[ "$STABLE" == true ]] || { echo "Release is not stable" >&2; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Download release artifact
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
+          set -euo pipefail
           mkdir -p _site
-          gh release download "v${{ steps.version.outputs.version }}" \
+          gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
-            --pattern "MCP-EDT.v*.zip" \
+            --pattern "MCP-EDT.${RELEASE_TAG}.zip" \
             --output release.zip
           unzip -q release.zip -d _site/
+          python3 .github/scripts/validate-update-site.py _site "$RELEASE_VERSION"
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v6
 
       - name: Create index.html
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           cat > _site/index.html <<EOF
           <!DOCTYPE html>
           <html>
@@ -57,14 +89,11 @@ jobs:
             <h1>EDT MCP Server Update Site</h1>
             <p>Current version: <strong>${VERSION}</strong></p>
             <p>Use this URL in EDT: <strong>Help → Install New Software...</strong></p>
-            <pre>https://ditrixnew.github.io/EDT-MCP/</pre>
-            <p><a href="https://github.com/DitriXNew/EDT-MCP">GitHub Repository</a></p>
+            <pre>${SITE_URL}/</pre>
+            <p><a href="https://github.com/${GITHUB_REPOSITORY}">GitHub Repository</a></p>
           </body>
           </html>
           EOF
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
