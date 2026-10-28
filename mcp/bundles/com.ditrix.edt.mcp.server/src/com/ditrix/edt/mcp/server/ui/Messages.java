@@ -69,6 +69,21 @@ public class Messages extends NLS {
     public static String McpHistoryView_Top3None; // NOSONAR Eclipse NLS field: value injected by NLS.initializeMessages, cannot be final; Eclipse NLS field name must equal its .properties key
     public static String McpHistoryView_Top3Prefix; // NOSONAR Eclipse NLS field: value injected by NLS.initializeMessages, cannot be final; Eclipse NLS field name must equal its .properties key
 
+    public static String BslReview_Title; // NOSONAR Eclipse NLS field
+    public static String BslReview_Apply; // NOSONAR Eclipse NLS field
+    public static String BslReview_Reject; // NOSONAR Eclipse NLS field
+    public static String BslReview_Current; // NOSONAR Eclipse NLS field
+    public static String BslReview_Proposed; // NOSONAR Eclipse NLS field
+    public static String BslReview_NewFile; // NOSONAR Eclipse NLS field
+    public static String BslReview_Awaiting; // NOSONAR Eclipse NLS field
+    public static String BslReview_Applying; // NOSONAR Eclipse NLS field
+    public static String BslReview_Applied; // NOSONAR Eclipse NLS field
+    public static String BslReview_Rejected; // NOSONAR Eclipse NLS field
+    public static String BslReview_Stale; // NOSONAR Eclipse NLS field
+    public static String BslReview_Expired; // NOSONAR Eclipse NLS field
+    public static String BslReview_Cancelled; // NOSONAR Eclipse NLS field
+    public static String BslReview_Failed; // NOSONAR Eclipse NLS field
+
     static {
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);
     }
