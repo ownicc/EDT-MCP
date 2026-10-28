@@ -25,6 +25,29 @@ public class BslWriteReviewsTest
     }
 
     @Test
+    public void matchingCallersShareOpeningAcknowledgementAndFailure() throws Exception
+    {
+        try (BslWriteReviews reviews = new BslWriteReviews(Clock.systemUTC(), Runnable::run))
+        {
+            var first = reviews.register(write("a.bsl", "new"), "same", (id, value) -> null);
+            var duplicate = reviews.register(write("a.bsl", "new"), "same", (id, value) -> null);
+            String id = first.snapshot().reviewId();
+            assertTrue(duplicate.reused());
+            var opening = reviews.openingAcknowledgement(id);
+            assertSame(opening, reviews.openingAcknowledgement(duplicate.snapshot().reviewId()));
+            assertFalse("Registration is not evidence that editor controls exist", opening.isDone());
+            reviews.acknowledgeOpening(id);
+            assertTrue(opening.get(1, java.util.concurrent.TimeUnit.SECONDS));
+            String failed = reviews.register(write("b.bsl", "new"), "same", (key, value) -> null).snapshot().reviewId();
+            var failedOpening = reviews.openingAcknowledgement(failed);
+            reviews.failOpening(failed, "No active workbench page");
+            assertFalse(failedOpening.get(1, java.util.concurrent.TimeUnit.SECONDS));
+            reviews.acknowledgeOpening(failed);
+            assertFalse("A late editor cannot revive a failed opening", failedOpening.get());
+        }
+    }
+
+    @Test
     public void applyAtDeadlineCannotCommitBeforeExpiryTimerRuns()
     {
         TestClock clock = new TestClock();

@@ -31,7 +31,7 @@ public final class BslWriteReviewUi
         BslWriteReviews reviews = BslWriteReviews.shared();
         if (!PlatformUI.isWorkbenchRunning())
             return refuse(reviews, reviewId, "BSL review requires an EDT workbench. Open EDT or disable 'Review BSL changes before applying' in plugin preferences.");
-        CompletableFuture<Boolean> opened = new CompletableFuture<>();
+        CompletableFuture<Boolean> opened = reviews.openingAcknowledgement(reviewId);
         try
         {
             Display display = PlatformUI.getWorkbench().getDisplay();
@@ -52,7 +52,7 @@ public final class BslWriteReviewUi
                     input.created().thenAccept(control -> {
                         INPUTS.put(reviewId, input);
                         control.addDisposeListener(event -> INPUTS.remove(reviewId, input));
-                        opened.complete(true);
+                        reviews.acknowledgeOpening(reviewId);
                         var current = reviews.get(reviewId);
                         if (current == null || current.status() == State.CANCELLED || current.status() == State.FAILED)
                             close(input);
@@ -67,7 +67,29 @@ public final class BslWriteReviewUi
                 if (!opened.isDone()) return refuse(reviews, reviewId, "EDT could not create the review editor immediately. Retry from the MCP client.");
             }
             else display.asyncExec(open);
-            return opened.get(5, TimeUnit.SECONDS) ? null
+            return awaitOpening(reviews, reviewId, opened);
+        }
+        catch (Exception e)
+        {
+            return refuse(reviews, reviewId, "EDT could not open the review within 5 seconds. No write was applied; retry when the workbench is responsive.");
+        }
+    }
+
+    public static String awaitOpeningAndFocus(String reviewId)
+    {
+        BslWriteReviews reviews = BslWriteReviews.shared();
+        String error = awaitOpening(reviews, reviewId, reviews.openingAcknowledgement(reviewId));
+        if (error == null) focus(reviewId);
+        return error;
+    }
+
+    private static String awaitOpening(BslWriteReviews reviews, String reviewId, CompletableFuture<Boolean> opened)
+    {
+        try
+        {
+            if (opened.get(5, TimeUnit.SECONDS)) return null;
+            var snapshot = reviews.get(reviewId);
+            return snapshot != null && snapshot.errorJson() != null ? snapshot.errorJson()
                 : ToolResult.error("Review was withdrawn before its editor opened. Submit a new write.").toJson();
         }
         catch (InterruptedException e)

@@ -26,6 +26,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.ui.IFileEditorInput;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
@@ -60,6 +61,18 @@ public final class BslWriteReviewCommit
             cancelled = true;
             return true;
         }
+        synchronized boolean isCancelled() { return cancelled; }
+    }
+
+    static boolean cancelBeforeEntry(EntryGate gate, Job job)
+    {
+        if (!gate.cancelBeforeEntry()) return false;
+        job.cancel();
+        // A running UIJob may be waiting for SWT while SWT waits for its rule.
+        // Cancellation alone retains that rule until the queued callback runs.
+        // Entry is now irrevocably revoked, so releasing it cannot race a write.
+        if (job.getState() == Job.RUNNING) job.done(Status.CANCEL_STATUS);
+        return true;
     }
 
     public static Outcome commit(PreparedBslWrite write, BooleanSupplier enterMutation,
@@ -80,6 +93,7 @@ public final class BslWriteReviewCommit
                 @Override
                 public IStatus runInUIThread(IProgressMonitor monitor)
                 {
+                    if (gate.isCancelled()) return Status.CANCEL_STATUS;
                     try
                     {
                         Outcome refusal = validateTarget(write, target);
@@ -93,8 +107,8 @@ public final class BslWriteReviewCommit
                     return Status.OK_STATUS;
                 }
             };
-            // Native UIJob acquires the scheduling rule off SWT and sets its running thread
-            // before the UI callback. No syncExec is used while holding a workspace rule.
+            // Acquire off SWT; cancellation explicitly releases an unentered async job
+            // so a conflicting synchronous save cannot strand the UI callback.
             // A project rule also covers creation of any currently missing parent folders.
             job.setRule(ctx.project());
             job.setSystem(true);
@@ -111,9 +125,8 @@ public final class BslWriteReviewCommit
         }
         catch (TimeoutException e)
         {
-            if (gate.cancelBeforeEntry())
+            if (cancelBeforeEntry(gate, job))
             {
-                job.cancel();
                 return failure("EDT could not enter the reviewed write within 5 seconds. No mutation was started; submit a new review when EDT is responsive.");
             }
             // The mutation has entered an opaque platform API. Report its real outcome;
@@ -122,9 +135,8 @@ public final class BslWriteReviewCommit
         }
         catch (InterruptedException e)
         {
-            if (gate.cancelBeforeEntry())
+            if (cancelBeforeEntry(gate, job))
             {
-                job.cancel();
                 Thread.currentThread().interrupt();
                 return new Outcome(State.CANCELLED, false, null, null);
             }

@@ -546,12 +546,9 @@ public class WriteModuleSourceTool implements IMcpTool
             () -> reviews.tryEnterMutation(id), this::finishReviewedWrite));
         if (admission.errorJson() != null) return admission.errorJson();
         String id = admission.snapshot().reviewId();
-        if (admission.reused()) BslWriteReviewUi.focus(id);
-        else
-        {
-            String error = BslWriteReviewUi.open(write, id);
-            if (error != null) return error;
-        }
+        String openingError = admission.reused() ? BslWriteReviewUi.awaitOpeningAndFocus(id)
+            : BslWriteReviewUi.open(write, id);
+        if (openingError != null) return openingError;
         var current = reviews.get(id);
         return current == null ? ToolResult.error("Review status is no longer retained. Read the module before retrying.").toJson()
             : current.toJson();

@@ -155,6 +155,47 @@ public class BslWriteReviewCommitTest
         assertTrue(entered.enter(() -> true));
         assertFalse(entered.cancelBeforeEntry());
     }
+
+    @Test
+    public void timedOutQueuedUiWriteReleasesRuleForAnAlreadyWaitingSave() throws Exception
+    {
+        var holding = new java.util.concurrent.CountDownLatch(1);
+        var saved = new java.util.concurrent.CountDownLatch(1);
+        var rule = new org.eclipse.core.runtime.jobs.ISchedulingRule() {
+            public boolean contains(org.eclipse.core.runtime.jobs.ISchedulingRule other) { return other == this; }
+            public boolean isConflicting(org.eclipse.core.runtime.jobs.ISchedulingRule other) { return other == this; }
+        };
+        var queued = new org.eclipse.core.runtime.jobs.Job("Queued UI callback") {
+            protected org.eclipse.core.runtime.IStatus run(org.eclipse.core.runtime.IProgressMonitor monitor) {
+                holding.countDown();
+                return ASYNC_FINISH;
+            }
+        };
+        queued.setRule(rule);
+        var save = new Thread(() -> {
+            var manager = org.eclipse.core.runtime.jobs.Job.getJobManager();
+            manager.beginRule(rule, null);
+            try { saved.countDown(); }
+            finally { manager.endRule(rule); }
+        }, "Simulated SWT save");
+        save.setDaemon(true);
+        queued.schedule();
+        try
+        {
+            assertTrue(holding.await(2, java.util.concurrent.TimeUnit.SECONDS));
+            save.start();
+            assertFalse("Save must initially wait for the queued UI write", saved.await(100, java.util.concurrent.TimeUnit.MILLISECONDS));
+            var gate = new BslWriteReviewCommit.EntryGate();
+            assertTrue(BslWriteReviewCommit.cancelBeforeEntry(gate, queued));
+            assertTrue("A timeout must release the rule without waiting for SWT", saved.await(2, java.util.concurrent.TimeUnit.SECONDS));
+            assertFalse(gate.enter(() -> { fail("Late UI callback must not mutate"); return true; }));
+        }
+        finally
+        {
+            queued.done(org.eclipse.core.runtime.Status.CANCEL_STATUS);
+            save.join(2000);
+        }
+    }
     @Test
     public void followUpFailureReportsThatSourceHasAlreadyBeenWritten()
     {

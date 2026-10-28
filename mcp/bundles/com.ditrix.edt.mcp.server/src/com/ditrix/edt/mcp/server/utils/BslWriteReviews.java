@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -100,6 +101,7 @@ public final class BslWriteReviews implements AutoCloseable
         final String target;
         final long payload;
         final List<Consumer<Snapshot>> listeners = new ArrayList<>();
+        final CompletableFuture<Boolean> opening = new CompletableFuture<>();
         boolean mutationEntered;
 
         Entry(PreparedBslWrite write, String digest,
@@ -205,6 +207,20 @@ public final class BslWriteReviews implements AutoCloseable
     {
         Entry entry = entries.get(reviewId);
         return entry == null ? null : entry.snapshot;
+    }
+
+    /** Matching callers must observe the same actual editor creation or failure. */
+    public synchronized CompletableFuture<Boolean> openingAcknowledgement(String id)
+    {
+        Entry entry = entries.get(id);
+        return entry == null ? CompletableFuture.completedFuture(false) : entry.opening;
+    }
+
+    public synchronized void acknowledgeOpening(String id)
+    {
+        Entry entry = entries.get(id);
+        if (entry != null && entry.snapshot.status() == State.AWAITING_APPROVAL)
+            entry.opening.complete(true);
     }
 
     public void apply(String reviewId)
@@ -340,6 +356,7 @@ public final class BslWriteReviews implements AutoCloseable
             outcome.mutationCommitted(), outcome.resultMarkdown(), outcome.errorJson(), reason);
         if (outcome.status().terminal())
         {
+            entry.opening.complete(false);
             retainedPayload -= entry.payload;
             entry.write = null;
             entry.commit = null;
