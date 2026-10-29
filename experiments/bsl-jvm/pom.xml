@@ -1,0 +1,13 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.ditrix.experiments</groupId>
+  <artifactId>bsl-jvm-probe</artifactId>
+  <version>0.0.1</version>
+  <dependencies>
+    <dependency>
+      <groupId>com.github.gumtreediff</groupId>
+      <artifactId>core</artifactId>
+      <version>4.1.0</version>
+    </dependency>
+  </dependencies>
+</project>

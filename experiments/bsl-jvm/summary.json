@@ -1,0 +1,2307 @@
+{
+  "dependencies": [
+    {
+      "name": "apfloat-1.14.0.jar",
+      "bytes": 648685,
+      "sha256": "14fa3dee487b9d8de6d0ff7c39526159405c0879a65c817f959c9575e4b14820"
+    },
+    {
+      "name": "classindex-3.13.jar",
+      "bytes": 33711,
+      "sha256": "8e537601db7d761bd0010834fb364be2372c2a67c5c86f16ccc3ff47a08eeea4"
+    },
+    {
+      "name": "commons-codec-1.10.jar",
+      "bytes": 284184,
+      "sha256": "4241dfa94e711d435f29a4604a3e2de5c4aa3c165e23bd066be6fc1fc4309569"
+    },
+    {
+      "name": "core-4.1.0.jar",
+      "bytes": 281202,
+      "sha256": "ca6bbacd109d0d094ffb5030047dd96fb8f3ade0be8bdd0438ace0d4348b881b"
+    },
+    {
+      "name": "error_prone_annotations-2.48.0.jar",
+      "bytes": 20255,
+      "sha256": "b49c5c958316ed67a09c699dda9aa749caf434d51d863dea599ef36a49b9c855"
+    },
+    {
+      "name": "fastutil-8.5.19.jar",
+      "bytes": 23977871,
+      "sha256": "c767a6bdcb7cb52fe1315ca1f4891389a75e63b2a15a6629865d7740dd3a8cf2"
+    },
+    {
+      "name": "gson-2.14.0.jar",
+      "bytes": 313604,
+      "sha256": "2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f"
+    },
+    {
+      "name": "guava-19.0.jar",
+      "bytes": 2308517,
+      "sha256": "58d4cc2e05ebb012bbac568b032f75623be1cb6fb096f3c60c72a86f7f057de4"
+    },
+    {
+      "name": "jgrapht-core-1.5.3.jar",
+      "bytes": 1307308,
+      "sha256": "a026a34523286e1bf510e4bd4625935e3c97ce0fc40e1891f4262309f3b64c3e"
+    },
+    {
+      "name": "jheaps-0.14.jar",
+      "bytes": 153258,
+      "sha256": "49a9898da3758659388f1333c53ccadb6fbd142a7d18aa7b1a33577090684279"
+    },
+    {
+      "name": "simmetrics-core-4.1.1.jar",
+      "bytes": 134187,
+      "sha256": "8c7ee773956ad0fab4369c99f575736d862bc295ae14fe3c90ffa5e257cca729"
+    }
+  ],
+  "javaProcess": {
+    "sampledRssHighWaterKiB": 1128648
+  },
+  "profiles": {
+    "parse-only": {
+      "sampledRssHighWaterKiB": 871224,
+      "memory": {
+        "heapUsedBeforeGc": 195729088,
+        "heapUsedAfterRequestedGc": 125655952,
+        "heapLimit": 536870912
+      }
+    },
+    "jgit": {
+      "sampledRssHighWaterKiB": 817624,
+      "memory": {
+        "heapUsedBeforeGc": 180430064,
+        "heapUsedAfterRequestedGc": 125959384,
+        "heapLimit": 536870912
+      }
+    },
+    "gumtree": {
+      "sampledRssHighWaterKiB": 951912,
+      "memory": {
+        "heapUsedBeforeGc": 224270672,
+        "heapUsedAfterRequestedGc": 129707232,
+        "heapLimit": 536870912
+      }
+    }
+  },
+  "sources": {
+    "experiments/bsl-jvm/Probe.java": "42c10e58de732c278779f91fba3609bf7bcbf79b54c0560f165ccb2e7a9fd16b",
+    "experiments/bsl-jvm/run.py": "687ffc7849dd3ce68c565d5532cb3b817d0dc9ce9ea2695dd71f90dc39e70d03",
+    "experiments/bsl-jvm/pom.xml": "4707f70f460c019ccf39710f3ef978d258892f07247b38157c39c1e3f151c2a4",
+    "experiments/bsl-difftastic/run.py": "f3accc036531f4eaf52832a4fdd93dc1abcd71f8e25df0e9c0f7fd9cc3777f13"
+  },
+  "platform": {
+    "com._1c.g5.v8.dt.bsl": "28.1.0.v202610211527",
+    "org.eclipse.jgit": "6.8.14.202605290850",
+    "org.eclipse.xtext": "2.41.0.v20251124-0739"
+  },
+  "allInputsDetached": true,
+  "rawRun": "/home/ownicc/Workstation/Kasl-diff-test/jvm-comparison-03",
+  "baselineSourceCommit": "130e39a5767fd67442a3a7cdf4b2f1f4dacfb01c",
+  "preservedArtifactCount": 60,
+  "caseCount": 83,
+  "cases": [
+    {
+      "id": "formatting",
+      "parseMs": 27.120643,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.285,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.006622,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.857357,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "expression",
+      "parseMs": 1.252717,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.067,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.006522,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.950442,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "nested-if",
+      "parseMs": 2.299489,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.319,
+        "changedSpans": 18
+      },
+      "jgit": {
+        "medianDiffMs": 0.035567,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 18
+      },
+      "gumtree": {
+        "medianDiffMs": 1.792769,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 34,
+        "movedSourceNodes": 37
+      }
+    },
+    {
+      "id": "move",
+      "parseMs": 1.545196,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.08,
+        "changedSpans": 20
+      },
+      "jgit": {
+        "medianDiffMs": 0.046377,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 20
+      },
+      "gumtree": {
+        "medianDiffMs": 0.454231,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 20,
+        "movedSourceNodes": 29
+      }
+    },
+    {
+      "id": "preprocessor",
+      "parseMs": 2.392714,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.429,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.00522,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.508562,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "region",
+      "parseMs": 1.941809,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.097,
+        "changedSpans": 10
+      },
+      "jgit": {
+        "medianDiffMs": 0.013726,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 10
+      },
+      "gumtree": {
+        "medianDiffMs": 0.448982,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 10,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "annotation",
+      "parseMs": 0.869329,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.057,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.004147,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.393277,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "extension",
+      "parseMs": 0.718677,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.17,
+        "changedSpans": 4
+      },
+      "jgit": {
+        "medianDiffMs": 0.043993,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 4
+      },
+      "gumtree": {
+        "medianDiffMs": 0.456535,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 22,
+        "movedSourceNodes": 37
+      }
+    },
+    {
+      "id": "query",
+      "parseMs": 0.7683,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.664,
+        "changedSpans": 56
+      },
+      "jgit": {
+        "medianDiffMs": 0.003466,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.366487,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "query-space",
+      "parseMs": 0.460824,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.132,
+        "changedSpans": 56
+      },
+      "jgit": {
+        "medianDiffMs": 0.003266,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.367729,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "string-space",
+      "parseMs": 0.340688,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 1.986,
+        "changedSpans": 6
+      },
+      "jgit": {
+        "medianDiffMs": 0.003166,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.230201,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "unicode",
+      "parseMs": 0.355085,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.059,
+        "changedSpans": 22
+      },
+      "jgit": {
+        "medianDiffMs": 0.002856,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.214222,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "comment",
+      "parseMs": 0.453139,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 1.92,
+        "changedSpans": 12
+      },
+      "jgit": {
+        "medianDiffMs": 0.003186,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.312025,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "english",
+      "parseMs": 0.799999,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 1.908,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.003096,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.607288,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "invalid",
+      "parseMs": 4.332639,
+      "requiresFallback": true,
+      "leftErrors": [],
+      "rightErrors": [
+        "30: Syntax error. Wrong token \"'Тогда'\" for this context",
+        "53: Syntax error. Wrong token \"'КонецПроцедуры'\" for this context"
+      ],
+      "difftastic": {
+        "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:12)",
+        "status": "changed",
+        "medianProcessMs": 1.853,
+        "changedSpans": 31
+      },
+      "jgit": {
+        "medianDiffMs": 0.055444,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 8
+      },
+      "gumtree": {
+        "medianDiffMs": 0.594313,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 16,
+        "movedSourceNodes": 4
+      }
+    },
+    {
+      "id": "invalid-string",
+      "parseMs": 0.538719,
+      "requiresFallback": true,
+      "leftErrors": [],
+      "rightErrors": [
+        "48: Syntax error. Mismatched input \"'КонецПроцедуры'\" expecting \"\"\""
+      ],
+      "difftastic": {
+        "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:21)",
+        "status": "changed",
+        "medianProcessMs": 1.939,
+        "changedSpans": 26
+      },
+      "jgit": {
+        "medianDiffMs": 0.008536,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 8
+      },
+      "gumtree": {
+        "medianDiffMs": 0.331791,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 8,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "invalid-paren",
+      "parseMs": 0.470281,
+      "requiresFallback": true,
+      "leftErrors": [],
+      "rightErrors": [
+        "35: Syntax error. Missing token \"RightParenthesis\" at \"';'\""
+      ],
+      "difftastic": {
+        "language": "Text (1 BSL parse error, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:22)",
+        "status": "changed",
+        "medianProcessMs": 1.829,
+        "changedSpans": 22
+      },
+      "jgit": {
+        "medianDiffMs": 0.008225,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 7
+      },
+      "gumtree": {
+        "medianDiffMs": 0.287409,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 7,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "new-file",
+      "parseMs": 0.290585,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "created",
+        "medianProcessMs": 1.969,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.003867,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 14
+      },
+      "gumtree": {
+        "medianDiffMs": 0.17599,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 14,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "delete-file",
+      "parseMs": 0.249127,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "deleted",
+        "medianProcessMs": 1.939,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.004048,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 14
+      },
+      "gumtree": {
+        "medianDiffMs": 0.173254,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 14,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "line-endings",
+      "parseMs": 0.337553,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.124,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002033,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.172794,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "bom",
+      "parseMs": 0.321553,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 1.919,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002064,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.18138,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "case",
+      "parseMs": 0.381615,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.073,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.003487,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 0.284443,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "repeat-edit",
+      "parseMs": 2.494535,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.207,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.01078,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 5.477274,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "move-edit",
+      "parseMs": 0.444503,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 2.023,
+        "changedSpans": 20
+      },
+      "jgit": {
+        "medianDiffMs": 0.023504,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 20
+      },
+      "gumtree": {
+        "medianDiffMs": 0.251962,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 20,
+        "movedSourceNodes": 29
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/КонструкторМоделиРаспределенияМодель/Module.bsl",
+      "parseMs": 0.157034,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 1.933,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001192,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.017332,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/КонструкторМоделиСостоянияМодель/Module.bsl",
+      "parseMs": 3.41487,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.453,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.009227,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 2.029964,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/Общий/Module.bsl",
+      "parseMs": 20.321052,
+      "requiresFallback": true,
+      "leftErrors": [
+        "13215: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "13216: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 7.203,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.137869,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 17.842706,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/ОбщийКлиент/Module.bsl",
+      "parseMs": 5.068488,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.21,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.005861,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.65954,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/ОбщийКлиентСервер/Module.bsl",
+      "parseMs": 22.793214,
+      "requiresFallback": true,
+      "leftErrors": [
+        "26094: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "26095: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 11.587,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.132098,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 25.693219,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/ОбщийПовтИсп/Module.bsl",
+      "parseMs": 0.678993,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.378,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002234,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.10171,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаС_ADODB/Module.bsl",
+      "parseMs": 8.995247,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 6.716,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.061836,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 11.139635,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСДаннымиВыбора/Module.bsl",
+      "parseMs": 7.121726,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 6.159,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.050835,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 6.498298,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСДаннымиВыбораПереопределяемый/Module.bsl",
+      "parseMs": 0.882484,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.021,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002685,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.166451,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСДаннымиЗаполнения/Module.bsl",
+      "parseMs": 5.265688,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 6.947,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.061395,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 10.945362,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСИтератором/Module.bsl",
+      "parseMs": 4.54634,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 6.583,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.014527,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 5.994473,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСКоллекцией/Module.bsl",
+      "parseMs": 12.671236,
+      "requiresFallback": true,
+      "leftErrors": [
+        "18497: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "18498: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 596:201)",
+        "status": "changed",
+        "medianProcessMs": 10.917,
+        "changedSpans": 1
+      },
+      "jgit": {
+        "medianDiffMs": 0.065974,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 20.600415,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМассивом/Module.bsl",
+      "parseMs": 14.572248,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 17.78,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.054212,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 28.403878,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМножеством/Module.bsl",
+      "parseMs": 3.27121,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 5.019,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.009708,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.911861,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМодельюЗапроса/Module.bsl",
+      "parseMs": 15.283972,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 27.651,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.092072,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 63.520806,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМодельюСостояния/Module.bsl",
+      "parseMs": 7.283459,
+      "requiresFallback": true,
+      "leftErrors": [
+        "30327: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "30328: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 12.802,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.065292,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 15.607628,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМодельюСостоянияКлиентСервер/Module.bsl",
+      "parseMs": 1.306488,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.878,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002986,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.321226,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСМодельюТекста/Module.bsl",
+      "parseMs": 1.099099,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.684,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.003968,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.108365,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСОбъектом/Module.bsl",
+      "parseMs": 1.633391,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.944,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.007343,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.797178,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСОбъектомКлиентСервер/Module.bsl",
+      "parseMs": 11.07277,
+      "requiresFallback": true,
+      "leftErrors": [
+        "20611: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "20612: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 13.149,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.024946,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 18.951425,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСОчередью/Module.bsl",
+      "parseMs": 1.420923,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.622,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.004087,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.901724,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСФормой/Module.bsl",
+      "parseMs": 0.804178,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.289,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002906,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.117224,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСФормойКлиент/Module.bsl",
+      "parseMs": 2.539018,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 7.508,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.010449,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 8.222068,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСФормойКлиентСервер/Module.bsl",
+      "parseMs": 2.863116,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 7.311,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.011322,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 7.654023,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/CommonModules/РаботаСоСхемойЗапроса/Module.bsl",
+      "parseMs": 12.59381,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 31.28,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.064771,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 63.927649,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/АТДМассив/Forms/Форма/Module.bsl",
+      "parseMs": 2.575797,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.925,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.00533,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 2.327913,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/АТДМассив/ObjectModule.bsl",
+      "parseMs": 2.318235,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 4.616,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.005961,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.413076,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиЗапроса/Forms/Форма/Module.bsl",
+      "parseMs": 2.57741,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 4.693,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.00557,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.940094,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиЗапроса/ObjectModule.bsl",
+      "parseMs": 0.459471,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.343,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001392,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.406221,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиЗапросаSQL/Forms/МакетПеречисления/Module.bsl",
+      "parseMs": 2.32171,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 4.412,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.00532,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.250542,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиЗапросаSQL/Forms/Форма/Module.bsl",
+      "parseMs": 2.579674,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 5.222,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.006442,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 4.198197,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиОтчета/Forms/Форма/Module.bsl",
+      "parseMs": 5.160421,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 11.517,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.017834,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 11.225637,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиОтчета/ObjectModule.bsl",
+      "parseMs": 0.217177,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.33,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.000751,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.007294,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиРаспределения/Forms/Форма/Module.bsl",
+      "parseMs": 7.6365,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 17.158,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.030076,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 23.102023,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиРаспределения/ManagerModule.bsl",
+      "parseMs": 0.32026,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.206,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.000881,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.007304,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиРаспределения/ObjectModule.bsl",
+      "parseMs": 0.116668,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 1.91,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.000691,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.008135,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиСостояния/Forms/Форма/Module.bsl",
+      "parseMs": 8.106512,
+      "requiresFallback": true,
+      "leftErrors": [
+        "26627: Syntax error. Mismatched input \";\""
+      ],
+      "rightErrors": [
+        "26628: Syntax error. Mismatched input \";\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 12.407,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.02172,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 14.27458,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторМоделиСостояния/ObjectModule.bsl",
+      "parseMs": 0.233528,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.269,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.000692,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.008295,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/КонструкторСхемыЗапроса/Forms/Форма/Module.bsl",
+      "parseMs": 5.033803,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 9.043,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.015058,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 11.756892,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапроса/Forms/Форма/Module.bsl",
+      "parseMs": 0.837659,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.188,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001132,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.065372,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапроса/ObjectModule.bsl",
+      "parseMs": 19.419211,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 38.346,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.087734,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 86.102134,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапросаSQL/Forms/Форма/Module.bsl",
+      "parseMs": 2.342209,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.277,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001173,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.073377,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапросаSQL/ObjectModule.bsl",
+      "parseMs": 8.294433,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 17.037,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.030608,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 27.602155,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапроса_1_2/Forms/Форма/Module.bsl",
+      "parseMs": 0.441728,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.461,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001123,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.082124,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельЗапроса_1_2/ObjectModule.bsl",
+      "parseMs": 10.978964,
+      "requiresFallback": true,
+      "leftErrors": [
+        "56329: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "56330: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 24.438,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.051446,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 51.499729,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельМакетаКомпоновкиДанных/ObjectModule.bsl",
+      "parseMs": 2.573874,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 7.346,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.008726,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 6.295107,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельМакетаОбластиКомпоновкиДанных/ObjectModule.bsl",
+      "parseMs": 0.982561,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.165,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.003056,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 1.336585,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельНастройкиКомпоновкиДанных/ObjectModule.bsl",
+      "parseMs": 2.008173,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 6.17,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.008035,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 6.791136,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельОформления/ObjectModule.bsl",
+      "parseMs": 0.815499,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.865,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.002795,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.766657,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельРаспределения/ObjectModule.bsl",
+      "parseMs": 5.078207,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 13.783,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.029054,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 18.790082,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельСостояния/Forms/Форма/Module.bsl",
+      "parseMs": 0.449983,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 2.436,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.001072,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 0.100819,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельСостояния/ObjectModule.bsl",
+      "parseMs": 2.772856,
+      "requiresFallback": true,
+      "leftErrors": [
+        "14226: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "rightErrors": [
+        "14227: Syntax error. Missing token \";\" at \"'#КонецОбласти'\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 7.972,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.012203,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 10.192942,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельСхемыКомпоновкиДанных/ObjectModule.bsl",
+      "parseMs": 5.219051,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 12.14,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.021159,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 14.996112,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельТаблицы/ObjectModule.bsl",
+      "parseMs": 1.447552,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 3.81,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.004368,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 2.395569,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/МодельТекста/ObjectModule.bsl",
+      "parseMs": 1.214366,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 4.349,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.005049,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 3.248157,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/ТекстЗапросаВМодельЗапроса/ObjectModule.bsl",
+      "parseMs": 3.448342,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 10.819,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.018645,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 15.171952,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/ТекстЗапросаВРаботуСМодельюЗапроса/ObjectModule.bsl",
+      "parseMs": 3.377489,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 11.19,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.018435,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 14.964212,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "corpus/src/DataProcessors/ТекстЗапросаВРаботуСоСхемойЗапроса/ObjectModule.bsl",
+      "parseMs": 3.271941,
+      "requiresFallback": true,
+      "leftErrors": [
+        "17460: Syntax error. Mismatched input \";\""
+      ],
+      "rightErrors": [
+        "17461: Syntax error. Mismatched input \";\""
+      ],
+      "difftastic": {
+        "language": "BSL",
+        "status": "unchanged",
+        "medianProcessMs": 9.352,
+        "changedSpans": 0
+      },
+      "jgit": {
+        "medianDiffMs": 0.014518,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0
+      },
+      "gumtree": {
+        "medianDiffMs": 10.546394,
+        "changed": false,
+        "expectedStatusMatches": true,
+        "changedSpans": 0,
+        "movedSourceNodes": 0
+      }
+    },
+    {
+      "id": "large",
+      "parseMs": 7.851814,
+      "requiresFallback": false,
+      "leftErrors": [],
+      "rightErrors": [],
+      "difftastic": {
+        "language": "BSL",
+        "status": "changed",
+        "medianProcessMs": 28.839,
+        "changedSpans": 2
+      },
+      "jgit": {
+        "medianDiffMs": 0.216846,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2
+      },
+      "gumtree": {
+        "medianDiffMs": 48.745809,
+        "changed": true,
+        "expectedStatusMatches": true,
+        "changedSpans": 2,
+        "movedSourceNodes": 0
+      }
+    }
+  ]
+}
