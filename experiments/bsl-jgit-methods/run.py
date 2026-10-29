@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Isolated method-aware JGit spike and resource benchmark; Python stdlib only."""
 import argparse
+import bisect
 import hashlib
 import html
 import importlib.util
@@ -310,7 +311,66 @@ def validate(cases, profiles, native):
         assert r['id'] == c['id'] and r['status'] == expected, (c['id'], r['status'])
 
 
-def render(cases, profiles, out):
+def code_lines(text, spans, moves):
+    """Convert verified UTF-16 ranges once, then paint complete source lines."""
+    indexes = {0: 0}; units = 0
+    for i, char in enumerate(text):
+        units += 2 if ord(char) > 0xffff else 1
+        indexes[units] = i + 1
+    lines = text.split('\n')
+    if lines[-1] == '': lines.pop()  # RawText alignment omits the phantom final line.
+    starts = []; cursor = 0
+    for line in lines:
+        starts.append(cursor); cursor += len(line) + 1
+    ranges = [[] for _ in lines]; moved = set()
+    for items, is_move in [(spans, False), (moves, True)]:
+        for span in items:
+            start, end = indexes[span['start']], indexes[span['start'] + span['length']]
+            if end <= start: continue
+            first = bisect.bisect_right(starts, start) - 1
+            last = bisect.bisect_right(starts, end - 1) - 1
+            for number in range(first, last + 1):
+                if is_move: moved.add(number)
+                else: ranges[number].append((max(0, start - starts[number]), min(len(lines[number]), end - starts[number])))
+    rendered = []
+    for number, line in enumerate(lines):
+        # HTML normalizes CR to a newline; hide the line-ending CR in this line view.
+        if line.endswith('\r'): line = line[:-1]
+        spans = [(min(a, len(line)), min(b, len(line))) for a, b in ranges[number]]
+        bounds = sorted({0, len(line)} | {p for span in spans for p in span})
+        content = ''.join(('<mark>' if any(a <= start < b for a, b in spans) else '<span>')
+                          + html.escape(line[start:end])
+                          + ('</mark>' if any(a <= start < b for a, b in spans) else '</span>')
+                          for start, end in zip(bounds, bounds[1:]))
+        rendered.append((content, bool(spans), number in moved))
+    return rendered
+
+
+def jgit_preview(case, result):
+    sides = []
+    for side, key in [('left', 'before'), ('right', 'after')]:
+        moves = [dict(start=m[side + 'Start'], length=m[side + 'Length']) for m in result['moves']]
+        sides.append(code_lines(case[key], result[side], moves))
+    rows = []
+    for pair in result['lines']['aligned']:
+        cells = []
+        for col, number in enumerate(pair):
+            if number is None:
+                cells.append('<td class="ln gap"></td><td class="code gap"></td>'); continue
+            content, changed, moved = sides[col][number]
+            classes = ('removed' if col == 0 else 'added') if changed else ('moved' if moved else 'context')
+            label = ('−' if col == 0 else '+') if changed else ('↕' if moved else '')
+            cells.append(f'<td class="ln {classes}"><span aria-hidden="true">{label}</span>{number+1}</td>'
+                         f'<td class="code {classes}"><pre>{content or "&#8203;"}</pre></td>')
+        rows.append('<tr>' + ''.join(cells) + '</tr>')
+    metadata = html.escape(json.dumps(dict(moves=result['moves'], fallback=result['fallback'], byteChanges=result['byteChanges']), ensure_ascii=False))
+    return ('<p>' + metadata + '</p><div class="code-scroll"><table class="jgit-code">'
+            '<colgroup><col class="gutter"><col><col class="gutter"><col></colgroup>'
+            '<thead><tr><th colspan="2">Текущий код · −</th><th colspan="2">Предложенный код · +</th></tr></thead><tbody>'
+            + ''.join(rows) + '</tbody></table></div>')
+
+
+def render(cases, profiles, out, output=None):
     """Preserve full bytes in details; rows show independent move metadata and edits."""
     methods = {m: {r['id']: r['result'] for r in profiles[m]['cases']} for m in ['flat', 'methods']}
     sections = []
@@ -327,32 +387,51 @@ def render(cases, profiles, out):
                 if bad: content = '<p>INVALID native alignment (blanked in this preview): ' + html.escape(str(bad)) + '</p>' + content
             else:
                 r = methods[mode][c['id']]
-                panes = []
-                for side, key in [('left', 'before'), ('right', 'after')]:
-                    text = c[key]; data = text.encode('utf-16-le')
-                    spans = [(len(data[:s['start']*2].decode('utf-16-le')), len(data[:(s['start']+s['length'])*2].decode('utf-16-le'))) for s in r[side]]
-                    bounds = sorted({0, len(text)} | {p for s in spans for p in s})
-                    rendered = ''.join(('<mark>' if any(a <= start < b for a, b in spans) else '<span>') + html.escape(text[start:end])
-                                       + ('</mark>' if any(a <= start < b for a, b in spans) else '</span>') for start, end in zip(bounds, bounds[1:]))
-                    panes.append('<pre>' + rendered + '</pre>')
-                content = '<p>' + html.escape(json.dumps(dict(moves=r['moves'], fallback=r['fallback'], byteChanges=r['byteChanges']), ensure_ascii=False)) + '</p><div class="panes">' + ''.join(panes) + '</div>'
+                content = jgit_preview(c, r)
             blocks.append('<article><h3>' + mode + '</h3>' + content + '</article>')
         sections.append('<section><h2>' + html.escape(c['title']) + '</h2>' + ''.join(blocks) + '</section>')
-    (out / 'preview.html').write_text('<!doctype html><meta charset="utf-8"><title>BSL method comparison</title><style>'
+    output = output or out / 'preview.html'
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open('x', encoding='utf-8') as stream:
+        stream.write('<!doctype html><html lang="ru"><meta charset="utf-8"><title>BSL method comparison</title><style>'
         'body{font:15px system-ui;margin:24px}section{border-top:2px solid #888;margin:30px 0}.panes{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
         'pre{font:14px/1.5 monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}mark{background:#ffcf80}'
-        'article{padding:12px;background:#f7f7f7;margin:12px 0}table{width:100%;table-layout:fixed}.ln{color:#555;width:40px}.changed{background:#ffcf80}</style>'
-        '<h1>Difftastic · flat JGit · method-aware JGit</h1><p>Throwaway experiment. Move metadata is separate from token highlighting. No Apply/Reject.</p>' + ''.join(sections), encoding='utf-8')
+        'article{padding:12px;background:#f7f7f7;margin:12px 0}table{width:100%;table-layout:fixed}.ln{color:#555;width:40px}.changed{background:#ffcf80}'
+        '.code-scroll{overflow:auto;border:1px solid #bbc2cc}.jgit-code{border-collapse:collapse;background:#fff;min-width:900px}'
+        '.jgit-code .gutter{width:76px}.jgit-code th{padding:10px;background:#e9edf3;text-align:left}'
+        '.jgit-code td{vertical-align:top;border-bottom:1px solid #e3e6eb}.jgit-code .code{padding:0 10px}'
+        '.jgit-code pre{font:15px/1.65 monospace;tab-size:4;color:#171b24}'
+        '.jgit-code .ln{padding:0 8px;text-align:right;font:15px/1.65 monospace;border-left:4px solid transparent;user-select:none}'
+        '.jgit-code .ln span{float:left;font-weight:bold}.jgit-code .removed{background:#ffe0df}.jgit-code .added{background:#d8f2dd}'
+        '.jgit-code .ln.removed{background:#ffd0ce;color:#8a1414;border-left-color:#b42318;font-weight:bold}'
+        '.jgit-code .ln.added{background:#bde7c6;color:#005014;border-left-color:#006b2e;font-weight:bold}'
+        '.jgit-code .removed mark{background:#b42318;color:#fff;font-weight:bold;border-radius:2px;outline:1px solid #8a1414}'
+        '.jgit-code .added mark{background:#006b2e;color:#fff;font-weight:bold;border-radius:2px;outline:1px solid #004e22}'
+        '.jgit-code .moved{background:#e0edff}.jgit-code .ln.moved{color:#124b8e;border-left-color:#2866ad;font-weight:bold}'
+        '.jgit-code .gap{background:repeating-linear-gradient(135deg,#eceff3,#eceff3 5px,#f7f8fa 5px,#f7f8fa 10px)}'
+        '</style><h1>Difftastic · flat JGit · method-aware JGit</h1>'
+        '<p>Экспериментальный просмотр. Изменённые строки: красные слева, зелёные справа; точные правки выделены контрастнее. '
+        'Синие строки ↕ — перестановка метода. Применение изменений здесь недоступно.</p>' + ''.join(sections) + '</html>')
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for key in ['edt', 'configuration', 'java-home', 'difft', 'output']:
-        p.add_argument('--' + key, required=True, type=Path)
+        p.add_argument('--' + key, type=Path)
+    p.add_argument('--preview-from', type=Path, help='Render recorded evidence without running comparisons')
+    p.add_argument('--preview-output', type=Path, help='New HTML file; an existing preview is never overwritten')
     p.add_argument('--corpus', type=Path)
     p.add_argument('--samples', type=int, default=50)
     p.add_argument('--warmup', type=int, default=10)
     args = p.parse_args()
+    if args.preview_from:
+        if not args.preview_output: p.error('--preview-from requires --preview-output')
+        source = args.preview_from.resolve()
+        profiles = {m: json.loads((source / m / 'results.json').read_text()) for m in ['flat', 'methods']}
+        render(json.loads((source / 'input.json').read_text()), profiles, source, args.preview_output.resolve())
+        print(args.preview_output.resolve()); return
+    if any(getattr(args, key) is None for key in ['edt', 'configuration', 'java_home', 'difft', 'output']):
+        p.error('Comparison requires --edt, --configuration, --java-home, --difft and --output')
     if args.samples < 1 or args.warmup < 0: p.error('Invalid sample counts')
     out = args.output.resolve(); out.mkdir(parents=True, exist_ok=False)
     (out / 'temp').mkdir()

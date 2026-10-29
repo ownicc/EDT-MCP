@@ -242,6 +242,35 @@ still match their original hashes. Native JSON exposed invalid EOF alignment
 rows in two seeded real-module edits; tracked separately as `edt-4jf`. The raw
 answers remain unchanged and the preview marks them as invalid.
 
+### More visible JGit highlighting
+
+The JGit preview now uses its recorded line alignment and original line numbers.
+Changed lines have a red/green background across the whole cell, a bold colored
+gutter and a −/+ marker. Exact changed tokens have a darker background with white
+text. Reordered method lines are blue with ↕; only actual edits receive red/green
+highlighting. Padding cells use a neutral hatch. UTF-16 ranges are mapped before
+rendering, including supplementary Unicode characters and multiline changes.
+
+Render existing evidence into a **new** HTML file without rerunning comparisons:
+
+```sh
+python3 experiments/bsl-jgit-methods/run.py \
+  --preview-from /path/to/recorded/experiment-directory \
+  --preview-output /path/to/new/preview.html
+```
+
+An existing output file is never overwritten. The recorded timing/resource
+summary above measures commit `cfdd4d47`; this later presentation change does not
+alter the Java comparison or those raw measurements. The previous preview and
+native prototype remain available. The updated recorded-evidence preview is at
+`/home/ownicc/Workstation/Kasl-diff-test/method-highlight-preview-01/preview.html`.
+
+Rendering checks:
+
+```sh
+python3 -B -m unittest discover -s experiments/bsl-jgit-methods -p test_preview.py -v
+```
+
 The experiment supports extending JGit with bounded BSL method matching using
 existing EDT dependencies. It does not support adding fuzzy AST matching or
 claiming a finished replacement. Real SWT open/compute/dispose measurements,
