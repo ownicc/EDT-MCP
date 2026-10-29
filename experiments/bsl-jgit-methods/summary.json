@@ -1,0 +1,3286 @@
+{
+  "runDirectory": "/home/ownicc/Workstation/Kasl-diff-test/method-comparison-04",
+  "rawSummarySha256": "dd880bcfe1231cc6d214b30e6d72a80fce0726abb93dcb289508f8f284fa02e5",
+  "inputSha256": "1f073ff399b5b53cae547309a8df9b81618c7f42f021996d2bd06bc7d084a719",
+  "sourceSha256": {
+    "experiments/bsl-jgit-methods/run.py": "17b556b52ebc731d4c85f2fb3dbf8e2e38d648460ecb749d1904ff31a055268f",
+    "experiments/bsl-jgit-methods/MethodProbe.java": "0a52b0f7c9d4cebae762a4448669ad512e7e8082170c7f567b88b8721eb69783",
+    "experiments/bsl-difftastic/run.py": "f3accc036531f4eaf52832a4fdd93dc1abcd71f8e25df0e9c0f7fd9cc3777f13"
+  },
+  "environment": {
+    "platform": "Linux-7.3.0-5-cachyos-x86_64-with-glibc2.44",
+    "processor": "",
+    "python": "3.14.8 (main, Oct 13 2026, 10:43:33) [GCC 16.2.1 20260810]",
+    "cpuCount": 32,
+    "pageSize": 4096
+  },
+  "resolvedBundles": {
+    "org.eclipse.jgit": "6.8.14.202605290850",
+    "com.google.gson": "2.13.2",
+    "org.eclipse.xtext": "2.41.0.v20251124-0739",
+    "com._1c.g5.v8.dt.bsl": "28.1.0.v202610211527"
+  },
+  "installedBundleVersions": {
+    "org.eclipse.jgit": [
+      "6.8.14.202605290850"
+    ],
+    "com.google.gson": [
+      "2.13.2",
+      "2.8.9.v20220111-1409"
+    ],
+    "org.eclipse.xtext": [
+      "2.41.0.v20251124-0739"
+    ],
+    "com._1c.g5.v8.dt.bsl": [
+      "28.1.0.v202610211527"
+    ]
+  },
+  "samples": 50,
+  "warmup": 10,
+  "newRuntimeDependencies": [],
+  "probeJarBytes": 51848,
+  "quality": {
+    "cases": 95,
+    "benchmarkCases": 19,
+    "preservedArtifactCount": 60,
+    "corpusCases": 58,
+    "corpusRecovered": 9,
+    "methodFallbacks": {
+      "preprocessor:flat-tokens": 9,
+      "syntax-errors:text-lines": 12,
+      "ambiguous-identity:flat-tokens": 1,
+      "region-placement:flat-tokens": 2
+    },
+    "nativeInvalidAlignment": {
+      "real-edit/ОбщийКлиент": [
+        [
+          33,
+          34
+        ]
+      ],
+      "real-edit/РаботаСМассивом": [
+        [
+          1333,
+          1333
+        ]
+      ]
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "expression",
+      "bytesBefore": 115,
+      "bytesAfter": 137,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.3084635,
+          "p95": 0.754353,
+          "max": 4.257014
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 313813.0,
+          "p95": 689413,
+          "max": 752091
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 79704.0,
+          "p95": 79888,
+          "max": 113464
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.35569649999999997,
+          "p95": 0.785721,
+          "max": 1.314262
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 344471.0,
+          "p95": 538240,
+          "max": 821229
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 83184.0,
+          "p95": 83352,
+          "max": 116944
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.40297,
+          "p95": 0.625892,
+          "max": 0.75776
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 403351.0,
+          "p95": 547768,
+          "max": 763301
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 89512.0,
+          "p95": 89672,
+          "max": 123272
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.319218,
+            "p95": 0.526205,
+            "max": 0.65113
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0399345,
+            "p95": 0.059531,
+            "max": 0.11163
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0049595,
+            "p95": 0.008075,
+            "max": 0.008626
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.032441,
+            "p95": 0.056085,
+            "max": 0.0854
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.3181770002338453,
+          "p95": 2.9715960008616094,
+          "max": 3.054992001125356
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.129774499735504,
+          "p95": 2.778284000669373,
+          "max": 2.8604679991985904
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71589888.0,
+          "p95": 71589888,
+          "max": 71589888
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15065088.0,
+          "p95": 15237120,
+          "max": 15319040
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013825,
+          "p95": 0.002033,
+          "max": 0.00212
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0006045,
+          "p95": 0.001758,
+          "max": 0.0017779999999999998
+        }
+      }
+    },
+    {
+      "id": "nested-if",
+      "bytesBefore": 115,
+      "bytesAfter": 320,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.24041,
+          "p95": 0.490398,
+          "max": 0.744224
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 245199.5,
+          "p95": 455974,
+          "max": 736472
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 94720.0,
+          "p95": 95288,
+          "max": 96536
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.2639595,
+          "p95": 0.351769,
+          "max": 0.623397
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 259587.5,
+          "p95": 354094,
+          "max": 592723
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 101296.0,
+          "p95": 101864,
+          "max": 103120
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.2890865,
+          "p95": 0.557544,
+          "max": 0.860021
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 292383.5,
+          "p95": 571442,
+          "max": 865323
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 108960.0,
+          "p95": 109256,
+          "max": 110344
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.22541699999999998,
+            "p95": 0.468728,
+            "max": 0.655097
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.023854,
+            "p95": 0.078517,
+            "max": 0.132388
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.015127999999999999,
+            "p95": 0.033232,
+            "max": 0.061815
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0196215,
+            "p95": 0.028754,
+            "max": 0.077726
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.389279999988503,
+          "p95": 3.046757999982219,
+          "max": 3.1591170009050984
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.1748234994447557,
+          "p95": 2.828587999829324,
+          "max": 2.88145700142195
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71589888.0,
+          "p95": 71589888,
+          "max": 71589888
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15132672.0,
+          "p95": 15364096,
+          "max": 17334272
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.001432,
+          "p95": 0.002119,
+          "max": 0.002146
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0005215,
+          "p95": 0.00148,
+          "max": 0.002043
+        }
+      }
+    },
+    {
+      "id": "move",
+      "bytesBefore": 181,
+      "bytesAfter": 181,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.15294649999999999,
+          "p95": 0.227416,
+          "max": 0.272741
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 155336.5,
+          "p95": 230042,
+          "max": 271890
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 84440.0,
+          "p95": 84440,
+          "max": 84552
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.180889,
+          "p95": 0.324447,
+          "max": 0.5339
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 183749.5,
+          "p95": 262333,
+          "max": 373180
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 91240.0,
+          "p95": 91240,
+          "max": 91288
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.1983615,
+          "p95": 0.305342,
+          "max": 0.380903
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 201633.5,
+          "p95": 300875,
+          "max": 317906
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 98592.0,
+          "p95": 98592,
+          "max": 98704
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.1521595,
+            "p95": 0.232606,
+            "max": 0.262291
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.026905,
+            "p95": 0.052488,
+            "max": 0.097894
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.001618,
+            "p95": 0.002705,
+            "max": 0.003257
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0141815,
+            "p95": 0.03231,
+            "max": 0.104606
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.7037895015382674,
+          "p95": 3.0355159997270675,
+          "max": 3.126347000943497
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.4569725001128973,
+          "p95": 2.8023889990436146,
+          "max": 2.896775999033707
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71589888.0,
+          "p95": 71589888,
+          "max": 71589888
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15040512.0,
+          "p95": 15233024,
+          "max": 17408000
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.001442,
+          "p95": 0.0021809999999999998,
+          "max": 0.0021999999999999997
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0005555,
+          "p95": 0.001976,
+          "max": 0.0021839999999999997
+        }
+      }
+    },
+    {
+      "id": "invalid-string",
+      "bytesBefore": 115,
+      "bytesAfter": 111,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.118462,
+          "p95": 0.174407,
+          "max": 0.298308
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 120446.0,
+          "p95": 150061,
+          "max": 296907
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 83360.0,
+          "p95": 83360,
+          "max": 83360
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.15330700000000003,
+          "p95": 0.35232,
+          "max": 1.440188
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 155431.5,
+          "p95": 347311,
+          "max": 583264
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 87040.0,
+          "p95": 87040,
+          "max": 87040
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.1298785,
+          "p95": 0.256891,
+          "max": 0.325329
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 131581.5,
+          "p95": 244499,
+          "max": 327695
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 86992.0,
+          "p95": 86992,
+          "max": 86992
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.11618300000000001,
+            "p95": 0.239429,
+            "max": 0.310862
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.000647,
+            "p95": 0.000952,
+            "max": 0.001512
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0061265,
+            "p95": 0.01088,
+            "max": 0.011652
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.005355,
+            "p95": 0.012563,
+            "max": 0.030848
+          }
+        },
+        "fallback": "syntax-errors:text-lines"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.326257499589701,
+          "p95": 2.915301000030013,
+          "max": 3.175317999193794
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.1261829997456516,
+          "p95": 2.7064890000474406,
+          "max": 2.9026069987594383
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71589888.0,
+          "p95": 71589888,
+          "max": 71589888
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15124480.0,
+          "p95": 17285120,
+          "max": 17408000
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013249999999999998,
+          "p95": 0.0019459999999999998,
+          "max": 0.002022
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000547,
+          "p95": 0.001268,
+          "max": 0.002031
+        }
+      }
+    },
+    {
+      "id": "repeat-edit",
+      "bytesBefore": 7568,
+      "bytesAfter": 7568,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.3851145,
+          "p95": 2.254604,
+          "max": 2.964974
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1371548.0,
+          "p95": 2152457,
+          "max": 2481224
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 2671768.0,
+          "p95": 2671832,
+          "max": 2672472
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.621112,
+          "p95": 2.121354,
+          "max": 2.638612
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1601038.0,
+          "p95": 1817941,
+          "max": 2002779
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 2766664.0,
+          "p95": 2766664,
+          "max": 2766728
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.5297805,
+          "p95": 2.502207,
+          "max": 3.418223
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1527446.0,
+          "p95": 2419990,
+          "max": 2497566
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 2941616.0,
+          "p95": 2941712,
+          "max": 2941712
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 1.3280725,
+            "p95": 2.234105,
+            "max": 3.045275
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0798445,
+            "p95": 0.191909,
+            "max": 0.201568
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.012864,
+            "p95": 0.027661,
+            "max": 0.065443
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0995115,
+            "p95": 0.3844,
+            "max": 0.401422
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 6.672032999631483,
+          "p95": 7.193505000032019,
+          "max": 7.39658599923132
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 6.354077500873245,
+          "p95": 6.84686599925044,
+          "max": 7.071646001350018
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71852032.0,
+          "p95": 71852032,
+          "max": 71852032
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 18124800.0,
+          "p95": 18255872,
+          "max": 20205568
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0051140000000000005,
+          "p95": 0.006072999999999999,
+          "max": 0.006248
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000757,
+          "p95": 0.002106,
+          "max": 0.0026019999999999997
+        }
+      }
+    },
+    {
+      "id": "move-edit",
+      "bytesBefore": 180,
+      "bytesAfter": 180,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.025603,
+          "p95": 0.033051,
+          "max": 0.040967
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 27201.0,
+          "p95": 33202,
+          "max": 42580
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 82184.0,
+          "p95": 82184,
+          "max": 82184
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.043631500000000004,
+          "p95": 0.078788,
+          "max": 0.300453
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 44744.5,
+          "p95": 81093,
+          "max": 293240
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 88640.0,
+          "p95": 88640,
+          "max": 88640
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0540765,
+          "p95": 0.103103,
+          "max": 0.178634
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 55825.0,
+          "p95": 99567,
+          "max": 180358
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 96320.0,
+          "p95": 96320,
+          "max": 96320
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.035672,
+            "p95": 0.062808,
+            "max": 0.071914
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0125685,
+            "p95": 0.038452,
+            "max": 0.137598
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0008064999999999999,
+            "p95": 0.001683,
+            "max": 0.002675
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.003096,
+            "p95": 0.016521,
+            "max": 0.029045
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.45203299982677,
+          "p95": 3.022251999936998,
+          "max": 3.083926001636428
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.2088724999775877,
+          "p95": 2.7800679999927524,
+          "max": 2.790526999888243
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71852032.0,
+          "p95": 71852032,
+          "max": 71852032
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15060992.0,
+          "p95": 15237120,
+          "max": 17084416
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013725,
+          "p95": 0.0021149999999999997,
+          "max": 0.002186
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0006444999999999999,
+          "p95": 0.001908,
+          "max": 0.002045
+        }
+      }
+    },
+    {
+      "id": "rename",
+      "bytesBefore": 90,
+      "bytesAfter": 100,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0229835,
+          "p95": 0.031369,
+          "max": 0.125134
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 24651.5,
+          "p95": 34375,
+          "max": 109837
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 68832.0,
+          "p95": 68832,
+          "max": 68832
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.025507500000000002,
+          "p95": 0.035467,
+          "max": 0.130885
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 27171.0,
+          "p95": 37810,
+          "max": 120988
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 71176.0,
+          "p95": 71176,
+          "max": 71176
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.031924999999999995,
+          "p95": 0.063248,
+          "max": 0.078377
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 33663.5,
+          "p95": 67047,
+          "max": 71945
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 77296.0,
+          "p95": 77296,
+          "max": 77296
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.0237945,
+            "p95": 0.045856,
+            "max": 0.05349
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0050495,
+            "p95": 0.009968,
+            "max": 0.028663
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.000982,
+            "p95": 0.002023,
+            "max": 0.002355
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0016635,
+            "p95": 0.002975,
+            "max": 0.004639
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.3844765000831103,
+          "p95": 2.9374019995884737,
+          "max": 3.1729040001664544
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.1665584990842035,
+          "p95": 2.753217000645236,
+          "max": 2.897017000577762
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71852032.0,
+          "p95": 71852032,
+          "max": 71852032
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15044608.0,
+          "p95": 15224832,
+          "max": 16535552
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0012915,
+          "p95": 0.002071,
+          "max": 0.002188
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000566,
+          "p95": 0.001931,
+          "max": 0.002016
+        }
+      }
+    },
+    {
+      "id": "duplicate-name",
+      "bytesBefore": 180,
+      "bytesAfter": 180,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.031604,
+          "p95": 0.06959,
+          "max": 0.07462
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 33303.0,
+          "p95": 64811,
+          "max": 76584
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 82184.0,
+          "p95": 82184,
+          "max": 82184
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.036503999999999995,
+          "p95": 0.067867,
+          "max": 0.081793
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 38297.0,
+          "p95": 64421,
+          "max": 84669
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 85208.0,
+          "p95": 85208,
+          "max": 85208
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.034394,
+          "p95": 0.091161,
+          "max": 0.132959
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 36037.0,
+          "p95": 91882,
+          "max": 134632
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 91336.0,
+          "p95": 91336,
+          "max": 91336
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.026069000000000002,
+            "p95": 0.072766,
+            "max": 0.123111
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.005796,
+            "p95": 0.011381,
+            "max": 0.013476
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0006715,
+            "p95": 0.001372,
+            "max": 0.001973
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.001423,
+            "p95": 0.002976,
+            "max": 0.003547
+          }
+        },
+        "fallback": "ambiguous-identity:flat-tokens"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.3050780000630766,
+          "p95": 2.93876500109036,
+          "max": 2.9887280015827855
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.1223660005489364,
+          "p95": 2.739731999099604,
+          "max": 2.7778830008173827
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71852032.0,
+          "p95": 71852032,
+          "max": 71852032
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15116288.0,
+          "p95": 15286272,
+          "max": 15294464
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013525,
+          "p95": 0.002038,
+          "max": 0.002103
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0004475,
+          "p95": 0.001317,
+          "max": 0.001974
+        }
+      }
+    },
+    {
+      "id": "move-comments",
+      "bytesBefore": 190,
+      "bytesAfter": 190,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.03492,
+          "p95": 0.045075,
+          "max": 0.048511
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 36593.5,
+          "p95": 46748,
+          "max": 50204
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 83400.0,
+          "p95": 83400,
+          "max": 83400
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.042244000000000004,
+          "p95": 0.074279,
+          "max": 0.256751
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 43952.5,
+          "p95": 64832,
+          "max": 255910
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 90552.0,
+          "p95": 90552,
+          "max": 90552
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0441675,
+          "p95": 0.0958,
+          "max": 0.22949
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 45736.0,
+          "p95": 89289,
+          "max": 224822
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 99232.0,
+          "p95": 99232,
+          "max": 99232
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.030717,
+            "p95": 0.053129,
+            "max": 0.140343
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.009182,
+            "p95": 0.022261,
+            "max": 0.053741
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0011975,
+            "p95": 0.001994,
+            "max": 0.003136
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0026550000000000002,
+            "p95": 0.007694,
+            "max": 0.051717
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.5456530001974897,
+          "p95": 3.3343659997626673,
+          "max": 4.018006999103818
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.2545879992321716,
+          "p95": 2.9895999996369937,
+          "max": 3.550080000422895
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 71852032.0,
+          "p95": 71852032,
+          "max": 71852032
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15099904.0,
+          "p95": 15241216,
+          "max": 15245312
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0014475,
+          "p95": 0.0021609999999999997,
+          "max": 0.002332
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0006005,
+          "p95": 0.001679,
+          "max": 0.0027719999999999997
+        }
+      }
+    },
+    {
+      "id": "conditional-method-move",
+      "bytesBefore": 234,
+      "bytesAfter": 234,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.059441499999999994,
+          "p95": 0.147186,
+          "max": 2.544567
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 61264.5,
+          "p95": 147858,
+          "max": 298440
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 90680.0,
+          "p95": 90680,
+          "max": 91176
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.055429,
+          "p95": 0.084108,
+          "max": 0.135284
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 57522.5,
+          "p95": 76053,
+          "max": 118543
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 97648.0,
+          "p95": 97648,
+          "max": 97760
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.058024,
+          "p95": 0.157996,
+          "max": 0.182351
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 59582.0,
+          "p95": 146263,
+          "max": 178635
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 99888.0,
+          "p95": 99888,
+          "max": 100000
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.050169,
+            "p95": 0.134211,
+            "max": 0.159398
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0008014999999999999,
+            "p95": 0.003156,
+            "max": 0.003547
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0026,
+            "p95": 0.009949,
+            "max": 0.014848
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0029354999999999997,
+            "p95": 0.008316,
+            "max": 0.017483
+          }
+        },
+        "fallback": "preprocessor:flat-tokens"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.42322900066938,
+          "p95": 3.3314210013486445,
+          "max": 3.4743880005407846
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.174999501221464,
+          "p95": 2.9709150003327522,
+          "max": 3.0908299995644484
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 72114176.0,
+          "p95": 72114176,
+          "max": 72114176
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15091712.0,
+          "p95": 15212544,
+          "max": 17207296
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013839999999999998,
+          "p95": 0.002166,
+          "max": 0.002274
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000627,
+          "p95": 0.001606,
+          "max": 0.001956
+        }
+      }
+    },
+    {
+      "id": "region-boundary",
+      "bytesBefore": 358,
+      "bytesAfter": 358,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.063098,
+          "p95": 0.189996,
+          "max": 0.199584
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 64781.5,
+          "p95": 174186,
+          "max": 194146
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 107192.0,
+          "p95": 107192,
+          "max": 107192
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.06883349999999999,
+          "p95": 0.117029,
+          "max": 0.252433
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 70793.0,
+          "p95": 103444,
+          "max": 195318
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 115000.0,
+          "p95": 115000,
+          "max": 115000
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0850495,
+          "p95": 0.249567,
+          "max": 0.319739
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 86292.0,
+          "p95": 223559,
+          "max": 250730
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 127744.0,
+          "p95": 127744,
+          "max": 127800
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.0616955,
+            "p95": 0.182802,
+            "max": 0.218409
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0135155,
+            "p95": 0.041909,
+            "max": 0.084658
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0024194999999999998,
+            "p95": 0.015048,
+            "max": 0.028353
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0029700000000000004,
+            "p95": 0.008736,
+            "max": 0.012473
+          }
+        },
+        "fallback": "region-placement:flat-tokens"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.849006501492113,
+          "p95": 3.033532000699779,
+          "max": 3.0759019991819514
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.6533300006121863,
+          "p95": 2.832466001564171,
+          "max": 2.8612900005100528
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 72376320.0,
+          "p95": 72376320,
+          "max": 72376320
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15085568.0,
+          "p95": 15286272,
+          "max": 15306752
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0014024999999999999,
+          "p95": 0.00212,
+          "max": 0.0022299999999999998
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0006544999999999999,
+          "p95": 0.0019279999999999998,
+          "max": 0.002119
+        }
+      }
+    },
+    {
+      "id": "region-boundary-bom",
+      "bytesBefore": 361,
+      "bytesAfter": 361,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.050675,
+          "p95": 0.108534,
+          "max": 0.160751
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 52148.0,
+          "p95": 95869,
+          "max": 118803
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 108656.0,
+          "p95": 108656,
+          "max": 108656
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0522025,
+          "p95": 0.121317,
+          "max": 0.257402
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 53816.0,
+          "p95": 101681,
+          "max": 118703
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 116368.0,
+          "p95": 116368,
+          "max": 116368
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.064581,
+          "p95": 0.104205,
+          "max": 0.611335
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 65993.5,
+          "p95": 106409,
+          "max": 247023
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 129344.0,
+          "p95": 129344,
+          "max": 129400
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.047424,
+            "p95": 0.083477,
+            "max": 0.566471
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0119725,
+            "p95": 0.018415,
+            "max": 0.028573
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0019890000000000003,
+            "p95": 0.002695,
+            "max": 0.007364
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.002675,
+            "p95": 0.003416,
+            "max": 0.007735
+          }
+        },
+        "fallback": "region-placement:flat-tokens"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.2644820010100375,
+          "p95": 3.072204999625683,
+          "max": 3.137517000141088
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.070558500236075,
+          "p95": 2.846032000888954,
+          "max": 2.910823001002427
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 72376320.0,
+          "p95": 72376320,
+          "max": 72376320
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15101952.0,
+          "p95": 17117184,
+          "max": 17420288
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0013365,
+          "p95": 0.0019199999999999998,
+          "max": 0.002064
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0005635,
+          "p95": 0.001785,
+          "max": 0.0022619999999999997
+        }
+      }
+    },
+    {
+      "id": "real-edit/ОбщийКлиент",
+      "bytesBefore": 2559,
+      "bytesAfter": 2565,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.1979905,
+          "p95": 0.295123,
+          "max": 2.143615
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 199649.5,
+          "p95": 265759,
+          "max": 713168
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 289624.0,
+          "p95": 289624,
+          "max": 289624
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.17391600000000002,
+          "p95": 0.194675,
+          "max": 0.385172
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 174713.0,
+          "p95": 196258,
+          "max": 331493
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 310048.0,
+          "p95": 310048,
+          "max": 310048
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.190652,
+          "p95": 0.258144,
+          "max": 0.335167
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 191820.0,
+          "p95": 256231,
+          "max": 337703
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 340392.0,
+          "p95": 340392,
+          "max": 340392
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.1652245,
+            "p95": 0.233297,
+            "max": 0.27778
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0152485,
+            "p95": 0.018886,
+            "max": 0.036418
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.001357,
+            "p95": 0.002094,
+            "max": 0.003797
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.007845,
+            "p95": 0.010861,
+            "max": 0.028253
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.916282999649411,
+          "p95": 3.202698999302811,
+          "max": 3.553296000973205
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.7089894992968766,
+          "p95": 2.98414000099001,
+          "max": 3.337281999847619
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 72900608.0,
+          "p95": 72900608,
+          "max": 72900608
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15071232.0,
+          "p95": 15290368,
+          "max": 17465344
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0017209999999999999,
+          "p95": 0.002508,
+          "max": 0.002709
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0004959999999999999,
+          "p95": 0.0016569999999999998,
+          "max": 0.001895
+        }
+      }
+    },
+    {
+      "id": "real-edit/РаботаСМножеством",
+      "bytesBefore": 13711,
+      "bytesAfter": 13711,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.1798454999999999,
+          "p95": 1.568709,
+          "max": 3.328314
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1180283.5,
+          "p95": 1562803,
+          "max": 1766024
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 1828504.0,
+          "p95": 1828504,
+          "max": 1828504
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.3077195000000001,
+          "p95": 1.972205,
+          "max": 3.814436
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1270513.5,
+          "p95": 1856784,
+          "max": 2273504
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 1957160.0,
+          "p95": 1957160,
+          "max": 1957160
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 1.067199,
+          "p95": 2.049529,
+          "max": 3.681696
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 1061215.0,
+          "p95": 1791091,
+          "max": 2046509
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 2166864.0,
+          "p95": 2166992,
+          "max": 2166992
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.8992395,
+            "p95": 1.780064,
+            "max": 3.476442
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.1065545,
+            "p95": 0.14934,
+            "max": 0.158006
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.011031,
+            "p95": 0.017693,
+            "max": 0.020047
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.04534,
+            "p95": 0.079248,
+            "max": 0.110727
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.578304500886588,
+          "p95": 6.111377999332035,
+          "max": 6.336288999591488
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 5.196894499931659,
+          "p95": 5.721056999391294,
+          "max": 5.930028000875609
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 72900608.0,
+          "p95": 72900608,
+          "max": 72900608
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15312896.0,
+          "p95": 15417344,
+          "max": 15450112
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.004023499999999999,
+          "p95": 0.004828,
+          "max": 0.005036
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000833,
+          "p95": 0.001818,
+          "max": 0.003068
+        }
+      }
+    },
+    {
+      "id": "real-edit/РаботаСМассивом",
+      "bytesBefore": 78743,
+      "bytesAfter": 78739,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.294192499999999,
+          "p95": 7.976502,
+          "max": 8.722228
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 5221637.0,
+          "p95": 6733240,
+          "max": 7961988
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 9576912.0,
+          "p95": 9576912,
+          "max": 9577024
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.1967695,
+          "p95": 8.179442,
+          "max": 8.788973
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 5182893.5,
+          "p95": 6941020,
+          "max": 7217790
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 10236368.0,
+          "p95": 10236368,
+          "max": 10236480
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.3806385,
+          "p95": 7.822994,
+          "max": 10.36764
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 5315208.5,
+          "p95": 6735047,
+          "max": 8582722
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 10709024.0,
+          "p95": 10709080,
+          "max": 10709136
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 4.947682500000001,
+            "p95": 7.324561,
+            "max": 9.645648
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.0824545,
+            "p95": 0.1013,
+            "max": 0.129002
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.074094,
+            "p95": 0.128581,
+            "max": 0.134572
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.27606149999999996,
+            "p95": 0.317074,
+            "max": 0.449903
+          }
+        },
+        "fallback": "preprocessor:flat-tokens"
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 19.460503500340565,
+          "p95": 21.58525400045619,
+          "max": 21.70452700011083
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 18.468605499947444,
+          "p95": 20.581332999427104,
+          "max": 20.745159999933094
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 73162752.0,
+          "p95": 73162752,
+          "max": 73162752
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 21346304.0,
+          "p95": 23412736,
+          "max": 26378240
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0162705,
+          "p95": 0.018865,
+          "max": 0.019951999999999998
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.001741,
+          "p95": 0.003833,
+          "max": 0.004196
+        }
+      }
+    },
+    {
+      "id": "scale/10",
+      "bytesBefore": 879,
+      "bytesAfter": 880,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.083291,
+          "p95": 0.105769,
+          "max": 0.362308
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 84689.0,
+          "p95": 107592,
+          "max": 364314
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 189984.0,
+          "p95": 189984,
+          "max": 189984
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.07103799999999999,
+          "p95": 0.075932,
+          "max": 0.329036
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 72476.0,
+          "p95": 78747,
+          "max": 326622
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 201480.0,
+          "p95": 201480,
+          "max": 201480
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.0935205,
+          "p95": 0.130655,
+          "max": 0.647673
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 93380.5,
+          "p95": 133130,
+          "max": 645862
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 232384.0,
+          "p95": 232384,
+          "max": 232384
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.07347799999999999,
+            "p95": 0.099857,
+            "max": 0.604151
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.014407,
+            "p95": 0.032872,
+            "max": 0.038092
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.0014985,
+            "p95": 0.003447,
+            "max": 0.015208
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.0026699999999999996,
+            "p95": 0.005881,
+            "max": 0.007364
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 2.857212500202877,
+          "p95": 3.0770440007472644,
+          "max": 3.197899999577203
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 2.6497740000195336,
+          "p95": 2.8396489997248864,
+          "max": 2.9775080001854803
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 73162752.0,
+          "p95": 73162752,
+          "max": 73162752
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15112192.0,
+          "p95": 15302656,
+          "max": 17272832
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.001251,
+          "p95": 0.002198,
+          "max": 0.002484
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0007105,
+          "p95": 0.001834,
+          "max": 0.00199
+        }
+      }
+    },
+    {
+      "id": "scale/100",
+      "bytesBefore": 8979,
+      "bytesAfter": 8980,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.594649,
+          "p95": 0.657241,
+          "max": 0.754664
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 594926.5,
+          "p95": 658315,
+          "max": 751088
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 1485712.0,
+          "p95": 1485712,
+          "max": 1485712
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.6172215000000001,
+          "p95": 0.679392,
+          "max": 0.748562
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 616872.0,
+          "p95": 679095,
+          "max": 747293
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 1607976.0,
+          "p95": 1607976,
+          "max": 1608032
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 0.7206049999999999,
+          "p95": 0.834353,
+          "max": 0.987911
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 720747.0,
+          "p95": 833344,
+          "max": 986951
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 1915736.0,
+          "p95": 1919000,
+          "max": 1919000
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 0.583754,
+            "p95": 0.671949,
+            "max": 0.846396
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 0.1058085,
+            "p95": 0.12291,
+            "max": 0.197199
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.007619,
+            "p95": 0.012163,
+            "max": 0.028253
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.022382,
+            "p95": 0.023665,
+            "max": 0.030858
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.0858069998866995,
+          "p95": 5.749038999056211,
+          "max": 6.006982999679167
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 4.704798500824836,
+          "p95": 5.35308799953782,
+          "max": 5.608897001366131
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 73162752.0,
+          "p95": 73162752,
+          "max": 73162752
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 15321088.0,
+          "p95": 15450112,
+          "max": 15454208
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.0037355,
+          "p95": 0.004445,
+          "max": 0.004671
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.000719,
+          "p95": 0.0019279999999999998,
+          "max": 0.002665
+        }
+      }
+    },
+    {
+      "id": "scale/1000",
+      "bytesBefore": 91779,
+      "bytesAfter": 91780,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.4855055,
+          "p95": 9.241962,
+          "max": 10.114486
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 5473663.0,
+          "p95": 7677626,
+          "max": 8528520
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 14586480.0,
+          "p95": 14586480,
+          "max": 14586480
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 5.7781085,
+          "p95": 9.955649,
+          "max": 10.551185
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 5757945.0,
+          "p95": 8619041,
+          "max": 8764273
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 15797776.0,
+          "p95": 15797776,
+          "max": 15797776
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 6.862690000000001,
+          "p95": 10.513003,
+          "max": 11.754048
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 6847402.0,
+          "p95": 9905752,
+          "max": 10074429
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 18816504.0,
+          "p95": 18816664,
+          "max": 18816664
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 5.437881,
+            "p95": 8.802679,
+            "max": 9.834542
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 1.1056059999999999,
+            "p95": 1.526049,
+            "max": 3.099246
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.074825,
+            "p95": 0.091411,
+            "max": 0.097212
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 0.224255,
+            "p95": 0.248705,
+            "max": 0.274254
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 30.876463000822696,
+          "p95": 32.333297000150196,
+          "max": 41.63080299986177
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 28.642302999287494,
+          "p95": 30.125942001177464,
+          "max": 30.184692001057556
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 74473472.0,
+          "p95": 74473472,
+          "max": 74473472
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 33380352.0,
+          "p95": 33529856,
+          "max": 35446784
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.025913,
+          "p95": 0.02793,
+          "max": 0.028933999999999998
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0026179999999999997,
+          "p95": 0.0051259999999999995,
+          "max": 0.005823999999999999
+        }
+      }
+    },
+    {
+      "id": "scale/5000",
+      "bytesBefore": 467779,
+      "bytesAfter": 467779,
+      "parse": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 36.0694655,
+          "p95": 43.754,
+          "max": 44.139893
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 33675666.5,
+          "p95": 39118472,
+          "max": 39661009
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 74830504.0,
+          "p95": 74830504,
+          "max": 74830504
+        }
+      },
+      "flat": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 40.328027500000005,
+          "p95": 46.14556,
+          "max": 50.156534
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 35619497.5,
+          "p95": 41008155,
+          "max": 43906058
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 80983872.0,
+          "p95": 80983872,
+          "max": 80983872
+        }
+      },
+      "methods": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 46.400197000000006,
+          "p95": 52.400476,
+          "max": 53.230542
+        },
+        "threadCpuNs": {
+          "n": 50,
+          "median": 42256212.5,
+          "p95": 47741202,
+          "max": 48534008
+        },
+        "allocatedBytes": {
+          "n": 50,
+          "median": 96187776.0,
+          "p95": 96187776,
+          "max": 96187776
+        },
+        "stagesMs": {
+          "parseMs": {
+            "n": 50,
+            "median": 35.989600499999995,
+            "p95": 43.213949,
+            "max": 43.596094
+          },
+          "matchMs": {
+            "n": 50,
+            "median": 6.319407,
+            "p95": 9.666538,
+            "max": 10.126619
+          },
+          "diffMs": {
+            "n": 50,
+            "median": 0.6547160000000001,
+            "p95": 0.800881,
+            "max": 0.816599
+          },
+          "lineAlignmentMs": {
+            "n": 50,
+            "median": 1.1869830000000001,
+            "p95": 3.902771,
+            "max": 4.111481
+          }
+        },
+        "fallback": null
+      },
+      "difftastic": {
+        "endToEndMs": {
+          "n": 50,
+          "median": 157.00555449984677,
+          "p95": 160.77124900039053,
+          "max": 180.92361799972423
+        },
+        "wallMs": {
+          "n": 50,
+          "median": 147.62642499863432,
+          "p95": 151.55371200125956,
+          "max": 171.76102400117088
+        },
+        "wait4LaunchMaxRssBytes": {
+          "n": 50,
+          "median": 86872064.0,
+          "p95": 89313280,
+          "max": 91328512
+        },
+        "postExecSampledHighWaterBytes": {
+          "n": 50,
+          "median": 87384064.0,
+          "p95": 89485312,
+          "max": 91725824
+        },
+        "cpuUserSeconds": {
+          "n": 50,
+          "median": 0.1411735,
+          "p95": 0.146804,
+          "max": 0.167729
+        },
+        "cpuSystemSeconds": {
+          "n": 50,
+          "median": 0.0049075,
+          "p95": 0.009932999999999999,
+          "max": 0.010971
+        }
+      }
+    }
+  ],
+  "processes": {
+    "idle": {
+      "postExecSampledHighWaterBytes": 1001144320,
+      "heapFinal": {
+        "used": 173329512,
+        "committed": 290455552,
+        "limit": 536870912
+      },
+      "readyUptimeMs": 5410,
+      "gcDeltaCountTimeMs": {
+        "G1 Young Generation": [
+          1,
+          2
+        ],
+        "G1 Concurrent GC": [
+          2,
+          2
+        ],
+        "G1 Old Generation": [
+          0,
+          0
+        ]
+      },
+      "finalOpenFiles": 125,
+      "finalThreads": 85,
+      "groupResidual": false
+    },
+    "parse": {
+      "postExecSampledHighWaterBytes": 1153409024,
+      "heapFinal": {
+        "used": 226109552,
+        "committed": 384827392,
+        "limit": 536870912
+      },
+      "readyUptimeMs": 6113,
+      "gcDeltaCountTimeMs": {
+        "G1 Young Generation": [
+          84,
+          150
+        ],
+        "G1 Concurrent GC": [
+          56,
+          40
+        ],
+        "G1 Old Generation": [
+          0,
+          0
+        ]
+      },
+      "finalOpenFiles": 125,
+      "finalThreads": 84,
+      "groupResidual": false
+    },
+    "flat": {
+      "postExecSampledHighWaterBytes": 1223020544,
+      "heapFinal": {
+        "used": 347395688,
+        "committed": 452984832,
+        "limit": 536870912
+      },
+      "readyUptimeMs": 5847,
+      "gcDeltaCountTimeMs": {
+        "G1 Young Generation": [
+          90,
+          173
+        ],
+        "G1 Concurrent GC": [
+          60,
+          43
+        ],
+        "G1 Old Generation": [
+          0,
+          0
+        ]
+      },
+      "finalOpenFiles": 125,
+      "finalThreads": 85,
+      "groupResidual": false
+    },
+    "methods": {
+      "postExecSampledHighWaterBytes": 1243041792,
+      "heapFinal": {
+        "used": 240641176,
+        "committed": 451936256,
+        "limit": 536870912
+      },
+      "readyUptimeMs": 7070,
+      "gcDeltaCountTimeMs": {
+        "G1 Young Generation": [
+          209,
+          433
+        ],
+        "G1 Concurrent GC": [
+          140,
+          99
+        ],
+        "G1 Old Generation": [
+          0,
+          0
+        ]
+      },
+      "finalOpenFiles": 125,
+      "finalThreads": 51,
+      "groupResidual": false
+    },
+    "cleanup": {
+      "postExecSampledHighWaterBytes": 1229750272,
+      "heapFinal": {
+        "used": 139325888,
+        "committed": 446693376,
+        "limit": 536870912
+      },
+      "readyUptimeMs": 5845,
+      "gcDeltaCountTimeMs": {
+        "G1 Young Generation": [
+          122,
+          275
+        ],
+        "G1 Concurrent GC": [
+          80,
+          55
+        ],
+        "G1 Old Generation": [
+          1,
+          23
+        ]
+      },
+      "finalOpenFiles": 125,
+      "finalThreads": 84,
+      "groupResidual": false
+    }
+  },
+  "cancellation": {
+    "interrupt": true,
+    "expired-budget": true,
+    "inFlightBudgetObserved": true,
+    "inFlightBudgetElapsedMs": 1.020141,
+    "subsequentComparisonSucceeded": true,
+    "parserMidCallCancellation": "unavailable: IParser.parse(Reader) has no cooperative cancellation argument"
+  },
+  "nativeTimeoutCleanup": {
+    "cpuUserSeconds": null,
+    "cpuSystemSeconds": null,
+    "wait4LaunchMaxRssBytes": null,
+    "launcherRssBytesAtSpawn": 84267008,
+    "sampledPeak": {
+      "rssBytes": 16158720,
+      "highWaterBytes": 16158720,
+      "threads": 1,
+      "openFiles": 5
+    },
+    "lastIo": {
+      "rchar": 944006,
+      "wchar": 0,
+      "syscr": 19,
+      "syscw": 0,
+      "read_bytes": 0,
+      "write_bytes": 0,
+      "cancelled_write_bytes": 0
+    },
+    "timedOut": true,
+    "pid": 417352,
+    "exitCode": -9,
+    "wallMs": 1.6403829995397246,
+    "outputBytes": 0,
+    "pidExistsAfterWait": false,
+    "processGroupExistsAfterWait": false,
+    "groupSettleMs": 1.055816999723902,
+    "postExecSampledHighWaterBytes": 16158720
+  },
+  "cycles": {
+    "count": 100,
+    "before": {
+      "uptimeMs": 11811,
+      "heap": {
+        "used": 339954672,
+        "committed": 436207616,
+        "limit": 536870912
+      },
+      "nonHeap": {
+        "used": 171189416,
+        "committed": 182452224,
+        "limit": null
+      },
+      "processCpuNs": 78910000000,
+      "threads": 83,
+      "peakThreads": 85,
+      "openFiles": 125,
+      "gcCountTimeMs": {
+        "G1 Young Generation": [
+          329,
+          726
+        ],
+        "G1 Concurrent GC": [
+          176,
+          106
+        ],
+        "G1 Old Generation": [
+          26,
+          1071
+        ]
+      },
+      "pools": {
+        "CodeHeap 'non-nmethods'": {
+          "peak": {
+            "used": 4667008,
+            "committed": 4915200,
+            "limit": 8196096
+          },
+          "usage": {
+            "used": 2787456,
+            "committed": 4915200,
+            "limit": 8196096
+          }
+        },
+        "Metaspace": {
+          "peak": {
+            "used": 128986992,
+            "committed": 133365760,
+            "limit": null
+          },
+          "usage": {
+            "used": 128986992,
+            "committed": 133365760,
+            "limit": null
+          }
+        },
+        "CodeHeap 'profiled nmethods'": {
+          "peak": {
+            "used": 17080960,
+            "committed": 18022400,
+            "limit": 121733120
+          },
+          "usage": {
+            "used": 15149696,
+            "committed": 18022400,
+            "limit": 121733120
+          }
+        },
+        "Compressed Class Space": {
+          "peak": {
+            "used": 15595960,
+            "committed": 17432576,
+            "limit": 1073741824
+          },
+          "usage": {
+            "used": 15595960,
+            "committed": 17432576,
+            "limit": 1073741824
+          }
+        },
+        "G1 Eden Space": {
+          "peak": {
+            "used": 265289728,
+            "committed": 266338304,
+            "limit": null
+          },
+          "usage": {
+            "used": 88080384,
+            "committed": 137363456,
+            "limit": null
+          }
+        },
+        "G1 Old Gen": {
+          "peak": {
+            "used": 536353200,
+            "committed": 536870912,
+            "limit": 536870912
+          },
+          "usage": {
+            "used": 241661160,
+            "committed": 288358400,
+            "limit": 536870912
+          }
+        },
+        "G1 Survivor Space": {
+          "peak": {
+            "used": 30597472,
+            "committed": 31457280,
+            "limit": null
+          },
+          "usage": {
+            "used": 10213128,
+            "committed": 10485760,
+            "limit": null
+          }
+        },
+        "CodeHeap 'non-profiled nmethods'": {
+          "peak": {
+            "used": 8678784,
+            "committed": 8716288,
+            "limit": 121733120
+          },
+          "usage": {
+            "used": 8669312,
+            "committed": 8716288,
+            "limit": 121733120
+          }
+        }
+      },
+      "linuxRssBytes": {
+        "VmHWM": 1193787392,
+        "VmRSS": 1193787392
+      },
+      "linuxIo": {
+        "rchar": 212920312,
+        "wchar": 37037323,
+        "syscr": 77257,
+        "syscw": 5374,
+        "read_bytes": 0,
+        "write_bytes": 37470208,
+        "cancelled_write_bytes": 0
+      }
+    },
+    "after": {
+      "uptimeMs": 16410,
+      "heap": {
+        "used": 240641176,
+        "committed": 451936256,
+        "limit": 536870912
+      },
+      "nonHeap": {
+        "used": 170575616,
+        "committed": 182452224,
+        "limit": null
+      },
+      "processCpuNs": 93070000000,
+      "threads": 51,
+      "peakThreads": 85,
+      "openFiles": 125,
+      "gcCountTimeMs": {
+        "G1 Young Generation": [
+          439,
+          966
+        ],
+        "G1 Concurrent GC": [
+          250,
+          157
+        ],
+        "G1 Old Generation": [
+          26,
+          1071
+        ]
+      },
+      "pools": {
+        "CodeHeap 'non-nmethods'": {
+          "peak": {
+            "used": 4667008,
+            "committed": 4915200,
+            "limit": 8196096
+          },
+          "usage": {
+            "used": 2210560,
+            "committed": 4915200,
+            "limit": 8196096
+          }
+        },
+        "Metaspace": {
+          "peak": {
+            "used": 128987592,
+            "committed": 133365760,
+            "limit": null
+          },
+          "usage": {
+            "used": 128987592,
+            "committed": 133365760,
+            "limit": null
+          }
+        },
+        "CodeHeap 'profiled nmethods'": {
+          "peak": {
+            "used": 17080960,
+            "committed": 18022400,
+            "limit": 121733120
+          },
+          "usage": {
+            "used": 15128960,
+            "committed": 18022400,
+            "limit": 121733120
+          }
+        },
+        "Compressed Class Space": {
+          "peak": {
+            "used": 15595960,
+            "committed": 17432576,
+            "limit": 1073741824
+          },
+          "usage": {
+            "used": 15595960,
+            "committed": 17432576,
+            "limit": 1073741824
+          }
+        },
+        "G1 Eden Space": {
+          "peak": {
+            "used": 265289728,
+            "committed": 266338304,
+            "limit": null
+          },
+          "usage": {
+            "used": 53477376,
+            "committed": 106954752,
+            "limit": null
+          }
+        },
+        "G1 Old Gen": {
+          "peak": {
+            "used": 536353200,
+            "committed": 536870912,
+            "limit": 536870912
+          },
+          "usage": {
+            "used": 171435160,
+            "committed": 329252864,
+            "limit": 536870912
+          }
+        },
+        "G1 Survivor Space": {
+          "peak": {
+            "used": 30597472,
+            "committed": 31457280,
+            "limit": null
+          },
+          "usage": {
+            "used": 15728640,
+            "committed": 15728640,
+            "limit": null
+          }
+        },
+        "CodeHeap 'non-profiled nmethods'": {
+          "peak": {
+            "used": 8689664,
+            "committed": 8716288,
+            "limit": 121733120
+          },
+          "usage": {
+            "used": 8652544,
+            "committed": 8716288,
+            "limit": 121733120
+          }
+        }
+      },
+      "linuxRssBytes": {
+        "VmHWM": 1210343424,
+        "VmRSS": 1210343424
+      },
+      "linuxIo": {
+        "rchar": 212935654,
+        "wchar": 37037323,
+        "syscr": 77301,
+        "syscw": 5374,
+        "read_bytes": 0,
+        "write_bytes": 37470208,
+        "cancelled_write_bytes": 0
+      }
+    }
+  },
+  "cleanupDiagnostic": {
+    "count": 100,
+    "beforeRequestedGc": {
+      "uptimeMs": 10749,
+      "heap": {
+        "used": 308285976,
+        "committed": 446693376,
+        "limit": 536870912
+      },
+      "nonHeap": {
+        "used": 167197808,
+        "committed": 178126848,
+        "limit": null
+      },
+      "processCpuNs": 76720000000,
+      "threads": 84,
+      "peakThreads": 86,
+      "openFiles": 125,
+      "gcCountTimeMs": {
+        "G1 Young Generation": [
+          337,
+          813
+        ],
+        "G1 Concurrent GC": [
+          184,
+          109
+        ],
+        "G1 Old Generation": [
+          21,
+          832
+        ]
+      },
+      "pools": {
+        "CodeHeap 'non-nmethods'": {
+          "usage": {
+            "used": 2784640,
+            "committed": 4784128,
+            "limit": 8196096
+          },
+          "peak": {
+            "used": 4662528,
+            "committed": 4784128,
+            "limit": 8196096
+          }
+        },
+        "Metaspace": {
+          "usage": {
+            "used": 128006680,
+            "committed": 132251648,
+            "limit": null
+          },
+          "peak": {
+            "used": 128006680,
+            "committed": 132251648,
+            "limit": null
+          }
+        },
+        "CodeHeap 'profiled nmethods'": {
+          "usage": {
+            "used": 13407744,
+            "committed": 16252928,
+            "limit": 121733120
+          },
+          "peak": {
+            "used": 15840000,
+            "committed": 16252928,
+            "limit": 121733120
+          }
+        },
+        "Compressed Class Space": {
+          "usage": {
+            "used": 15489080,
+            "committed": 17235968,
+            "limit": 1073741824
+          },
+          "peak": {
+            "used": 15489080,
+            "committed": 17235968,
+            "limit": 1073741824
+          }
+        },
+        "G1 Eden Space": {
+          "usage": {
+            "used": 120586240,
+            "committed": 180355072,
+            "limit": null
+          },
+          "peak": {
+            "used": 264241152,
+            "committed": 265289728,
+            "limit": null
+          }
+        },
+        "G1 Old Gen": {
+          "usage": {
+            "used": 177797552,
+            "committed": 255852544,
+            "limit": 536870912
+          },
+          "peak": {
+            "used": 536023656,
+            "committed": 536870912,
+            "limit": 536870912
+          }
+        },
+        "G1 Survivor Space": {
+          "usage": {
+            "used": 9902184,
+            "committed": 10485760,
+            "limit": null
+          },
+          "peak": {
+            "used": 32481408,
+            "committed": 32505856,
+            "limit": null
+          }
+        },
+        "CodeHeap 'non-profiled nmethods'": {
+          "usage": {
+            "used": 7510400,
+            "committed": 7602176,
+            "limit": 121733120
+          },
+          "peak": {
+            "used": 7510400,
+            "committed": 7602176,
+            "limit": 121733120
+          }
+        }
+      },
+      "linuxRssBytes": {
+        "VmHWM": 1191079936,
+        "VmRSS": 1191079936
+      },
+      "linuxIo": {
+        "rchar": 212074014,
+        "wchar": 257385,
+        "syscr": 76537,
+        "syscw": 740,
+        "read_bytes": 0,
+        "write_bytes": 532480,
+        "cancelled_write_bytes": 0
+      }
+    },
+    "afterRequestedGc": {
+      "uptimeMs": 10972,
+      "heap": {
+        "used": 139325888,
+        "committed": 446693376,
+        "limit": 536870912
+      },
+      "nonHeap": {
+        "used": 167203632,
+        "committed": 178126848,
+        "limit": null
+      },
+      "processCpuNs": 76930000000,
+      "threads": 84,
+      "peakThreads": 86,
+      "openFiles": 125,
+      "gcCountTimeMs": {
+        "G1 Young Generation": [
+          337,
+          813
+        ],
+        "G1 Concurrent GC": [
+          184,
+          109
+        ],
+        "G1 Old Generation": [
+          22,
+          855
+        ]
+      },
+      "pools": {
+        "CodeHeap 'non-nmethods'": {
+          "usage": {
+            "used": 2784640,
+            "committed": 4784128,
+            "limit": 8196096
+          },
+          "peak": {
+            "used": 4662528,
+            "committed": 4784128,
+            "limit": 8196096
+          }
+        },
+        "Metaspace": {
+          "usage": {
+            "used": 128007416,
+            "committed": 132251648,
+            "limit": null
+          },
+          "peak": {
+            "used": 128007416,
+            "committed": 132251648,
+            "limit": null
+          }
+        },
+        "CodeHeap 'profiled nmethods'": {
+          "usage": {
+            "used": 13412096,
+            "committed": 16252928,
+            "limit": 121733120
+          },
+          "peak": {
+            "used": 15840000,
+            "committed": 16252928,
+            "limit": 121733120
+          }
+        },
+        "Compressed Class Space": {
+          "usage": {
+            "used": 15489080,
+            "committed": 17235968,
+            "limit": 1073741824
+          },
+          "peak": {
+            "used": 15489080,
+            "committed": 17235968,
+            "limit": 1073741824
+          }
+        },
+        "G1 Eden Space": {
+          "usage": {
+            "used": 0,
+            "committed": 199229440,
+            "limit": null
+          },
+          "peak": {
+            "used": 264241152,
+            "committed": 265289728,
+            "limit": null
+          }
+        },
+        "G1 Old Gen": {
+          "usage": {
+            "used": 139325888,
+            "committed": 247463936,
+            "limit": 536870912
+          },
+          "peak": {
+            "used": 536023656,
+            "committed": 536870912,
+            "limit": 536870912
+          }
+        },
+        "G1 Survivor Space": {
+          "usage": {
+            "used": 0,
+            "committed": 0,
+            "limit": null
+          },
+          "peak": {
+            "used": 32481408,
+            "committed": 32505856,
+            "limit": null
+          }
+        },
+        "CodeHeap 'non-profiled nmethods'": {
+          "usage": {
+            "used": 7510400,
+            "committed": 7602176,
+            "limit": 121733120
+          },
+          "peak": {
+            "used": 7510400,
+            "committed": 7602176,
+            "limit": 121733120
+          }
+        }
+      },
+      "linuxRssBytes": {
+        "VmHWM": 1192095744,
+        "VmRSS": 1192095744
+      },
+      "linuxIo": {
+        "rchar": 212075404,
+        "wchar": 257385,
+        "syscr": 76541,
+        "syscw": 740,
+        "read_bytes": 0,
+        "write_bytes": 532480,
+        "cancelled_write_bytes": 0
+      }
+    },
+    "weakRootsRemaining": 0
+  }
+}
