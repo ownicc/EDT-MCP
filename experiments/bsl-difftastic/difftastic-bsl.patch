@@ -1,0 +1,55 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 4e674b7..06e0a96 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -238,0 +239 @@ dependencies = [
++ "tree-sitter-bsl",
+@@ -937,0 +939,8 @@ dependencies = [
++[[package]]
++name = "tree-sitter-bsl"
++version = "0.1.7"
++dependencies = [
++ "cc",
++ "tree-sitter-language",
++]
++
+diff --git a/Cargo.toml b/Cargo.toml
+index 8cdd62c..634e7a2 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -84,0 +85 @@ tree-sitter-bash = "0.25.1"
++tree-sitter-bsl = { path = "../tree-sitter-bsl" }
+diff --git a/src/parse/guess_language.rs b/src/parse/guess_language.rs
+index 82cbb8b..3fff678 100644
+--- a/src/parse/guess_language.rs
++++ b/src/parse/guess_language.rs
+@@ -25,0 +26 @@ pub(crate) enum Language {
++    Bsl,
+@@ -126,0 +128 @@ pub(crate) fn language_name(language: Language) -> &'static str {
++        Bsl => "BSL",
+@@ -248,0 +251 @@ pub(crate) fn language_globs(language: Language) -> Vec<glob::Pattern> {
++        Bsl => &["*.bsl", "*.osl"],
+diff --git a/src/parse/tree_sitter_parser.rs b/src/parse/tree_sitter_parser.rs
+index 3fb334c..46aa7f8 100644
+--- a/src/parse/tree_sitter_parser.rs
++++ b/src/parse/tree_sitter_parser.rs
+@@ -198,0 +199,16 @@ fn build_config(language: guess::Language) -> TreeSitterConfig {
++        Bsl => {
++            let language = tree_sitter::Language::new(tree_sitter_bsl::LANGUAGE);
++            TreeSitterConfig {
++                language: language.clone(),
++                // Preserve all whitespace inside BSL strings, including query texts.
++                atom_nodes: ["string", "date"].into_iter().collect(),
++                delimiter_tokens: vec![("(", ")"), ("[", "]")],
++                ignore_trailing_tokens: vec![],
++                highlight_query: ts::Query::new(
++                    &language,
++                    include_str!("../../../tree-sitter-bsl/grammars/bsl/queries/highlights.scm"),
++                )
++                .unwrap(),
++                sub_languages: vec![],
++            }
++        }
+@@ -1792 +1808 @@ fn syntax_from_cursor<'a>(
+-    if node.is_error() {
++    if node.is_error() || node.is_missing() {

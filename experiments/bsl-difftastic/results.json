@@ -1,0 +1,405 @@
+{
+  "binaryVersion": "Difftastic 0.71.0\n\nRevision:  b7d119e 2026-09-18\nToolchain: 1.85.0\nSystem:    linux x86_64",
+  "binarySha256": "4689627111c102080476a1efdfd21d1d98cabf6096eb48059d00862ecdca9865",
+  "platform": "Linux-7.3.0-5-cachyos-x86_64-with-glibc2.44",
+  "baselineVersion": "Difftastic 0.71.0\n\nRevision:  b7d119e90 2026-09-18\nToolchain: 1.98.1\nSystem:    linux x86_64",
+  "cases": [
+    {
+      "case": "formatting",
+      "title": "Только переносы и отступы",
+      "status": "unchanged",
+      "language": "BSL",
+      "medianMs": 1.923,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.379,
+      "byteChanges": true,
+      "changedSpans": 0,
+      "baselineChangedSpans": 50,
+      "jsonSha256": "79642847e2d76adacc00a5e74f04d4a3d39a5486c9e4914799a83f807fe110cb"
+    },
+    {
+      "case": "expression",
+      "title": "Число изменено одновременно с переносом вызова",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.969,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.612,
+      "byteChanges": true,
+      "changedSpans": 2,
+      "baselineChangedSpans": 50,
+      "jsonSha256": "e5f2ba359405ed2a3748a438715aaf6c3afd922ded548a2cc846d40e3fc7190d"
+    },
+    {
+      "case": "nested-if",
+      "title": "Вложенное условие",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.169,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.595,
+      "byteChanges": true,
+      "changedSpans": 18,
+      "baselineChangedSpans": 98,
+      "jsonSha256": "397ebe6431621b400b403ee58166051709fc6b5f312aee55d0267288d414d642"
+    },
+    {
+      "case": "move",
+      "title": "Перестановка целых процедур",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.182,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.596,
+      "byteChanges": true,
+      "changedSpans": 20,
+      "baselineChangedSpans": 42,
+      "jsonSha256": "d671ed4f12030abc468147562f676d654c0c267a0081fd7d15bea45212c81ac3"
+    },
+    {
+      "case": "preprocessor",
+      "title": "Условие препроцессора",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.184,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.567,
+      "byteChanges": true,
+      "changedSpans": 2,
+      "baselineChangedSpans": 12,
+      "jsonSha256": "187f48925e927d233eb3b9b75c22e0cadd70b8bbb058d7a3b75deecd8fff8b9f"
+    },
+    {
+      "case": "region",
+      "title": "Добавление процедуры внутри области",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.925,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.503,
+      "byteChanges": true,
+      "changedSpans": 10,
+      "baselineChangedSpans": 20,
+      "jsonSha256": "e0860d3d7c3a306acb5e9db9266bc0ee9ac0a05008b9ac2d0821321c8ef932cc"
+    },
+    {
+      "case": "annotation",
+      "title": "Директива компиляции",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.096,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.493,
+      "byteChanges": true,
+      "changedSpans": 2,
+      "baselineChangedSpans": 4,
+      "jsonSha256": "147623c57f94f0464b8251c02e91a3c56b8c6ca678466246b670947d474d6380"
+    },
+    {
+      "case": "extension",
+      "title": "Аннотация расширения и вставка",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.113,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.569,
+      "byteChanges": true,
+      "changedSpans": 4,
+      "baselineChangedSpans": 20,
+      "jsonSha256": "75e8eb0d4a968ba272593d220cdb983c72ba325eae8df2e31a70a9152a3d98a2"
+    },
+    {
+      "case": "query",
+      "title": "Изменение текста запроса",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.946,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.406,
+      "byteChanges": true,
+      "changedSpans": 56,
+      "baselineChangedSpans": 18,
+      "jsonSha256": "59d93e74f71caa54a1b9d1f3629eadf65381c6701d7678ad93abfd9eb0243c73"
+    },
+    {
+      "case": "query-space",
+      "title": "Значимый пробел внутри текста запроса",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 2.034,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.487,
+      "byteChanges": true,
+      "changedSpans": 56,
+      "baselineChangedSpans": 25,
+      "jsonSha256": "594fa8ec8a6194b47d3187ce77d8f3f6b7bd1a1b6fab5d9de313fdb645c6cd5b"
+    },
+    {
+      "case": "string-space",
+      "title": "Пробел внутри строки",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.814,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.288,
+      "byteChanges": true,
+      "changedSpans": 6,
+      "baselineChangedSpans": 23,
+      "jsonSha256": "5ab1052c4a964f0246e909a5ee437b973801dcdea164506e2ee9e0eafb983288"
+    },
+    {
+      "case": "unicode",
+      "title": "Кириллица, emoji и экранированные кавычки",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.799,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.511,
+      "byteChanges": true,
+      "changedSpans": 22,
+      "baselineChangedSpans": 38,
+      "jsonSha256": "682887e24f634adadf6121eb0855b822e2b5963057452a0fa8165dc7dbe8d4f8"
+    },
+    {
+      "case": "comment",
+      "title": "Изменение комментария",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.921,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.303,
+      "byteChanges": true,
+      "changedSpans": 12,
+      "baselineChangedSpans": 20,
+      "jsonSha256": "45b37c9517d57567b7b1ce17bbbc70ad112837eedc0a93006146634f0692e3d5"
+    },
+    {
+      "case": "english",
+      "title": "Английский BSL и асинхронный вызов",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.838,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.371,
+      "byteChanges": true,
+      "changedSpans": 2,
+      "baselineChangedSpans": 30,
+      "jsonSha256": "d836f4de650e92b4249ad44716110427ef05e0869484e3126cf8568932d67e01"
+    },
+    {
+      "case": "invalid",
+      "title": "Незавершённое условие: текстовый fallback",
+      "status": "changed",
+      "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:12)",
+      "medianMs": 2.207,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.347,
+      "byteChanges": true,
+      "changedSpans": 31,
+      "baselineChangedSpans": 31,
+      "jsonSha256": "1eb4232a9f1d7fe1d7d8269a28c691a6b97892077ecf1d5a28c123161a7ec164"
+    },
+    {
+      "case": "invalid-string",
+      "title": "Незакрытая строка: текстовый fallback",
+      "status": "changed",
+      "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:21)",
+      "medianMs": 1.865,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.322,
+      "byteChanges": true,
+      "changedSpans": 26,
+      "baselineChangedSpans": 26,
+      "jsonSha256": "b0cf93f265eb0fa64e69ef2e068bfde5eb38b443faa1bf9ad149ff0185ca8656"
+    },
+    {
+      "case": "invalid-paren",
+      "title": "Незакрытая скобка: текстовый fallback",
+      "status": "changed",
+      "language": "Text (1 BSL parse error, exceeded DFT_PARSE_ERROR_LIMIT, first at 2:22)",
+      "medianMs": 1.991,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.313,
+      "byteChanges": true,
+      "changedSpans": 22,
+      "baselineChangedSpans": 22,
+      "jsonSha256": "82dada82f1c520a5b67e9dd7e6bbbdc4cf9435763a81ad6a83e83d3d189cc276"
+    },
+    {
+      "case": "new-file",
+      "title": "Создание модуля",
+      "status": "created",
+      "language": "BSL",
+      "medianMs": 1.742,
+      "baselineLanguage": "Text",
+      "baselineStatus": "created",
+      "baselineMedianMs": 1.278,
+      "byteChanges": true,
+      "changedSpans": 0,
+      "baselineChangedSpans": 0,
+      "jsonSha256": "8022f48eebcb8c5db9330b228799ad8bdf3c9dbf55fede78ce080729e9e2c12e"
+    },
+    {
+      "case": "delete-file",
+      "title": "Удаление модуля",
+      "status": "deleted",
+      "language": "BSL",
+      "medianMs": 1.775,
+      "baselineLanguage": "Text",
+      "baselineStatus": "deleted",
+      "baselineMedianMs": 1.372,
+      "byteChanges": true,
+      "changedSpans": 0,
+      "baselineChangedSpans": 0,
+      "jsonSha256": "9dff80615cf77bc4175763c78c22c683797570d4ef3739a4a8677e3ed1890224"
+    },
+    {
+      "case": "line-endings",
+      "title": "Только LF → CRLF",
+      "status": "unchanged",
+      "language": "BSL",
+      "medianMs": 1.993,
+      "baselineLanguage": "Text",
+      "baselineStatus": "unchanged",
+      "baselineMedianMs": 1.416,
+      "byteChanges": true,
+      "changedSpans": 0,
+      "baselineChangedSpans": 0,
+      "jsonSha256": "24af831a03b96d7a53de02ba51356b4dacc2b97b206a346cad40f51b13460dad"
+    },
+    {
+      "case": "bom",
+      "title": "Только добавление UTF-8 BOM",
+      "status": "unchanged",
+      "language": "BSL",
+      "medianMs": 1.99,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.514,
+      "byteChanges": true,
+      "changedSpans": 0,
+      "baselineChangedSpans": 11,
+      "jsonSha256": "88b7163dbddbd16e22b9bc31cc996a18f3172d6278cf52cdbc7a2f38b478fa41"
+    },
+    {
+      "case": "case",
+      "title": "Только регистр ключевого слова",
+      "status": "changed",
+      "language": "BSL",
+      "medianMs": 1.876,
+      "baselineLanguage": "Text",
+      "baselineStatus": "changed",
+      "baselineMedianMs": 1.408,
+      "byteChanges": true,
+      "changedSpans": 2,
+      "baselineChangedSpans": 10,
+      "jsonSha256": "9fc1dd72c7606ac62d591af77bd686bcc8fc289ff24257dc785bc0540ab8f77f"
+    }
+  ],
+  "corpus": [
+    {
+      "file": "SupportedConfiguration/src/Catalogs/Locked/ObjectModule.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "SupportedConfiguration/src/CommonModules/Locked/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "SupportedConfiguration/src/CommonModules/Open/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/Calc/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/CascadeEn/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/CascadeUser/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/DrySignal/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/Error/Module.bsl",
+      "language": "Text (2 BSL parse errors, exceeded DFT_PARSE_ERROR_LIMIT, first at 1:0)",
+      "treeDumpErrors": [
+        "ERROR (0, 0) - (0, 5)"
+      ]
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/OK/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/CommonModules/Вычисление/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "TestConfiguration/src/Configuration/ManagedApplicationModule.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "tests/src/CommonModules/Calc/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "tests/src/CommonModules/tests_FailureDemo/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "tests/src/CommonModules/tests_MathHelper/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    },
+    {
+      "file": "tests/src/CommonModules/tests_SampleTests/Module.bsl",
+      "language": "BSL",
+      "treeDumpErrors": []
+    }
+  ],
+  "fallbackGuards": {
+    "--graph-limit=1": "Text (exceeded DFT_GRAPH_LIMIT)",
+    "--byte-limit=1": "Text (137 B exceeded DFT_BYTE_LIMIT)"
+  },
+  "largeModule": {
+    "bytes": 118779,
+    "lines": 4999,
+    "medianMs": 39.931,
+    "changedSpans": 2
+  }
+}
