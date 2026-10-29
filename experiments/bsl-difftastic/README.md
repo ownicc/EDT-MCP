@@ -127,3 +127,30 @@ the existing design. Move recognition and structural parsing inside query string
 can remain separate improvements. Larger real-world corpus coverage, process
 cancellation, platform packaging, and comprehensive malformed-input validation
 are required before production integration.
+
+## Native EDT prototype
+
+The review tab now has an optional native SWT structural viewer. Supply the
+absolute path of the BSL-enabled executable built above in the EDT JVM option
+`-Dedt.mcp.difftastic=/absolute/path/to/difft`. With no configured executable,
+the standard native compare uses the installed BSL viewer. A failed or timed-out
+engine falls back to that viewer with a visible notice.
+
+The structural surface uses EDT's BSL lexer and syntax-color preferences,
+read-only snapshots, original line numbers, aligned scrolling, changed-token
+backgrounds and previous/next change actions. Apply/Reject and prepared-byte
+commit validation remain in the existing review lifecycle. JSON positions are
+validated against the snapshots and converted from UTF-8 to UTF-16. The adapter
+handles omitted chunks, final newline rows and virtual end-of-file markers.
+
+To open the attended Kasl example in a disposable imported copy:
+
+```sh
+python experiments/bsl-difftastic/kasl_review.py --directory /path/to/copied/KASL
+```
+
+The script requests an expression reflow with `+ 0`, verifies that disk bytes
+remain unchanged, and prints the review ID. It never accepts the proposal.
+Close or reject the pending review before requesting a different change for
+the same module. The first prototype uses an explicitly configured Linux
+binary; automatic installation and other-platform packages are not included.

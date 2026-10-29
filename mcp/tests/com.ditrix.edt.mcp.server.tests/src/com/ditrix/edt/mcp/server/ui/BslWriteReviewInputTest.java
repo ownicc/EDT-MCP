@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import java.nio.charset.StandardCharsets;
 import org.eclipse.compare.IEditableContent;
 import org.eclipse.compare.IStreamContentAccessor;
+import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.junit.After;
 import org.junit.Test;
@@ -29,6 +30,8 @@ public class BslWriteReviewInputTest
         assertFalse(input.getCompareConfiguration().isLeftEditable());
         assertFalse(input.getCompareConfiguration().isRightEditable());
         var node = (DiffNode)input.prepareInput(null);
+        assertEquals("bsl", ((ITypedElement)node.getLeft()).getType());
+        assertEquals("bsl", ((ITypedElement)node.getRight()).getType());
         assertFalse(node.getLeft() instanceof IEditableContent);
         assertFalse(node.getRight() instanceof IEditableContent);
         try (var in = ((IStreamContentAccessor)node.getLeft()).getContents())

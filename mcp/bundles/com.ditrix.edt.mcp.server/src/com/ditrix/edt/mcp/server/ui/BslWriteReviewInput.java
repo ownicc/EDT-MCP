@@ -7,6 +7,7 @@ package com.ditrix.edt.mcp.server.ui;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 import org.eclipse.compare.CompareConfiguration;
@@ -39,6 +40,8 @@ public final class BslWriteReviewInput extends CompareEditorInput
     private final DiffNode difference;
     private final CompletableFuture<Control> created = new CompletableFuture<>();
     private final String identity;
+    private final String baseText;
+    private final String proposedText;
     private AutoCloseable subscription;
     private Button apply;
     private Button reject;
@@ -50,6 +53,8 @@ public final class BslWriteReviewInput extends CompareEditorInput
         super(configuration());
         this.reviewId = reviewId;
         this.reviews = reviews;
+        baseText = write.baseText();
+        proposedText = write.proposedText();
         identity = write.projectName() + " / " + write.modulePath()
             + (write.baseExists() ? "" : " — " + Messages.BslReview_NewFile);
         setTitle(Messages.BslReview_Title + ": " + write.modulePath());
@@ -79,7 +84,7 @@ public final class BslWriteReviewInput extends CompareEditorInput
         }
         @Override public String getName() { return name; }
         @Override public Image getImage() { return null; }
-        @Override public String getType() { return ITypedElement.TEXT_TYPE; }
+        @Override public String getType() { return "bsl"; } //$NON-NLS-1$
         @Override public String getCharset() { return StandardCharsets.UTF_8.name(); }
         @Override public InputStream getContents() { return new ByteArrayInputStream(bytes); }
     }
@@ -108,7 +113,7 @@ public final class BslWriteReviewInput extends CompareEditorInput
         reject.setText(Messages.BslReview_Reject);
         apply.addListener(SWT.Selection, event -> { reviews.apply(reviewId); update(reviews.get(reviewId)); });
         reject.addListener(SWT.Selection, event -> { reviews.reject(reviewId); update(reviews.get(reviewId)); });
-        Control comparison = super.createContents(root);
+        Control comparison = createComparison(root);
         comparison.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         subscription = reviews.subscribe(reviewId, snapshot -> {
             if (root.isDisposed()) return;
@@ -120,6 +125,35 @@ public final class BslWriteReviewInput extends CompareEditorInput
         root.addDisposeListener(event -> disposeReview());
         created.complete(root);
         return root;
+    }
+
+    private Control createComparison(Composite parent)
+    {
+        String executable = System.getProperty(StructuralBslDiff.EXECUTABLE_PROPERTY, ""); //$NON-NLS-1$
+        if (executable.isBlank()) return super.createContents(parent);
+        Composite area = new Composite(parent, SWT.NONE);
+        area.setLayout(new GridLayout(1, false));
+        java.util.function.Consumer<String> fallback = reason -> {
+            for (Control child : area.getChildren()) child.dispose();
+            Label notice = new Label(area, SWT.WRAP);
+            notice.setText(reason);
+            notice.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
+            Control standard = BslWriteReviewInput.super.createContents(area);
+            standard.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+            area.layout(true, true);
+        };
+        try
+        {
+            Control structural = BslStructuralCompare.create(area, baseText, proposedText,
+                Path.of(executable), fallback);
+            structural.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        }
+        catch (Exception e)
+        {
+            com.ditrix.edt.mcp.server.Activator.logInfo("BSL structural viewer unavailable: " + e.getMessage()); //$NON-NLS-1$
+            fallback.accept(Messages.BslDiff_Unavailable);
+        }
+        return area;
     }
 
     private void update(Snapshot snapshot)

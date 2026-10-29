@@ -17,6 +17,14 @@ import org.eclipse.osgi.util.NLS;
  */
 public class Messages extends NLS {
 
+    public static String BslDiff_Computing;
+    public static String BslDiff_Previous;
+    public static String BslDiff_Next;
+    public static String BslDiff_Unavailable;
+    public static String BslDiff_NoStructuralChanges;
+    public static String BslDiff_Structural;
+    public static String BslDiff_TextFallback;
+
     private static final String BUNDLE_NAME = "com.ditrix.edt.mcp.server.ui.messages"; //$NON-NLS-1$
 
     public static String McpHistoryView_TabHistory; // NOSONAR Eclipse NLS field: value injected by NLS.initializeMessages, cannot be final; Eclipse NLS field name must equal its .properties key
