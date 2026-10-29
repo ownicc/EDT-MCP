@@ -246,8 +246,8 @@ answers remain unchanged and the preview marks them as invalid.
 
 The JGit preview now uses its recorded line alignment and original line numbers.
 Changed lines have a soft red/green background across the whole cell, a bold
-colored gutter and a −/+ marker. Exact changed tokens use colored, slightly bold
-text with no extra background. Spaces/tabs inside highlighted fragments have
+colored gutter and a −/+ marker. Exact changed tokens use colored bold text,
+a moderately stronger pastel fill and a thin inset underline. Spaces/tabs inside highlighted fragments have
 CSS-generated ·/→ markers; original whitespace stays in the selectable text.
 Reordered method lines are blue with ↕; only actual edits receive red/green
 highlighting. Padding cells use a neutral hatch. UTF-16 ranges are mapped before
@@ -265,9 +265,10 @@ An existing output file is never overwritten. The recorded timing/resource
 summary above measures commit `cfdd4d47`; this later presentation change does not
 alter the Java comparison or those raw measurements. The previous preview and
 native prototype remain available. The updated recorded-evidence preview is at
-`/home/ownicc/Workstation/Kasl-diff-test/method-highlight-preview-02/preview.html`.
-The previous, stronger inline-background variant remains in
-`method-highlight-preview-01/` for comparison.
+`/home/ownicc/Workstation/Kasl-diff-test/method-highlight-preview-03/preview.html`.
+The original strong inline-background variant remains in
+`method-highlight-preview-01/`; the text-only variant remains in
+`method-highlight-preview-02/` for comparison.
 
 Rendering checks:
 
