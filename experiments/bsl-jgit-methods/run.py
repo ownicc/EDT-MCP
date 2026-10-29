@@ -311,6 +311,13 @@ def validate(cases, profiles, native):
         assert r['id'] == c['id'] and r['status'] == expected, (c['id'], r['status'])
 
 
+def changed_text(text):
+    # Generated CSS markers leave the original whitespace in selectable text.
+    return (html.escape(text)
+            .replace(' ', '<span class="ws" data-symbol="·" title="Пробел"> </span>')
+            .replace('\t', '<span class="ws" data-symbol="→" title="Табуляция">\t</span>'))
+
+
 def code_lines(text, spans, moves):
     """Convert verified UTF-16 ranges once, then paint complete source lines."""
     indexes = {0: 0}; units = 0
@@ -338,10 +345,12 @@ def code_lines(text, spans, moves):
         if line.endswith('\r'): line = line[:-1]
         spans = [(min(a, len(line)), min(b, len(line))) for a, b in ranges[number]]
         bounds = sorted({0, len(line)} | {p for span in spans for p in span})
-        content = ''.join(('<mark>' if any(a <= start < b for a, b in spans) else '<span>')
-                          + html.escape(line[start:end])
-                          + ('</mark>' if any(a <= start < b for a, b in spans) else '</span>')
-                          for start, end in zip(bounds, bounds[1:]))
+        pieces = []
+        for start, end in zip(bounds, bounds[1:]):
+            changed = any(a <= start < b for a, b in spans)
+            part = changed_text(line[start:end]) if changed else html.escape(line[start:end])
+            pieces.append(('<mark>' + part + '</mark>') if changed else ('<span>' + part + '</span>'))
+        content = ''.join(pieces)
         rendered.append((content, bool(spans), number in moved))
     return rendered
 
@@ -405,12 +414,14 @@ def render(cases, profiles, out, output=None):
         '.jgit-code .ln span{float:left;font-weight:bold}.jgit-code .removed{background:#ffe0df}.jgit-code .added{background:#d8f2dd}'
         '.jgit-code .ln.removed{background:#ffd0ce;color:#8a1414;border-left-color:#b42318;font-weight:bold}'
         '.jgit-code .ln.added{background:#bde7c6;color:#005014;border-left-color:#006b2e;font-weight:bold}'
-        '.jgit-code .removed mark{background:#b42318;color:#fff;font-weight:bold;border-radius:2px;outline:1px solid #8a1414}'
-        '.jgit-code .added mark{background:#006b2e;color:#fff;font-weight:bold;border-radius:2px;outline:1px solid #004e22}'
+        '.jgit-code mark{background:transparent;font-weight:600}'
+        '.jgit-code .removed mark{color:#8a2430}.jgit-code .added mark{color:#00612b}'
+        '.jgit-code .ws{position:relative}.jgit-code .ws::after{content:attr(data-symbol);position:absolute;left:0;top:0;pointer-events:none;user-select:none}'
         '.jgit-code .moved{background:#e0edff}.jgit-code .ln.moved{color:#124b8e;border-left-color:#2866ad;font-weight:bold}'
         '.jgit-code .gap{background:repeating-linear-gradient(135deg,#eceff3,#eceff3 5px,#f7f8fa 5px,#f7f8fa 10px)}'
         '</style><h1>Difftastic · flat JGit · method-aware JGit</h1>'
-        '<p>Экспериментальный просмотр. Изменённые строки: красные слева, зелёные справа; точные правки выделены контрастнее. '
+        '<p>Экспериментальный просмотр. Мягкий фон отмечает изменённую строку; точные правки выделены цветом текста и начертанием. '
+        'В выделенных фрагментах: · — пробел, → — табуляция; при копировании сохраняются исходные символы. '
         'Синие строки ↕ — перестановка метода. Применение изменений здесь недоступно.</p>' + ''.join(sections) + '</html>')
 
 

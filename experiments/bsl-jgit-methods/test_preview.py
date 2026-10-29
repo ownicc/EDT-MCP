@@ -1,5 +1,4 @@
 """Small rendering checks; no EDT or comparison engine is launched."""
-import html
 from html.parser import HTMLParser
 import unittest
 
@@ -11,6 +10,7 @@ class Marks(HTMLParser):
         super().__init__()
         self.inside = False
         self.marked = []
+        self.all_text = []
         self.feed(source)
 
     def handle_starttag(self, tag, attrs):
@@ -20,6 +20,7 @@ class Marks(HTMLParser):
         if tag == 'mark': self.inside = False
 
     def handle_data(self, data):
+        self.all_text.append(data)
         if self.inside: self.marked.append(data)
 
 
@@ -62,6 +63,17 @@ class PreviewTest(unittest.TestCase):
     def test_invalid_utf16_boundary_is_rejected(self):
         with self.assertRaises(KeyError):
             run.code_lines('😀\n', [dict(start=1, length=1)], [])
+
+    def test_changed_spaces_and_tabs_keep_selectable_source_characters(self):
+        source = '\tСообщить(" Код "); \t\n'
+        rendered = run.code_lines(source, [span(source, '" Код "'), span(source, ' \t')], [])[0][0]
+        parsed = Marks(rendered)
+        self.assertEqual(''.join(parsed.all_text), source[:-1])
+        self.assertEqual(''.join(parsed.marked), '" Код " \t')
+        self.assertEqual(rendered.count('data-symbol="·"'), 3)
+        self.assertEqual(rendered.count('data-symbol="→"'), 1)
+        self.assertNotIn('·', ''.join(parsed.all_text))
+        self.assertNotIn('→', ''.join(parsed.all_text))
 
 
 if __name__ == '__main__':
