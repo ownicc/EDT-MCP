@@ -317,7 +317,7 @@ final class BslStructuralCompare
                     {
                         event.gc.setForeground(changes.containsKey(original)
                             ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
-                                : added ? new RGB(24, 108, 45) : new RGB(180, 36, 36))
+                                : added ? new RGB(0, 80, 20) : new RGB(180, 36, 36))
                             : dark ? color(new RGB(150, 150, 150))
                                 : text.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
                         event.gc.drawString(Integer.toString(original + 1), 6, y, true);
