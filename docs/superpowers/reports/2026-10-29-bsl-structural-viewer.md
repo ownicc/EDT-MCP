@@ -51,8 +51,11 @@ disposed-widget dispatch issue. The implementation now captures Display on the
 UI thread and tolerates display disposal before dispatch. Final selected tests
 and the build ran after that change. No second independent review was run.
 
-Visual colors/layout, scrolling feel and all approval actions need attended user
-inspection. Window-specific screenshot capture is unavailable on the current
+The user inspected the live window and confirmed its appearance, requesting
+stronger change backgrounds on white. Added green was strengthened to `#9cdda8`
+and removed red to `#f3b3b3`; the subsequent color-only build skipped unchanged
+logic tests. Scrolling feel and all approval actions still need attended checks.
+Window-specific screenshot capture is unavailable on the current
 Wayland backend; desktop capture did not show the EDT window and was discarded.
 Accessibility evidence is not claimed as a visual screenshot test.
 

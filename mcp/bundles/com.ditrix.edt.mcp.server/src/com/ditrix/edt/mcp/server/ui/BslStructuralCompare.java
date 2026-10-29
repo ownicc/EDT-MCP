@@ -69,8 +69,8 @@ final class BslStructuralCompare
         SashForm columns = new SashForm(root, SWT.HORIZONTAL);
         columns.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         Injector injector = bslInjector();
-        left = new Side(columns, Messages.BslReview_Current, before, injector, new Color(255, 218, 218));
-        right = new Side(columns, Messages.BslReview_Proposed, after, injector, new Color(213, 242, 219));
+        left = new Side(columns, Messages.BslReview_Current, before, injector, new Color(243, 179, 179));
+        right = new Side(columns, Messages.BslReview_Proposed, after, injector, new Color(156, 221, 168));
         columns.setWeights(1, 1);
         synchronize(left.text, right.text);
         synchronize(right.text, left.text);
