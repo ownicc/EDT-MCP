@@ -315,7 +315,10 @@ final class BslStructuralCompare
                     Integer original = sourceLines.get(row);
                     if (original != null)
                     {
-                        event.gc.setForeground(changes.containsKey(original)
+                        boolean changed = changes.containsKey(original);
+                        event.gc.setFont(!dark && changed
+                            ? JFaceResources.getFontRegistry().getBold(JFaceResources.TEXT_FONT) : text.getFont());
+                        event.gc.setForeground(changed
                             ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
                                 : added ? new RGB(0, 80, 20) : new RGB(180, 36, 36))
                             : dark ? color(new RGB(150, 150, 150))
