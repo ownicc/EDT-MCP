@@ -63,3 +63,28 @@ This is an opt-in Linux prototype, not a release certification. Binary packaging
 for other operating systems, move labels, structural query-string comparison,
 large-module UI responsiveness and live apply/reject/stale/dirty revalidation of
 the final surface remain follow-up checks. No release, push or PR was created.
+
+## Theme and gutter follow-up (edt-5sw)
+
+The toolbar now switches Light/Dark (new reviews default to Dark) without
+replacing text or recalculating the comparison. Light uses EDT syntax attributes;
+Dark uses BSL token categories on `#1e1e1e`. Changed tokens use stronger green
+`#26703a` / red `#9c3030` backgrounds and white text, with contrast ratios 6.07
+and 7.29 respectively. Changed original line numbers are green on the right and
+red on the left in both themes. The existing structural span map determines
+their color; padding has no number and formatting-only lines remain neutral.
+
+The canonical JDK25/Maven3.9.11 build passed **14 selected tests**, with no
+failures, errors or skips (theme contrast, structural adapter and review input).
+The new background-separation check failed on the old palette before the fix.
+Logs: `/tmp/edt-structural-viewer-tools/theme-{red,green}-build.log`.
+A fresh independent reviewer found no blocking issues.
+
+The separate Kasl EDT installation loaded bundle `1.0.0.202610291742`.
+The attended example opened with the Dark selector, Current/Proposed source
+panes and Apply/Reject controls in the accessibility tree. The helper confirmed
+`awaitingApproval`, `applied=false`, `mutationCommitted=false` and unchanged
+module bytes. The tab remains pending for user inspection. A background combo
+click was unverifiable and a fresh tree still showed Dark; switching was not
+confirmed in this run. Window screenshot capture remains unavailable, so these
+checks do not establish the rendered colors, scrolling or approval behavior.

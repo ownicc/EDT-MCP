@@ -143,6 +143,16 @@ commit validation remain in the existing review lifecycle. JSON positions are
 validated against the snapshots and converted from UTF-8 to UTF-16. The adapter
 handles omitted chunks, final newline rows and virtual end-of-file markers.
 
+The toolbar has a Light/Dark selector, with Dark selected for a new review.
+Only the source panes change theme; the GTK shell can stay on Adwaita light.
+Light restores EDT's configured syntax attributes. Dark uses a separate palette
+for the same BSL token categories and distinct added/removed backgrounds.
+Changing theme preserves the text, selection and scrolling position.
+Dark changed tokens use stronger green/red backgrounds and white text for
+readability. Original line numbers follow structural spans: removed on the left
+are red, added on the right are green, in either theme. Alignment padding has
+no number, and formatting-only lines keep their normal number color.
+
 To open the attended Kasl example in a disposable imported copy:
 
 ```sh

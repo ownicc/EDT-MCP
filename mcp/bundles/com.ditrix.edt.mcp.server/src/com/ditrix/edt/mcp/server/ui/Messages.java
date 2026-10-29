@@ -24,6 +24,8 @@ public class Messages extends NLS {
     public static String BslDiff_NoStructuralChanges;
     public static String BslDiff_Structural;
     public static String BslDiff_TextFallback;
+    public static String BslDiff_Light;
+    public static String BslDiff_Dark;
 
     private static final String BUNDLE_NAME = "com.ditrix.edt.mcp.server.ui.messages"; //$NON-NLS-1$
 
