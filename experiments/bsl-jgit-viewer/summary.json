@@ -1,0 +1,268 @@
+{
+  "runDirectory": "/home/ownicc/Workstation/Kasl-diff-test/method-viewer-10",
+  "rawSummarySha256": "6d7d2106aa9373e8cf6e4464633a4ba64040d7ac82531d20d53c6950655f6888",
+  "environment": "Linux x86_64, EDT 2026.2.2.21, JDK25.0.4.1, SWT GTK/Xvfb",
+  "qualityCases": 95,
+  "fullReviewCycles": 100,
+  "closeDuringComputeCycles": 20,
+  "diagnosticSurvivingRoots": 0,
+  "oversizedInputNoticePassed": true,
+  "firstUseOpenComputeCaptureDisposeMs": 325.295795,
+  "longLine250000SpacesOpenComputePaintDisposeMs": 393.202104,
+  "warmBaseline": {
+    "heapUsed": 489681496,
+    "heapCommitted": 656408576,
+    "threads": 103,
+    "gcCount": 155,
+    "gcTimeMs": 611,
+    "fds": 1896,
+    "VmHWM": "3545960 kB",
+    "VmRSS": "1950544 kB",
+    "swt": {
+      "Controls": 216,
+      "Cursor": 4,
+      "Font": 5,
+      "Image": 78,
+      "TextLayout": 11
+    }
+  },
+  "afterRequestedGc": {
+    "heapUsed": 491080936,
+    "heapCommitted": 639631360,
+    "threads": 103,
+    "gcCount": 217,
+    "gcTimeMs": 819,
+    "fds": 2904,
+    "VmHWM": "3545960 kB",
+    "VmRSS": "2267732 kB",
+    "swt": {
+      "Controls": 150,
+      "Cursor": 4,
+      "Font": 4,
+      "Image": 74,
+      "TextLayout": 2
+    }
+  },
+  "cycleCheckpoints": [
+    {
+      "heapUsed": 596636248,
+      "heapCommitted": 656408576,
+      "threads": 103,
+      "gcCount": 155,
+      "gcTimeMs": 611,
+      "fds": 1896,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "1980456 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 561907864,
+      "heapCommitted": 580911104,
+      "threads": 103,
+      "gcCount": 158,
+      "gcTimeMs": 619,
+      "fds": 1896,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "1909852 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 558201568,
+      "heapCommitted": 580911104,
+      "threads": 103,
+      "gcCount": 163,
+      "gcTimeMs": 638,
+      "fds": 1896,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "1931456 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 674107560,
+      "heapCommitted": 1375731712,
+      "threads": 103,
+      "gcCount": 187,
+      "gcTimeMs": 698,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2234028 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 664640336,
+      "heapCommitted": 706740224,
+      "threads": 103,
+      "gcCount": 201,
+      "gcTimeMs": 726,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2290340 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 564227992,
+      "heapCommitted": 849346560,
+      "threads": 103,
+      "gcCount": 207,
+      "gcTimeMs": 739,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2301376 kB",
+      "swt": {
+        "Controls": 216,
+        "Cursor": 4,
+        "Font": 5,
+        "Image": 78,
+        "TextLayout": 11
+      }
+    },
+    {
+      "heapUsed": 666988440,
+      "heapCommitted": 849346560,
+      "threads": 103,
+      "gcCount": 207,
+      "gcTimeMs": 739,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2366784 kB",
+      "swt": {
+        "Controls": 150,
+        "Cursor": 4,
+        "Font": 4,
+        "Image": 74,
+        "TextLayout": 2
+      }
+    },
+    {
+      "heapUsed": 769748888,
+      "heapCommitted": 849346560,
+      "threads": 103,
+      "gcCount": 207,
+      "gcTimeMs": 739,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2444864 kB",
+      "swt": {
+        "Controls": 150,
+        "Cursor": 4,
+        "Font": 4,
+        "Image": 74,
+        "TextLayout": 2
+      }
+    },
+    {
+      "heapUsed": 648220752,
+      "heapCommitted": 698351616,
+      "threads": 103,
+      "gcCount": 210,
+      "gcTimeMs": 743,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2297084 kB",
+      "swt": {
+        "Controls": 150,
+        "Cursor": 4,
+        "Font": 4,
+        "Image": 74,
+        "TextLayout": 2
+      }
+    },
+    {
+      "heapUsed": 612878672,
+      "heapCommitted": 708837376,
+      "threads": 103,
+      "gcCount": 211,
+      "gcTimeMs": 747,
+      "fds": 2904,
+      "VmHWM": "3545960 kB",
+      "VmRSS": "2307484 kB",
+      "swt": {
+        "Controls": 150,
+        "Cursor": 4,
+        "Font": 4,
+        "Image": 74,
+        "TextLayout": 2
+      }
+    }
+  ],
+  "sourceHashes": {
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/MethodAwareBslDiff.java": "964b6b1b3951ae1b311ba1e112fecb59f883ae027cbaf9527e23bfe6736a86b0",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/BslStructuralCompare.java": "ec8c2f63c549fd2c7da17c9e73e25bdeda98abd6b2ada607b7d04a0ab0eef6dc",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/BslWriteReviewInput.java": "8f6ee8cf76c0e32dfbc7dc37c7236ac217ebb1f61dbb04facdf5a7adc1a5164e",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/BslWriteReviewUi.java": "bc496ba09228bce6114bd9c5f679c51a5530c05564039eba52520a9ef3ef6ea2",
+    "experiments/bsl-jgit-viewer/ViewerProbe.java": "1a79b1faeed3b5ee1db508cb00783b1599f3e6d7e891ad957b3ed1ea67b20418",
+    "experiments/bsl-jgit-viewer/run.py": "e5dbba0bcbd51cea0305bab3c1a9402ca5c70cba8c00a792ae7b98c31c4d60a1"
+  },
+  "sourcePreservation": [
+    {
+      "root": "/home/ownicc/git/kasl",
+      "checked": 165,
+      "mismatches": []
+    },
+    {
+      "root": "/home/ownicc/Workstation/Kasl-diff-test/KASL",
+      "checked": 165,
+      "mismatches": []
+    }
+  ],
+  "nativeArtifactsPreserved": 60,
+  "liveReview": {
+    "modulePath": "CommonModules/ОбщийКлиент/Module.bsl",
+    "createdAt": "2026-10-30T17:28:10.743866866Z",
+    "applied": false,
+    "success": true,
+    "pollAfterSeconds": 3,
+    "mutationCommitted": false,
+    "projectName": "KASL",
+    "reviewId": "97edd15b-535d-41e8-9cae-13d76649d5c3",
+    "nextTool": "get_write_review_status",
+    "expiresAt": "2026-10-30T17:58:10.743866866Z",
+    "status": "awaitingApproval"
+  },
+  "conformance": "Baseline check passed: all failures are expected.",
+  "limits": [
+    "No hard mid-parse cancellation",
+    "Only installed Linux/EDT2026.2 was executed",
+    "No full product e2e with dedicated TestConfiguration stand",
+    "No attended scrolling or Windows/macOS validation",
+    "Process RSS/FD growth includes unrelated EDT service/JAR initialization"
+  ],
+  "javaTests": {
+    "run": 12025,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 5,
+    "canonicalBuild": "source/compile.sh",
+    "logSha256": "b5b62ad2807bc71e2c0a888ea4633f9ca7416d7268f7f89faad4f0ab1234e84f"
+  }
+}

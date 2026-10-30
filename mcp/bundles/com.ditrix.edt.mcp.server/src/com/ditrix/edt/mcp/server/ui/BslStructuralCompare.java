@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.jface.resource.JFaceResources;
 import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.TextAttribute;
@@ -53,7 +54,13 @@ final class BslStructuralCompare
     private final Side right;
     private final TreeSet<Integer> changedRows = new TreeSet<>();
     private final Map<RGB, Color> colors = new HashMap<>();
-    private boolean dark = true;
+    private static final ISchedulingRule METHOD_RULE = new ISchedulingRule() {
+        @Override public boolean contains(ISchedulingRule rule) { return rule == this; }
+        @Override public boolean isConflicting(ISchedulingRule rule) { return rule == this; }
+    };
+    private boolean dark;
+    private String fallbackReason;
+    private boolean byteChanges;
     private int selectedRow = -1;
 
     private BslStructuralCompare(Composite parent, String before, String after) throws Exception
@@ -69,7 +76,7 @@ final class BslStructuralCompare
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
         Combo theme = new Combo(toolbar, SWT.DROP_DOWN | SWT.READ_ONLY);
         theme.setItems(Messages.BslDiff_Light, Messages.BslDiff_Dark);
-        theme.select(1);
+        theme.select(0);
         theme.addListener(SWT.Selection, event -> {
             dark = theme.getSelectionIndex() == 1;
             applyTheme();
@@ -131,15 +138,33 @@ final class BslStructuralCompare
     static Composite create(Composite parent, String before, String after, Path executable,
         Consumer<String> fallback) throws Exception
     {
+        if (executable == null) MethodAwareBslDiff.validateInput(before, after);
         BslStructuralCompare comparison = new BslStructuralCompare(parent, before, after);
         Display display = parent.getDisplay();
         Job job = Job.create(Messages.BslDiff_Computing, monitor -> {
             try
             {
-                Result result = StructuralBslDiff.compare(executable, before, after, monitor);
-                dispatch(display, () -> {
-                    if (!comparison.root.isDisposed()) comparison.show(result);
-                });
+                if (executable == null)
+                {
+                    var result = MethodAwareBslDiff.compute(before, after, monitor);
+                    dispatch(display, () -> {
+                        if (!comparison.root.isDisposed())
+                        {
+                            comparison.left.markMoves(result.leftMoves());
+                            comparison.right.markMoves(result.rightMoves());
+                            comparison.fallbackReason = result.fallback();
+                            comparison.byteChanges = result.byteChanges();
+                            comparison.show(result.diff());
+                        }
+                    });
+                }
+                else
+                {
+                    Result result = StructuralBslDiff.compare(executable, before, after, monitor);
+                    dispatch(display, () -> {
+                        if (!comparison.root.isDisposed()) comparison.show(result);
+                    });
+                }
             }
             catch (org.eclipse.core.runtime.OperationCanceledException e) { return Status.CANCEL_STATUS; }
             catch (InterruptedException e)
@@ -151,12 +176,13 @@ final class BslStructuralCompare
             {
                 Activator.logInfo("Structural BSL comparison unavailable: " + e.getMessage()); //$NON-NLS-1$
                 dispatch(display, () -> {
-                    if (!comparison.root.isDisposed()) fallback.accept(Messages.BslDiff_Unavailable);
+                    if (!comparison.root.isDisposed()) fallback.accept(Messages.BslDiff_Unavailable + " " + e.getMessage());
                 });
             }
             return Status.OK_STATUS;
         });
         comparison.root.addDisposeListener(event -> job.cancel());
+        if (executable == null) job.setRule(METHOD_RULE);
         job.setSystem(true);
         job.schedule();
         return comparison.root;
@@ -180,13 +206,16 @@ final class BslStructuralCompare
         for (int i = 0; i < result.rows().size(); i++)
         {
             var row = result.rows().get(i);
-            if (left.changes.containsKey(row.left()) || right.changes.containsKey(row.right())) changedRows.add(i);
+            if (left.changes.containsKey(row.left()) || right.changes.containsKey(row.right())
+                || left.moves.contains(row.left()) || right.moves.contains(row.right())) changedRows.add(i);
         }
         previous.setEnabled(!changedRows.isEmpty());
         next.setEnabled(!changedRows.isEmpty());
         summary.setText(result.language().equals("BSL") //$NON-NLS-1$
             ? (changedRows.isEmpty() ? Messages.BslDiff_NoStructuralChanges : Messages.BslDiff_Structural)
             : Messages.BslDiff_TextFallback + " " + result.language()); //$NON-NLS-1$
+        if (changedRows.isEmpty() && byteChanges) summary.setText(Messages.BslDiff_FormattingOnly);
+        if (fallbackReason != null) summary.setText(summary.getText() + " — " + fallbackReason);
         summary.getParent().layout(true, true);
         if (!changedRows.isEmpty()) navigate(true);
     }
@@ -232,6 +261,7 @@ final class BslStructuralCompare
         final List<String> lines;
         final Map<Integer, List<Lexeme>> lexical = new HashMap<>();
         final Map<Integer, List<Span>> changes = new HashMap<>();
+        final java.util.Set<Integer> moves = new java.util.HashSet<>();
         List<Integer> sourceLines = List.of();
 
         Side(Composite parent, String title, String source, Injector injector, boolean added) throws Exception
@@ -294,39 +324,102 @@ final class BslStructuralCompare
                         boolean changed = false;
                         for (Span span : spans)
                             if (span.start() <= start && start < span.start() + span.length()) { changed = true; break; }
-                        styles.add(new StyleRange(event.lineOffset + start, end - start,
-                            dark ? color(changed ? DARK_CHANGED_FOREGROUND : darkForeground(category))
-                                : attribute == null ? null : attribute.getForeground(),
+                        StyleRange style = new StyleRange(event.lineOffset + start, end - start,
+                            changed ? color(dark ? DARK_CHANGED_FOREGROUND
+                                : added ? new RGB(0, 78, 34) : new RGB(124, 32, 40))
+                                : dark ? color(darkForeground(category)) : attribute == null ? null : attribute.getForeground(),
                             changed ? color(dark ? (added ? DARK_ADDED : DARK_REMOVED)
-                                : added ? new RGB(156, 221, 168) : new RGB(243, 179, 179))
-                                : dark || attribute == null ? null : attribute.getBackground(),
-                            attribute == null ? SWT.NORMAL : attribute.getStyle() & (SWT.BOLD | SWT.ITALIC)));
+                                : added ? new RGB(169, 221, 184) : new RGB(244, 185, 181))
+                                : null,
+                            changed ? SWT.BOLD : attribute == null ? SWT.NORMAL
+                                : attribute.getStyle() & (SWT.BOLD | SWT.ITALIC));
+                        if (changed)
+                        {
+                            style.underline = true;
+                            style.underlineStyle = SWT.UNDERLINE_SINGLE;
+                            style.underlineColor = color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
+                                : added ? new RGB(120, 184, 141) : new RGB(218, 141, 136));
+                        }
+                        styles.add(style);
                     }
                     start = end;
                 }
                 event.styles = styles.toArray(StyleRange[]::new);
             });
+            text.addLineBackgroundListener(event -> {
+                int row = text.getLineAtOffset(event.lineOffset);
+                if (row >= sourceLines.size()) return;
+                Integer original = sourceLines.get(row);
+                if (original == null) event.lineBackground = color(dark ? new RGB(40, 42, 46) : new RGB(236, 239, 243));
+                else if (changes.containsKey(original))
+                    event.lineBackground = color(dark ? (added ? new RGB(30, 57, 37) : new RGB(65, 34, 36))
+                        : added ? new RGB(216, 242, 221) : new RGB(255, 224, 223));
+                else if (moves.contains(original)) event.lineBackground = color(dark ? new RGB(30, 47, 70) : new RGB(224, 237, 255));
+            });
             text.addPaintListener(event -> {
                 int top = text.getTopIndex();
                 for (int row = top; row < sourceLines.size(); row++)
                 {
-                    int y = text.getLinePixel(row);
+                    int y = text.getLinePixel(row), height = text.getLineHeight();
                     if (y > text.getClientArea().height) break;
                     Integer original = sourceLines.get(row);
-                    if (original != null)
+                    if (original == null)
                     {
-                        boolean changed = changes.containsKey(original);
-                        event.gc.setFont(!dark && changed
-                            ? JFaceResources.getFontRegistry().getBold(JFaceResources.TEXT_FONT) : text.getFont());
-                        event.gc.setForeground(changed
-                            ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
-                                : added ? new RGB(0, 80, 20) : new RGB(180, 36, 36))
-                            : dark ? color(new RGB(150, 150, 150))
-                                : text.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
-                        event.gc.drawString(Integer.toString(original + 1), 6, y, true);
+                        var clip = event.gc.getClipping();
+                        event.gc.setClipping(clip.intersection(new org.eclipse.swt.graphics.Rectangle(0, y, text.getClientArea().width, height)));
+                        event.gc.setForeground(color(dark ? new RGB(55, 58, 63) : new RGB(220, 225, 232)));
+                        for (int x = -height; x < text.getClientArea().width; x += 10)
+                            event.gc.drawLine(x, y + height, x + height, y);
+                        event.gc.setClipping(clip);
+                        continue;
+                    }
+                    boolean changed = changes.containsKey(original), moved = moves.contains(original);
+                    event.gc.setBackground(text.getBackground());
+                    event.gc.fillRectangle(0, y, 64, height);
+                    event.gc.setFont(changed || moved ? JFaceResources.getFontRegistry().getBold(JFaceResources.TEXT_FONT) : text.getFont());
+                    event.gc.setForeground(changed
+                        ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
+                            : added ? new RGB(0, 80, 20) : new RGB(138, 20, 20))
+                        : moved ? color(dark ? new RGB(138, 188, 255) : new RGB(18, 75, 142))
+                        : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
+                    event.gc.drawString(changed ? (added ? "+" : "−") : moved ? "↕" : "", 3, y, true);
+                    String number = Integer.toString(original + 1);
+                    event.gc.drawString(number, 57 - event.gc.stringExtent(number).x, y, true);
+                    if (changed || moved) event.gc.fillRectangle(60, y, 3, height);
+                    if (!changed) continue;
+                    event.gc.setForeground(color(dark ? DARK_CHANGED_FOREGROUND
+                        : added ? new RGB(0, 78, 34) : new RGB(124, 32, 40)));
+                    int lineOffset = text.getOffsetAtLine(row);
+                    var selection = text.getSelection();
+                    // Limit geometry queries and whitespace drawing to this viewport, including after horizontal scrolling.
+                    int first = text.getOffsetAtPoint(new org.eclipse.swt.graphics.Point(64, y + height / 2));
+                    if (first < 0) continue;
+                    int last = text.getOffsetAtPoint(new org.eclipse.swt.graphics.Point(
+                        Math.max(64, text.getClientArea().width - 5), y + height / 2));
+                    int from = Math.max(0, first - lineOffset - 1);
+                    int until = last < 0 ? lines.get(original).length() : last - lineOffset + 1;
+                    for (Span span : changes.get(original))
+                    {
+                        if (span.start() >= until) break;
+                        for (int column = Math.max(span.start(), from);
+                            column < Math.min(span.start() + span.length(), until); column++)
+                        {
+                            char c = lines.get(original).charAt(column);
+                            int offset = lineOffset + column;
+                            if ((c != ' ' && c != '\t') || (offset >= selection.x && offset < selection.y)) continue;
+                            var point = text.getLocationAtOffset(offset);
+                            if (point.x < 64) continue;
+                            event.gc.drawString(c == '\t' ? "→" : "·", point.x, point.y, true);
+                        }
                     }
                 }
             });
+        }
+
+        void markMoves(List<Span> spans)
+        {
+            moves.clear();
+            for (Span span : spans) moves.add(span.line());
         }
 
         void show(Result result, boolean lhs)

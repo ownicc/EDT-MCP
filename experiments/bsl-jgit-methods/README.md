@@ -282,3 +282,7 @@ claiming a finished replacement. Real SWT open/compute/dispose measurements,
 visible-EDT baseline, first-use behavior, parser cancellation/input policy,
 approval guards and other-OS verification are tracked as `edt-spa` before product
 integration. The preserved Difftastic prototype remains the comparison baseline.
+
+The opt-in SWT follow-up and its platform-limited validation are recorded in
+[the viewer experiment](../bsl-jgit-viewer/README.md). This headless probe remains
+independent for reproduction and historical comparison.

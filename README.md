@@ -149,6 +149,8 @@ Go to **Window → Preferences → MCP Server**. The settings page has two tabs:
 - **Check descriptions folder**: Optional override for the check descriptions that ship with the plugin. Leave it empty to use the bundled ones; point it at a folder to replace or translate individual checks (a file found there wins, per check)
 - **Auto-start**: Start server on EDT launch
 - **Review BSL changes before applying**: Enabled by default. Every changing `write_module_source` call opens a nonmodal read-only diff tab with Apply/Reject buttons. Disabling affects new calls only; pending proposals still require their own decisions
+
+For isolated viewer validation, `-Dedt.mcp.bslDiff=jgit` enables the experimental method-aware EDT/JGit comparison with exact-fragment highlighting and move markers. The native Difftastic prototype remains available. See [viewer validation](experiments/bsl-jgit-viewer/README.md) for limits and the reproducible isolated test setup.
 - **Plain text mode (Cursor compatibility)**: Returns results as plain text instead of embedded resources (for AI clients that don't support MCP resources)
 - **Enhance Navigator**: Controls this plugin’s contributions to the Navigator tree (groups and their filter). Turn it off to resolve conflicts with another plugin that patches the same panel
 - **Show tags in Navigator**: Display tags as decorations in the Navigator tree

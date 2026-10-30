@@ -6,6 +6,7 @@ package com.ditrix.edt.mcp.server.ui;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +39,8 @@ public final class BslWriteReviewInput extends CompareEditorInput
     private final String reviewId;
     private final BslWriteReviews reviews;
     private final DiffNode difference;
-    private final CompletableFuture<Control> created = new CompletableFuture<>();
+    // Workbench history may retain an input after closing its editor; the readiness signal must not own its controls.
+    private final CompletableFuture<WeakReference<Control>> created = new CompletableFuture<>();
     private final String identity;
     private final String baseText;
     private final String proposedText;
@@ -47,6 +49,7 @@ public final class BslWriteReviewInput extends CompareEditorInput
     private Button reject;
     private Label status;
     private boolean disposed;
+    private boolean compareDisposed;
 
     public BslWriteReviewInput(PreparedBslWrite write, String reviewId, BslWriteReviews reviews)
     {
@@ -122,15 +125,27 @@ public final class BslWriteReviewInput extends CompareEditorInput
             });
         });
         update(reviews.get(reviewId));
-        root.addDisposeListener(event -> disposeReview());
-        created.complete(root);
+        root.addDisposeListener(event -> {
+            disposeReview();
+            // Match CompareEditorInput's teardown order: release its configuration after the last child.
+            Control tail = root;
+            while (tail instanceof Composite composite && composite.getChildren().length > 0)
+            {
+                Control[] children = composite.getChildren();
+                tail = children[children.length - 1];
+            }
+            if (tail == root) handleDispose();
+            else tail.addDisposeListener(last -> handleDispose());
+        });
+        created.complete(new WeakReference<>(root));
         return root;
     }
 
     private Control createComparison(Composite parent)
     {
         String executable = System.getProperty(StructuralBslDiff.EXECUTABLE_PROPERTY, ""); //$NON-NLS-1$
-        if (executable.isBlank()) return super.createContents(parent);
+        boolean methods = "jgit".equals(System.getProperty(MethodAwareBslDiff.ENGINE_PROPERTY)); //$NON-NLS-1$
+        if (!methods && executable.isBlank()) return super.createContents(parent);
         Composite area = new Composite(parent, SWT.NONE);
         area.setLayout(new GridLayout(1, false));
         java.util.function.Consumer<String> fallback = reason -> {
@@ -145,13 +160,14 @@ public final class BslWriteReviewInput extends CompareEditorInput
         try
         {
             Control structural = BslStructuralCompare.create(area, baseText, proposedText,
-                Path.of(executable), fallback);
+                methods ? null : Path.of(executable), fallback);
             structural.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         }
         catch (Exception e)
         {
             com.ditrix.edt.mcp.server.Activator.logInfo("BSL structural viewer unavailable: " + e.getMessage()); //$NON-NLS-1$
-            fallback.accept(Messages.BslDiff_Unavailable);
+            fallback.accept(Messages.BslDiff_Unavailable
+                + (e.getMessage() == null ? "" : " " + e.getMessage()));
         }
         return area;
     }
@@ -190,7 +206,7 @@ public final class BslWriteReviewInput extends CompareEditorInput
         };
     }
 
-    CompletableFuture<Control> created() { return created; }
+    CompletableFuture<WeakReference<Control>> created() { return created; }
     Snapshot snapshot() { return reviews.get(reviewId); }
 
     private void disposeReview()
@@ -209,6 +225,8 @@ public final class BslWriteReviewInput extends CompareEditorInput
     @Override
     protected void handleDispose()
     {
+        if (compareDisposed) return;
+        compareDisposed = true;
         disposeReview();
         super.handleDispose();
     }

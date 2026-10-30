@@ -18,6 +18,7 @@ import org.eclipse.osgi.util.NLS;
 public class Messages extends NLS {
 
     public static String BslDiff_Computing;
+    public static String BslDiff_FormattingOnly;
     public static String BslDiff_Previous;
     public static String BslDiff_Next;
     public static String BslDiff_Unavailable;

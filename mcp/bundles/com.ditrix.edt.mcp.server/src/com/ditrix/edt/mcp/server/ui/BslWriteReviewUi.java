@@ -49,7 +49,13 @@ public final class BslWriteReviewUi
                     var page = window == null ? null : window.getActivePage();
                     if (page == null) throw new IllegalStateException("No active EDT workbench page");
                     BslWriteReviewInput input = new BslWriteReviewInput(write, reviewId, reviews);
-                    input.created().thenAccept(control -> {
+                    input.created().thenAccept(reference -> {
+                        var control = reference.get();
+                        if (control == null || control.isDisposed())
+                        {
+                            opened.complete(false);
+                            return;
+                        }
                         INPUTS.put(reviewId, input);
                         control.addDisposeListener(event -> INPUTS.remove(reviewId, input));
                         reviews.acknowledgeOpening(reviewId);
