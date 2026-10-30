@@ -120,6 +120,7 @@ public class ViewerProbe implements IStartup
             require(JSON.toJsonTree(actual.rightMoves()).equals(want.get("rightMoves")),"right moves "+item.get("id"));
             require(Objects.equals(actual.fallback(),want.get("fallback").isJsonNull()?null:want.get("fallback").getAsString()),"fallback "+item.get("id"));
             require(actual.byteChanges()==!a.equals(b),"exact bytes "+item.get("id"));
+            if(want.has("moves"))require(JSON.toJsonTree(actual.moves()).equals(want.get("moves")),"paired move ranges "+item.get("id"));
             int l=0,r=0;
             for(var row:actual.diff().rows())
             {

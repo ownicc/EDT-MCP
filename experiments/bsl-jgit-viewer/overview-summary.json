@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-31",
+  "evidenceRoot": "/home/ownicc/Workstation/Kasl-diff-test/overview-viewer-03",
+  "engineProperty": "-Dedt.mcp.bslDiff=jgit",
+  "standardCompareDefault": true,
+  "compactModeRetired": true,
+  "verification": {
+    "canonicalTests": 12025,
+    "canonicalFailures": 0,
+    "canonicalErrors": 0,
+    "canonicalSkips": 5,
+    "finalFocusedTests": 12,
+    "frozenCases": 95,
+    "nativeOverviewPassed": true,
+    "manualLauncherPassed": true,
+    "reviewFixes": [
+      "long-header gutter badge",
+      "whole marker rectangle click"
+    ],
+    "packagedClassPayloadsMatchTestedBundle": true,
+    "classCount": 1605
+  },
+  "sourceSha256": {
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/BslDiffOverview.java": "4bbcffa7b2558244162771a913804c49e6f196a4e5e2b30c36c9fce2608dcb20",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/BslStructuralCompare.java": "619074dbdf56475607274652ce10f9bac4f9be7b18e22411d312c7aaf68f557b",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/MethodAwareBslDiff.java": "375a58c287e22eb7a7f7ad9a6e97354631abb417bc1eb888baad7924be207c61",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/Messages.java": "a3538fd3a06a7259e023d2a82e7d8627156ddd23b356594a14a7ab49026ec714",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/messages.properties": "414c1f202e014c873eb5a7cddf1be55d161637843ff1297f56bb115377c8a33f",
+    "mcp/bundles/com.ditrix.edt.mcp.server/src/com/ditrix/edt/mcp/server/ui/messages_ru.properties": "f43b24c1b9466453a0b163f599a4d179a581327c6719e7620a0e18b36cc9e967",
+    "experiments/bsl-jgit-viewer/run.py": "58c149ebe79d9553bcae9f34dddcbca546552a32c46ee3027887d355fd696582",
+    "experiments/bsl-jgit-viewer/ViewerProbe.java": "d98fc3cd911db0da7cddec0bbfa2f3a90502d1e551e5006646ff299d577ec658",
+    "experiments/bsl-jgit-viewer/OverviewProbe.java": "9b947a4c4b3c2831eaeaf2537f56f824c2eaa1ca9ead979e1fd7ee71f749a4ac"
+  },
+  "evidenceSha256": {
+    "viewer-results.json": "3e9cd986e4a2c4ddd0b035dc133a5f315777ea47280584c41ea48b77963f724b",
+    "full-build.log": "46956306e50d0a614c577e0b65c79950b21960a048e6344c2483faf6192abf33",
+    "final-build.log": "55e935c13c7070e5f2a38c8cd4b8d8ef29046acf1740d3ff90cf19322c10dd03",
+    "package.log": "9003b1fa982fbfb2e3d035b6c66ccf5cec1dc2ca3a1476266e6e68b7ec8f1dd6",
+    "manual-smoke.json": "b1b0b07a136cbcd481ab268d0f6da1d25db2a00a8a2e344ad9b858c2fde4afe9",
+    "manual-demo.png": "cbab36c2a1f746ead000e2289d4f1dd06ef241d97c34a726f22ff48ea30ca060",
+    "overview-move-light.png": "9e398d93fd9019886d47d807038fcd3e0a20b019e4d456aea2ae4a43ba8ae58b",
+    "overview-move-dark.png": "d477575a382d2ee9e3b485884253b3938c34166759aa04089be375d10a170062",
+    "overview-delete-small-dark.png": "e735fa0a123e56b0915534717d35c21a47a204ffb1ad01f79101a62602f1b5ee",
+    "overview-move-target.png": "e36cd7fb08dfebeb5b632caf58d014acfd9d78920f2e28dbdd30cf9a8ce66232",
+    "regression-long-header.png": "4059d7cea3f673b7d70ef3fc0403fb023ed1bd8cfd53b04cd88459dea002f9d8"
+  },
+  "testedBundleSha256": "17175a60b14ea0f39865e27367b07a66886621a7f27da1434cd8186e12811cb9",
+  "builtBundleSha256": "a675cbf02b6d52409bc055cd8519171363793537b2098ad453304012c61f69d5",
+  "localArchive": "/home/ownicc/Workstation/Kasl-diff-test/overview-build/MCP-EDT.vdev.zip",
+  "localArchiveSha256": "56d6402596723c4b2fc58a8beee1898267980f5a4f825d837102d7d8963f823f",
+  "launcher": "/home/ownicc/Workstation/Kasl-diff-test/open-edt-overview.sh",
+  "launcherSha256": "4b0ef3ebcd1a1539e23b6a4cf68f9523492057c7ced7d54b2e96ddafef930f06",
+  "limitations": [
+    "Linux EDT 2026.2.2.21 only; other platforms and release e2e remain under edt-spa",
+    "Parser call has cooperative boundary cancellation, not a hard mid-parse deadline",
+    "No publication or normal EDT installation change"
+  ]
+}

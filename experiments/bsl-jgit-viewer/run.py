@@ -49,6 +49,8 @@ def main():
     p.add_argument('--java-home', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--bundle', type=Path, required=True)
+    p.add_argument('--overview', action='store_true',
+                   help='Run focused aligned SWT overview checks instead of the stress probe')
     args = p.parse_args()
     out = args.output.resolve(); out.mkdir(exist_ok=False, parents=True)
     installation = out / 'edt'
@@ -72,15 +74,19 @@ def main():
     cp = os.pathsep.join([str(plugin)] + [unquote(urlparse(row[2]).path) for row in rows if row[2].endswith('.jar')])
     classes = out / 'classes'; classes.mkdir()
     with (out / 'compile-probe.log').open('w') as log:
+        sources = [HERE / 'ViewerProbe.java']
+        if args.overview:
+            sources.append(HERE / 'OverviewProbe.java')
         subprocess.run([args.java_home / 'bin/javac', '-proc:none', '-encoding', 'UTF-8', '-cp', cp,
-                        '-d', classes, HERE / 'ViewerProbe.java'], stdout=log, stderr=log, check=True)
+                        '-d', classes, *sources], stdout=log, stderr=log, check=True)
     jar = out / 'viewer-probe.jar'
     with zipfile.ZipFile(jar, 'w') as z:
         z.writestr('META-INF/MANIFEST.MF', 'Manifest-Version: 1.0\nBundle-ManifestVersion: 2\n'
                    'Bundle-SymbolicName: experiment.bslviewer;singleton:=true\nBundle-Version: 0.0.1\n'
                    'Fragment-Host: com.ditrix.edt.mcp.server\nBundle-RequiredExecutionEnvironment: JavaSE-17\n\n')
+        probe = 'OverviewProbe' if args.overview else 'ViewerProbe'
         z.writestr('fragment.xml', '<fragment><extension point="org.eclipse.ui.startup"><startup '
-                   'class="com.ditrix.edt.mcp.server.ui.ViewerProbe"/></extension></fragment>')
+                   f'class="com.ditrix.edt.mcp.server.ui.{probe}"/></extension></fragment>')
         for file in classes.rglob('*.class'): z.write(file, str(file.relative_to(classes)))
     rows.append(('experiment.bslviewer', '0.0.1', jar.as_uri(), '4', 'false'))
     info.write_text('#encoding=UTF-8\n' + '\n'.join(','.join(row) for row in rows) + '\n')
@@ -90,6 +96,9 @@ def main():
     for item in inputs:
         result = old[item['id']]
         row = dict(fallback=result['fallback'])
+        row['moves'] = [dict(key=m['key'], left=spans(item['before'], [dict(start=m['leftStart'], length=m['leftLength'])]),
+                             right=spans(item['after'], [dict(start=m['rightStart'], length=m['rightLength'])]))
+                        for m in result['moves']]
         for side, key in [('left', 'before'), ('right', 'after')]:
             row[side] = spans(item[key], result[side])
             row[side + 'Moves'] = spans(item[key], [dict(start=m[side+'Start'], length=m[side+'Length']) for m in result['moves']])

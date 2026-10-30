@@ -25,6 +25,7 @@ import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Display;
@@ -54,6 +55,8 @@ final class BslStructuralCompare
     private final Side right;
     private final TreeSet<Integer> changedRows = new TreeSet<>();
     private final Map<RGB, Color> colors = new HashMap<>();
+    private final BslDiffOverview overview;
+    private List<MethodAwareBslDiff.Move> movePairs = List.of();
     private static final ISchedulingRule METHOD_RULE = new ISchedulingRule() {
         @Override public boolean contains(ISchedulingRule rule) { return rule == this; }
         @Override public boolean isConflicting(ISchedulingRule rule) { return rule == this; }
@@ -61,7 +64,6 @@ final class BslStructuralCompare
     private boolean dark;
     private String fallbackReason;
     private boolean byteChanges;
-    private int selectedRow = -1;
 
     private BslStructuralCompare(Composite parent, String before, String after) throws Exception
     {
@@ -95,12 +97,10 @@ final class BslStructuralCompare
         left = new Side(columns, Messages.BslReview_Current, before, injector, false);
         right = new Side(columns, Messages.BslReview_Proposed, after, injector, true);
         columns.setWeights(1, 1);
-        synchronize(left.text, right.text);
-        synchronize(right.text, left.text);
+        overview = new BslDiffOverview(left.text, right.text, right.overview, this::color, () -> dark);
         Result initial = StructuralBslDiff.parse(
             "{\"language\":\"BSL\",\"status\":\"unchanged\",\"chunks\":[]}", before, after); //$NON-NLS-1$
-        left.show(initial, true);
-        right.show(initial, false);
+        render(initial);
         applyTheme();
     }
 
@@ -133,6 +133,7 @@ final class BslStructuralCompare
             side.text.redrawRange(0, side.text.getCharCount(), true);
             side.text.redraw();
         }
+        overview.redraw();
     }
 
     static Composite create(Composite parent, String before, String after, Path executable,
@@ -152,6 +153,7 @@ final class BslStructuralCompare
                         {
                             comparison.left.markMoves(result.leftMoves());
                             comparison.right.markMoves(result.rightMoves());
+                            comparison.movePairs = result.moves();
                             comparison.fallbackReason = result.fallback();
                             comparison.byteChanges = result.byteChanges();
                             comparison.show(result.diff());
@@ -200,8 +202,7 @@ final class BslStructuralCompare
 
     private void show(Result result)
     {
-        left.show(result, true);
-        right.show(result, false);
+        render(result);
         changedRows.clear();
         for (int i = 0; i < result.rows().size(); i++)
         {
@@ -209,40 +210,26 @@ final class BslStructuralCompare
             if (left.changes.containsKey(row.left()) || right.changes.containsKey(row.right())
                 || left.moves.contains(row.left()) || right.moves.contains(row.right())) changedRows.add(i);
         }
-        previous.setEnabled(!changedRows.isEmpty());
-        next.setEnabled(!changedRows.isEmpty());
+        boolean changed = overview.hasChanges();
+        previous.setEnabled(changed);
+        next.setEnabled(changed);
         summary.setText(result.language().equals("BSL") //$NON-NLS-1$
             ? (changedRows.isEmpty() ? Messages.BslDiff_NoStructuralChanges : Messages.BslDiff_Structural)
             : Messages.BslDiff_TextFallback + " " + result.language()); //$NON-NLS-1$
         if (changedRows.isEmpty() && byteChanges) summary.setText(Messages.BslDiff_FormattingOnly);
         if (fallbackReason != null) summary.setText(summary.getText() + " — " + fallbackReason);
         summary.getParent().layout(true, true);
-        if (!changedRows.isEmpty()) navigate(true);
+        if (changed) navigate(true);
     }
 
-    private void navigate(boolean forward)
+    private void render(Result result)
     {
-        Integer row = forward ? changedRows.higher(selectedRow) : changedRows.lower(selectedRow);
-        if (row == null) row = forward ? changedRows.first() : changedRows.last();
-        selectedRow = row;
-        int top = Math.max(0, row - 3);
-        for (Side side : List.of(left, right))
-        {
-            side.text.setTopIndex(top);
-            side.text.setSelection(side.text.getOffsetAtLine(row));
-            side.text.redraw();
-        }
+        left.show(result, true);
+        right.show(result, false);
+        overview.show(result, movePairs);
     }
 
-    private static void synchronize(StyledText source, StyledText target)
-    {
-        Runnable sync = () -> {
-            if (!source.isDisposed() && !target.isDisposed()) target.setTopPixel(source.getTopPixel());
-        };
-        source.getVerticalBar().addListener(SWT.Selection, event -> sync.run());
-        source.addListener(SWT.MouseWheel, event -> source.getDisplay().asyncExec(sync));
-        source.addListener(SWT.KeyUp, event -> sync.run());
-    }
+    private void navigate(boolean forward) { overview.navigate(forward); }
 
     private static Injector bslInjector() throws Exception
     {
@@ -258,6 +245,7 @@ final class BslStructuralCompare
     private final class Side
     {
         final StyledText text;
+        final Canvas overview;
         final List<String> lines;
         final Map<Integer, List<Lexeme>> lexical = new HashMap<>();
         final Map<Integer, List<Span>> changes = new HashMap<>();
@@ -270,8 +258,22 @@ final class BslStructuralCompare
             Composite panel = new Composite(parent, SWT.NONE);
             panel.setLayout(new GridLayout(1, false));
             new Label(panel, SWT.NONE).setText(title);
-            text = new StyledText(panel, SWT.READ_ONLY | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL | SWT.BORDER);
+            Composite body = new Composite(panel, SWT.NONE);
+            body.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+            GridLayout bodyLayout = new GridLayout(added ? 2 : 1, false);
+            bodyLayout.marginWidth = 0;
+            bodyLayout.marginHeight = 0;
+            bodyLayout.horizontalSpacing = 0;
+            body.setLayout(bodyLayout);
+            text = new StyledText(body, SWT.READ_ONLY | SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER);
             text.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+            overview = added ? new Canvas(body, SWT.DOUBLE_BUFFERED) : null;
+            if (overview != null)
+            {
+                GridData rulerData = new GridData(SWT.RIGHT, SWT.FILL, false, true);
+                rulerData.widthHint = 18;
+                overview.setLayoutData(rulerData);
+            }
             text.setFont(JFaceResources.getTextFont());
             text.setTabs(4);
             text.setMargins(64, 4, 4, 4);
@@ -360,7 +362,7 @@ final class BslStructuralCompare
                 int top = text.getTopIndex();
                 for (int row = top; row < sourceLines.size(); row++)
                 {
-                    int y = text.getLinePixel(row), height = text.getLineHeight();
+                    int y = text.getLinePixel(row), height = text.getLineHeight(), gutter = text.getLeftMargin();
                     if (y > text.getClientArea().height) break;
                     Integer original = sourceLines.get(row);
                     if (original == null)
@@ -375,27 +377,27 @@ final class BslStructuralCompare
                     }
                     boolean changed = changes.containsKey(original), moved = moves.contains(original);
                     event.gc.setBackground(text.getBackground());
-                    event.gc.fillRectangle(0, y, 64, height);
+                    event.gc.fillRectangle(0, y, gutter, height);
                     event.gc.setFont(changed || moved ? JFaceResources.getFontRegistry().getBold(JFaceResources.TEXT_FONT) : text.getFont());
                     event.gc.setForeground(changed
                         ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
                             : added ? new RGB(0, 80, 20) : new RGB(138, 20, 20))
                         : moved ? color(dark ? new RGB(138, 188, 255) : new RGB(18, 75, 142))
                         : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
-                    event.gc.drawString(changed ? (added ? "+" : "−") : moved ? "↕" : "", 3, y, true);
+                    event.gc.drawString(changed ? (added ? "+" : "−") : moved ? "↕" : "", gutter - 61, y, true);
                     String number = Integer.toString(original + 1);
-                    event.gc.drawString(number, 57 - event.gc.stringExtent(number).x, y, true);
-                    if (changed || moved) event.gc.fillRectangle(60, y, 3, height);
+                    event.gc.drawString(number, gutter - 7 - event.gc.stringExtent(number).x, y, true);
+                    if (changed || moved) event.gc.fillRectangle(gutter - 4, y, 3, height);
                     if (!changed) continue;
                     event.gc.setForeground(color(dark ? DARK_CHANGED_FOREGROUND
                         : added ? new RGB(0, 78, 34) : new RGB(124, 32, 40)));
                     int lineOffset = text.getOffsetAtLine(row);
                     var selection = text.getSelection();
                     // Limit geometry queries and whitespace drawing to this viewport, including after horizontal scrolling.
-                    int first = text.getOffsetAtPoint(new org.eclipse.swt.graphics.Point(64, y + height / 2));
+                    int first = text.getOffsetAtPoint(new org.eclipse.swt.graphics.Point(gutter, y + height / 2));
                     if (first < 0) continue;
                     int last = text.getOffsetAtPoint(new org.eclipse.swt.graphics.Point(
-                        Math.max(64, text.getClientArea().width - 5), y + height / 2));
+                        Math.max(gutter, text.getClientArea().width - 5), y + height / 2));
                     int from = Math.max(0, first - lineOffset - 1);
                     int until = last < 0 ? lines.get(original).length() : last - lineOffset + 1;
                     for (Span span : changes.get(original))
@@ -408,7 +410,7 @@ final class BslStructuralCompare
                             int offset = lineOffset + column;
                             if ((c != ' ' && c != '\t') || (offset >= selection.x && offset < selection.y)) continue;
                             var point = text.getLocationAtOffset(offset);
-                            if (point.x < 64) continue;
+                            if (point.x < gutter) continue;
                             event.gc.drawString(c == '\t' ? "→" : "·", point.x, point.y, true);
                         }
                     }

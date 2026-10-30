@@ -31,8 +31,9 @@ final class MethodAwareBslDiff
     record Pair(List<Token> left, List<Token> right) { }
     record Plan(List<Pair> pairs, List<Map<String, Object>> moves, String fallback) { }
     record Changes(List<Token> left, List<Token> right, List<Map<String, Object>> moves) { }
+    record Move(String key, List<Span> left, List<Span> right) { }
     record Comparison(Result diff, List<Span> leftMoves, List<Span> rightMoves,
-        String fallback, boolean byteChanges) { }
+        String fallback, boolean byteChanges, List<Move> moves) { }
     private final IParser parser;
     private final IProgressMonitor monitor;
     private final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
@@ -78,18 +79,22 @@ final class MethodAwareBslDiff
         }
         List<Span> lhs = spans(a, changes.left), rhs = spans(b, changes.right);
         List<Token> lm = new ArrayList<>(), rm = new ArrayList<>();
+        List<Move> moves = new ArrayList<>();
         for (var move : changes.moves)
         {
             int x = (int)move.get("leftStart"), n = (int)move.get("leftLength");
             int y = (int)move.get("rightStart"), m = (int)move.get("rightLength");
-            lm.add(new Token("move", a.substring(x, x + n), x, n));
-            rm.add(new Token("move", b.substring(y, y + m), y, m));
+            Token old = new Token("move", a.substring(x, x + n), x, n);
+            Token proposed = new Token("move", b.substring(y, y + m), y, m);
+            lm.add(old);
+            rm.add(proposed);
+            moves.add(new Move((String)move.get("key"), spans(a, List.of(old)), spans(b, List.of(proposed))));
         }
         List<Row> rows = align(a, b);
         checkpoint();
         boolean changed = !lhs.isEmpty() || !rhs.isEmpty() || !lm.isEmpty();
         return new Comparison(new Result(malformed ? "Text" : "BSL", changed ? "changed" : "unchanged",
-            rows, lhs, rhs), spans(a, lm), spans(b, rm), plan.fallback, !a.equals(b));
+            rows, lhs, rhs), spans(a, lm), spans(b, rm), plan.fallback, !a.equals(b), List.copyOf(moves));
     }
 
     private void checkpoint()

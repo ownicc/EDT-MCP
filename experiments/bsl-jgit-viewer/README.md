@@ -30,6 +30,22 @@ SWT tracking starts after the workbench exists, so it does not enumerate preexis
 
 Linux/EDT 2026.2 validation is separate from product promotion. Windows/macOS, older EDT versions, real attended scrolling/selection, and full product e2e with its dedicated TestConfiguration fixtures still need their own environments. No release certification is implied.
 
+## Aligned SWT overview
+
+The structural viewer now uses one shared scrollbar containing both a draggable viewport and red/green change marks. Blue marks show the two endpoints of a method move. Alignment padding is retained; both panes always share the same display-row position. There is no compact flag or separate minimap lane.
+
+Drag the centre of the thumb to scroll, click an edge mark to select a hunk, or click elsewhere on the track to jump. The bar accepts wheel, arrow, Page Up/Down and Home/End keys and exposes its value as an accessible scrollbar. The text panes retain native selection, horizontal scrolling and keyboard navigation. M1/M2 badges in a dedicated gutter jump to the other endpoint without offsetting the two panes. Hovering a badge gives the peer source line; short method headers also show that line after their declaration. The badge stays available for long signatures and horizontal scrolling. Previous/next visits adjacent changed blocks and the move endpoints; formatting-only changes do not become structural marks.
+
+The control is a small SWT Canvas, rather than platform-specific painting over a native operating-system scrollbar. All parser rules, fallback notices, prepared output bytes and approval guards are unchanged. The standard compare remains the default; opt in with `-Dedt.mcp.bslDiff=jgit` as above.
+
+Add `--overview` to the runner for a focused check of the 95 frozen cases, actual review lifecycle, exact aligned source coverage, shared scrolling, mark clicks, thumb dragging, keyboard, move endpoint navigation, themes, resizing, empty sides, whitespace, long lines and disposal during computation. `OverviewProbe` is a test-only fragment, never part of the product bundle. Its optional `-Dviewer.probe.demo=true` mode opens a detached fixture comparison for manual inspection.
+
+## Aligned overview evidence (2026-10-31)
+
+[overview-summary.json](overview-summary.json) pins the final Java/SWT source and evidence. The canonical build passed 12025 tests (five skips), final focused checks passed 12 tests, and `overview-viewer-03` passed the 95 frozen cases plus the new native interactions. Both review findings have regressions: a whole tall mark is clickable and a long declaration retains its gutter badge. See [the report](../../docs/superpowers/reports/2026-10-31-bsl-diff-overview.md) for commands, scope and limitations.
+
+The verified local demonstration launcher is `/home/ownicc/Workstation/Kasl-diff-test/open-edt-overview.sh`. It opens the Russian fixture viewer using separate inspection configuration/workspace. Its Xvfb smoke and actual screenshot are recorded in `overview-viewer-03/manual-smoke.json` and `manual-demo.png`. The distribution archive is `overview-build/MCP-EDT.vdev.zip`; its class payloads match the native-tested bundle. No normal EDT installation was changed and nothing was pushed.
+
 ## Recorded Linux evidence
 
 The final bounded run is `/home/ownicc/Workstation/Kasl-diff-test/method-viewer-10/`; [summary.json](summary.json) pins its raw results and source hashes. All 95 ranges/move comparisons passed, 100 ordinary reviews and 20 close-during-compute reviews completed, and zero disposed review roots survived diagnostic GC. The 250000-space comment opened, computed, painted and closed in about 393 ms in this run; this is the whole viewer operation, not an isolated diff benchmark. The first operation with both theme captures took about 325 ms.
