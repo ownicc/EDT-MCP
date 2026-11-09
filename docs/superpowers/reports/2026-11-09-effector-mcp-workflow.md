@@ -21,7 +21,7 @@ Receipts are workspace-local, retained for seven days with a 1,000-record limit.
 
 | Check | Observed result |
 | --- | --- |
-| Canonical `source/compile.sh` with JDK 25/Maven 3.9.11 | BUILD SUCCESS; 12,090 tests, zero failures/errors, eight skipped. |
+| Initial canonical `source/compile.sh` with JDK 25/Maven 3.9.11 | BUILD SUCCESS; 12,090 tests, zero failures/errors, eight skipped. |
 | Agent pack validator | Passed: 13 skills, 105 registered/documented tools plus one proxy. |
 | Actual Xvfb workbench profile | Three executed tests; zero failures/errors/skips. |
 | Live first-three-feature checks | 20/20 passed, fixture clean. |
@@ -39,13 +39,21 @@ Document view deliberately omits the saved semantic-model interception footer: t
 
 ## Environment and limits
 
-Live tests use copied EDT **2026.2.2.21**, separate workspaces and Xvfb, with the final canonical bundle `1.0.0.202611091838`. JDK: Axiom 25.0.4.1; source compatibility remains Java 17. No other EDT installation was available for live compatibility checks.
+Pre-integration live tests used copied EDT **2026.2.2.21**, separate workspaces and Xvfb, with canonical bundle `1.0.0.202611091838`. JDK: Axiom 25.0.4.1; source compatibility remains Java 17. No other EDT installation was available for live compatibility checks.
 
 The first full-suite attempt encountered a CI-only no-platform assumption: this host has a 1C platform installed, so the negative `create_infobase` probe created a test infobase. The exact new test application was dissociated/deregistered and its two new test directories removed. A subsequent attempt to mask the platform with bubblewrap failed at EDT startup inside native WebKit. Neither attempt is counted as a passing run.
 
 The final full-suite invocation uses unchanged committed tests through a temporary host adapter that reports exactly `create_infobase::test_no_platform_runtime_errors_actionably` as an explicit environment skip. Its no-platform prerequisite is unavailable here; live-infobase tests remain disabled. All other assertions and the normal fixture/model/log cleanup remain active. A second no-platform test, `import_project_from_file::test_without_a_platform_the_call_is_refused_at_once`, also fails on this host; its identical failure was reproduced with an exact build of baseline `3dd56a4d`. Both environment assumptions are tracked in Beads `edt-cya`.
 
 Automatic GUI work never used the user's desktop. Only disposable stand preferences disabled write review for unattended direct-write e2e; actual workbench tests separately exercised review cancellation. No push, release or PR is part of this epic.
+
+## Integration with concurrent master changes
+
+During full e2e, the independent BSL diff work advanced master to `6a2d4531`. The initial fast-forward refused; merging master into this branch produced `9123300b` without conflicts. The two changesets have no overlapping file paths. No handwritten merge resolution or further feature changes were needed.
+
+The merged tree then passed a fresh canonical build: **12,109 tests, zero failures/errors, eight skipped**. All **three Xvfb workbench tests passed, none skipped**. The exact plugin extracted from the resulting `MCP-EDT.vdev.zip` (`1.0.0.202611091920`) passed **four live requestId checks**, with clean fixtures, and the official MCP conformance baseline again passed. Build, UI and live/conformance processes all exited zero.
+
+The long four-shard e2e results above belong to feature commit `647b167c`, before this merge; they are not presented as a second full e2e run of the merged tree. The fresh full build and targeted UI/live checks cover integration with the incoming diff changes. Logs: `/tmp/edt-effector-merged-canonical-build.log`, `/tmp/edt-effector-merged-ui.log`, `/tmp/edt-effector-merged-smoke.log`, `/tmp/edt-effector-merged-conformance.log`.
 
 ## Existing failures outside the epic
 
