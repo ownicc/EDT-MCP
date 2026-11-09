@@ -63,5 +63,8 @@ Files: new utils/BslWriteRequests, WriteModuleSourceTool, GetWriteReviewStatusTo
 ## Integration
 
 - [x] Canonical full build and agent validator; generate docs and tools golden from actual tools.
-- [ ] Xvfb workbench checks and available isolated live MCP/e2e/conformance checks; inspect logs and report environment limits.
-- [ ] Independent whole-branch review, fix material findings with regression checks, update Beads and merge locally after verification.
+- [x] Xvfb workbench checks and isolated live MCP/e2e/conformance checks; logs inspected and environment/baseline limits recorded in the verification report.
+- [x] Independent whole-branch review; no actionable findings in the implementation. Children closed with verification evidence.
+- [x] Finalize integration evidence and Beads closure; unrelated baseline findings tracked as edt-11z and edt-cya.
+
+Integration follows the project Git policy: local fast-forward into master, preserve the Worktrunk worktree, no push or PR.
