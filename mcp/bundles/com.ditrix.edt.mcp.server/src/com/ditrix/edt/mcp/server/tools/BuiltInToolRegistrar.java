@@ -88,6 +88,7 @@ import com.ditrix.edt.mcp.server.tools.impl.MergeRulesTool;
 import com.ditrix.edt.mcp.server.tools.impl.ProjectChecksTool;
 import com.ditrix.edt.mcp.server.tools.impl.ReadMethodSourceTool;
 import com.ditrix.edt.mcp.server.tools.impl.ReadModuleSourceTool;
+import com.ditrix.edt.mcp.server.tools.impl.OpenInEditorTool;
 import com.ditrix.edt.mcp.server.tools.impl.RemoveBreakpointTool;
 import com.ditrix.edt.mcp.server.tools.impl.RenameMetadataObjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.ResumeTool;
@@ -229,6 +230,7 @@ public final class BuiltInToolRegistrar
 
         // BSL code analysis tools
         catalogue.add(new ReadModuleSourceTool());
+        catalogue.add(new OpenInEditorTool());
         catalogue.add(new WriteModuleSourceTool());
         catalogue.add(new GetWriteReviewStatusTool());
         catalogue.add(new GetModuleStructureTool());

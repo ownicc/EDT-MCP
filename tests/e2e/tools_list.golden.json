@@ -4223,6 +4223,65 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Open or activate a BSL module in EDT, optionally at a method or line/column. Preserves unsaved edits. Parameters and examples: get_tool_guide('open_in_editor').",
+    "inputSchema": {
+      "properties": {
+        "column": {
+          "type": "integer"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "methodName": {
+          "type": "string"
+        },
+        "modulePath": {
+          "type": "string"
+        },
+        "projectName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectName",
+        "modulePath"
+      ],
+      "type": "object"
+    },
+    "name": "open_in_editor",
+    "outputSchema": {
+      "properties": {
+        "column": {
+          "type": "integer"
+        },
+        "line": {
+          "type": "integer"
+        },
+        "modulePath": {
+          "type": "string"
+        },
+        "opened": {
+          "type": "boolean"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "success"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "openWorldHint": false,
       "readOnlyHint": false

@@ -147,6 +147,7 @@ public final class Toolsets
             "create_launch_config", "delete_launch_config"); //$NON-NLS-1$ //$NON-NLS-2$
 
         assign(CODE,
+            "open_in_editor", //$NON-NLS-1$
             "get_write_review_status", //$NON-NLS-1$
             "write_module_source", "read_method_source", "get_method_call_hierarchy", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             "get_outgoing_structures", "go_to_definition", "get_symbol_info", "find_references", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$

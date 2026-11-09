@@ -52,7 +52,8 @@ public class ToolSettingsProvenanceTest
             "create_project", "resync_to_disk", "clean_project")),
         Map.entry(15, Set.of("get_form_screenshot")),
         Map.entry(16, Set.of("business_process_route_map")),
-        Map.entry(17, Set.of("project_checks")));
+        Map.entry(17, Set.of("project_checks")),
+        Map.entry(18, Set.of("open_in_editor")));
 
     private final ToolSettingsService service = ToolSettingsService.getInstance();
     private PreferenceStore store;

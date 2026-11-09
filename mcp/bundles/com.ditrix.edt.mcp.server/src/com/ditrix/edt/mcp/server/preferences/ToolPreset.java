@@ -65,7 +65,8 @@ public enum ToolPreset
             "create_project", //$NON-NLS-1$
             "resync_to_disk", //$NON-NLS-1$
             "project_checks", //$NON-NLS-1$
-            "clean_project"); //$NON-NLS-1$
+            "clean_project", //$NON-NLS-1$
+            "open_in_editor"); //$NON-NLS-1$
 
         private ReadOnlyPolicy()
         {
