@@ -75,6 +75,8 @@ public class QualityProbe extends ViewerProbe
                 for(boolean dark:List.of(false,true))
                 {
                     Combo theme=controls(root,Combo.class).get(0);theme.select(dark?1:0);theme.notifyListeners(SWT.Selection,new Event());
+                    require(text.getBackground().getRGB().equals(dark?BslStructuralCompare.DARK_BACKGROUND
+                        :new org.eclipse.swt.graphics.RGB(255,255,255)),"Selected theme background must not inherit the opposite GTK theme");
                     int row=text.getLineAtOffset(text.getText().indexOf("Возврат \"Новый текст\""));
                     int original=sourceLines.get(row);
                     StyleRange[] styles=lineStyles(text,row);

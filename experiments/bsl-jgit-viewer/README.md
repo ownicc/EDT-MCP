@@ -65,3 +65,8 @@ paired jump and a separate read-only method tab. The runner replaces an older
 The probe reports changed frozen cases explicitly: earlier token ranges are not
 blindly treated as correct after the range algorithm changes. Parser regressions
 in `MethodAwareBslDiffTest` independently pin the corrected semantic behaviour.
+
+Run the quality probe with `GTK_THEME=Adwaita:dark` as well: selecting Light must
+still give a white source background, independently of GTK system colours.
+The [quality report](../../docs/superpowers/reports/2026-11-09-bsl-diff-quality.md)
+records verification and installation in the user's existing Kasl workspace.

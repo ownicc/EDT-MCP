@@ -161,11 +161,10 @@ final class BslStructuralCompare
 
     private void applyTheme()
     {
-        Display display = root.getDisplay();
         for (Side side : List.of(left, right))
         {
-            side.text.setBackground(dark ? color(DARK_BACKGROUND) : display.getSystemColor(SWT.COLOR_LIST_BACKGROUND));
-            side.text.setForeground(dark ? color(darkForeground(null)) : display.getSystemColor(SWT.COLOR_LIST_FOREGROUND));
+            side.text.setBackground(color(dark ? DARK_BACKGROUND : new RGB(255, 255, 255)));
+            side.text.setForeground(color(dark ? darkForeground(null) : new RGB(0, 0, 0)));
             side.text.redrawRange(0, side.text.getCharCount(), true);
             side.text.redraw();
         }
