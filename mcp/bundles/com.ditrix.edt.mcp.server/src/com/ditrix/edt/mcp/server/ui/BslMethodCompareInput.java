@@ -29,13 +29,12 @@ final class BslMethodCompareInput extends CompareEditorInput
     private final DiffNode difference;
     private boolean disposed;
 
-    BslMethodCompareInput(MethodAwareBslDiff.Move move, String current, String proposed)
+    BslMethodCompareInput(MethodAwareBslDiff.MethodChange method, String current, String proposed)
     {
         super(configuration());
-        before = extract(current, move.left());
-        after = extract(proposed, move.right());
-        String name = move.key().substring(move.key().indexOf(':') + 1);
-        setTitle(Messages.BslDiff_MethodTitle + ": " + name + " (" + before.firstLine + " → " + after.firstLine + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        before = extract(current, method.left());
+        after = extract(proposed, method.right());
+        setTitle(Messages.BslDiff_MethodTitle + ": " + method.name() + " (" + firstLine(before) + " → " + firstLine(after) + ")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         getCompareConfiguration().setLeftLabel(Messages.BslReview_Current + " — " + range(before)); //$NON-NLS-1$
         getCompareConfiguration().setRightLabel(Messages.BslReview_Proposed + " — " + range(after)); //$NON-NLS-1$
         difference = new DiffNode(Differencer.CHANGE, null,
@@ -44,7 +43,7 @@ final class BslMethodCompareInput extends CompareEditorInput
 
     static Fragment extract(String source, List<Span> spans)
     {
-        if (spans.isEmpty()) throw new IllegalArgumentException("A method endpoint has no source range"); //$NON-NLS-1$
+        if (spans.isEmpty()) return new Fragment("", 0, 0); //$NON-NLS-1$
         Span first = spans.get(0), last = spans.get(spans.size() - 1);
         Document document = new Document(source);
         try
@@ -64,7 +63,12 @@ final class BslMethodCompareInput extends CompareEditorInput
         return config;
     }
 
-    private static String range(Fragment fragment) { return fragment.firstLine + "–" + fragment.lastLine; } //$NON-NLS-1$
+    private static String firstLine(Fragment fragment) { return fragment.firstLine == 0 ? "—" : Integer.toString(fragment.firstLine); } //$NON-NLS-1$
+
+    static String range(Fragment fragment)
+    {
+        return fragment.firstLine == 0 ? Messages.BslDiff_MethodAbsent : fragment.firstLine + "–" + fragment.lastLine; //$NON-NLS-1$
+    }
 
     private record Text(String name, String source) implements ITypedElement, IEncodedStreamContentAccessor
     {
@@ -104,7 +108,7 @@ final class BslMethodCompareInput extends CompareEditorInput
         try
         {
             Control viewer = BslStructuralCompare.create(area, before.text, after.text, null, fallback,
-                before.firstLine - 1, after.firstLine - 1, false);
+                Math.max(0, before.firstLine - 1), Math.max(0, after.firstLine - 1), false);
             viewer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         }
         catch (Exception e) { fallback.accept(Messages.BslDiff_Unavailable); }

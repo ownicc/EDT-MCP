@@ -52,6 +52,9 @@ final class BslStructuralCompare
     private final Button next;
     private final Button compareMethod;
     private final Label selectedMethod;
+    private final Composite methodPanel;
+    private final Label methodKind;
+    private final Label methodRoute;
     private final String before;
     private final String after;
     private final Side left;
@@ -62,6 +65,7 @@ final class BslStructuralCompare
     private final BslDiffSearchBar search;
     private List<StructuralBslDiff.Row> searchRows = List.of();
     private List<MethodAwareBslDiff.Move> movePairs = List.of();
+    private List<MethodAwareBslDiff.MethodChange> methodChanges = List.of();
     private static final ISchedulingRule METHOD_RULE = new ISchedulingRule() {
         @Override public boolean contains(ISchedulingRule rule) { return rule == this; }
         @Override public boolean isConflicting(ISchedulingRule rule) { return rule == this; }
@@ -85,7 +89,7 @@ final class BslStructuralCompare
         root.setLayout(new GridLayout(1, false));
         Composite toolbar = new Composite(root, SWT.NONE);
         toolbar.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-        toolbar.setLayout(new GridLayout(7, false));
+        toolbar.setLayout(new GridLayout(5, false));
         summary = new Label(toolbar, SWT.WRAP);
         summary.setText(Messages.BslDiff_Computing);
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -107,21 +111,28 @@ final class BslStructuralCompare
         next.setEnabled(false);
         previous.addListener(SWT.Selection, event -> navigate(false));
         next.addListener(SWT.Selection, event -> navigate(true));
-        selectedMethod = new Label(toolbar, SWT.NONE);
-        GridData methodNameData = new GridData(SWT.FILL, SWT.CENTER, false, false);
-        methodNameData.widthHint = 180;
+        methodPanel = new Composite(root, SWT.BORDER);
+        GridData panelData = new GridData(SWT.FILL, SWT.TOP, true, false);
+        panelData.exclude = !allowMethodComparison;
+        methodPanel.setLayoutData(panelData);
+        methodPanel.setVisible(allowMethodComparison);
+        GridLayout panelLayout = new GridLayout(5, false);
+        panelLayout.horizontalSpacing = 12;
+        methodPanel.setLayout(panelLayout);
+        new Label(methodPanel, SWT.NONE).setText(Messages.BslDiff_SelectedMethod);
+        selectedMethod = new Label(methodPanel, SWT.NONE);
+        selectedMethod.setFont(JFaceResources.getFontRegistry().getBold(JFaceResources.DEFAULT_FONT));
+        GridData methodNameData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+        methodNameData.widthHint = 220;
+        methodNameData.minimumWidth = 0;
         selectedMethod.setLayoutData(methodNameData);
-        compareMethod = new Button(toolbar, SWT.PUSH);
+        methodKind = new Label(methodPanel, SWT.NONE);
+        methodRoute = new Label(methodPanel, SWT.NONE);
+        compareMethod = new Button(methodPanel, SWT.PUSH);
         compareMethod.setText(Messages.BslDiff_CompareMethod);
         compareMethod.setEnabled(false);
-        if (!allowMethodComparison)
-        {
-            selectedMethod.setVisible(false);
-            methodNameData.exclude = true;
-            compareMethod.setVisible(false);
-            GridData hidden = new GridData(); hidden.exclude = true;
-            compareMethod.setLayoutData(hidden);
-        }
+        methodPanel.setBackground(color(new RGB(244, 247, 250)));
+        for (var child : methodPanel.getChildren()) child.setBackground(methodPanel.getBackground());
         SashForm columns = new SashForm(root, SWT.HORIZONTAL);
         columns.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         Injector injector = bslInjector();
@@ -135,16 +146,25 @@ final class BslStructuralCompare
         search.row.moveAbove(columns);
         find.addListener(SWT.Selection, event -> search.open());
         compareMethod.addListener(SWT.Selection, event -> {
-            var move = overview.selectedMove();
-            if (move != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(move, this.before, this.after));
+            var method = overview.selectedMethod();
+            if (method != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(method, this.before, this.after));
         });
-        overview.onMoveSelection(move -> {
-            compareMethod.setEnabled(allowMethodComparison && move != null);
-            String name = move == null ? Messages.BslDiff_NoMethodSelected : move.key().substring(move.key().indexOf(':') + 1);
+        overview.onMethodSelection(method -> {
+            compareMethod.setEnabled(allowMethodComparison && method != null);
+            String name = method == null ? Messages.BslDiff_NoMethodSelected : method.name();
             selectedMethod.setText(name);
-            selectedMethod.setToolTipText(move == null ? Messages.BslDiff_SelectMethodHint : name);
-            compareMethod.setToolTipText(move == null ? Messages.BslDiff_SelectMethodHint : Messages.BslDiff_CompareMethod + ": " + name); //$NON-NLS-1$
-            toolbar.layout(true, true);
+            selectedMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : name);
+            compareMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : Messages.BslDiff_CompareMethod + ": " + name); //$NON-NLS-1$
+            methodKind.setText(method == null ? "" : switch (method.kind()) { //$NON-NLS-1$
+                case CHANGED -> Messages.BslDiff_MethodChanged;
+                case MOVED -> Messages.BslDiff_MethodMoved;
+                case MOVED_CHANGED -> Messages.BslDiff_MethodMovedChanged;
+                case ADDED -> Messages.BslDiff_MethodAdded;
+                case REMOVED -> Messages.BslDiff_MethodRemoved;
+            });
+            methodRoute.setText(method == null ? "" : org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_MethodRoute, //$NON-NLS-1$
+                methodRange(method.left(), leftOffset), methodRange(method.right(), rightOffset)));
+            methodPanel.layout(true, true);
         });
         Result initial = StructuralBslDiff.parse(
             "{\"language\":\"BSL\",\"status\":\"unchanged\",\"chunks\":[]}", before, after); //$NON-NLS-1$
@@ -219,6 +239,7 @@ final class BslStructuralCompare
                             comparison.left.markMoves(result.leftMoves());
                             comparison.right.markMoves(result.rightMoves());
                             comparison.movePairs = result.moves();
+                            comparison.methodChanges = result.methods();
                             comparison.fallbackReason = result.fallback();
                             comparison.byteChanges = result.byteChanges();
                             comparison.show(result.diff());
@@ -293,11 +314,17 @@ final class BslStructuralCompare
     {
         left.show(result, true);
         right.show(result, false);
-        overview.show(result, movePairs);
+        overview.show(result, movePairs, methodChanges);
         searchRows = result.rows();
     }
 
     private void navigate(boolean forward) { overview.navigate(forward); }
+
+    private static String methodRange(List<Span> spans, int offset)
+    {
+        return spans.isEmpty() ? "—" : (spans.get(0).line() + offset + 1) + "–" //$NON-NLS-1$ //$NON-NLS-2$
+            + (spans.get(spans.size() - 1).line() + offset + 1);
+    }
 
     private static Injector bslInjector() throws Exception
     {
@@ -327,7 +354,7 @@ final class BslStructuralCompare
             lines = StructuralBslDiff.lines(source);
             Composite panel = new Composite(parent, SWT.NONE);
             panel.setLayout(new GridLayout(1, false));
-            new Label(panel, SWT.NONE).setText(title);
+            new Label(panel, SWT.NONE).setText(source.isEmpty() ? title + " — " + Messages.BslDiff_MethodAbsent : title); //$NON-NLS-1$
             Composite body = new Composite(panel, SWT.NONE);
             body.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
             GridLayout bodyLayout = new GridLayout(added ? 2 : 1, false);

@@ -65,7 +65,10 @@ public class QualityProbe extends ViewerProbe
             Composite root=(Composite)field(viewer,"root");
             try
             {
+                require(((Button)field(viewer,"compareMethod")).getParent()!=((Label)field(viewer,"summary")).getParent(),
+                    "Selected method and its action need their own row below the global toolbar");
                 set(viewer,"movePairs",result.moves());
+                set(viewer,"methodChanges",result.methods());
                 call(field(viewer,"left"),"markMoves",result.leftMoves());
                 call(field(viewer,"right"),"markMoves",result.rightMoves());
                 call(viewer,"show",result.diff());shell.open();shell.layout(true,true);display.update();
@@ -158,18 +161,18 @@ public class QualityProbe extends ViewerProbe
                 Event reopen=new Event();reopen.keyCode=SWT.F3;text.notifyListeners(ST.VerifyKey,reopen);
                 require((int)field(search,"current")==0,"F3 after a hidden alignment refresh must select the first match once");
                 call(search,"close");
-                require(call(nav,"selectedMove")!=null&&compare.isEnabled(),"Search preserves selected move");
+                require(call(nav,"selectedMethod")!=null&&compare.isEnabled(),"Search preserves selected move");
                 require(!text.getEditable(),"Search does not enable source writes");
                 report.put("inlineSearchBothScopesKeyboard",true);
                 int stableCaret=text.getText().indexOf("Функция Стабильный")+5;
                 int movedCaret=text.getText().indexOf("Возврат 12;")+3;
                 text.setCaretOffset(stableCaret);
-                require(!compare.isEnabled()&&call(nav,"selectedMove")==null,"Caret outside a moved method clears the comparison target");
+                require(!compare.isEnabled()&&call(nav,"selectedMethod")==null,"Caret outside a moved method clears the comparison target");
                 int leftTop=left.getTopPixel(),rightTop=text.getTopPixel();
                 text.setCaretOffset(movedCaret);
-                require(compare.isEnabled()&&call(nav,"selectedMove")!=null,"Caret in moved method selects comparison without a badge click");
+                require(compare.isEnabled()&&call(nav,"selectedMethod")!=null,"Caret in moved method selects comparison without a badge click");
                 require(left.getTopPixel()==leftTop&&text.getTopPixel()==rightTop,"Selecting by caret must not jump to the method declaration");
-                require(((Label)field(viewer,"selectedMethod")).getText().contains("переносимый"),"Comparison toolbar identifies the selected method");
+                require(((Label)field(viewer,"selectedMethod")).getText().contains("Переносимый"),"Comparison toolbar identifies the selected method");
                 text.setCaretOffset(stableCaret);
                 int matchRow=text.getLineAtOffset(movedCaret),matchColumn=movedCaret-text.getOffsetAtLine(matchRow);
                 call(nav,"revealMatch",new BslDiffSearch.Match(false,matchRow,matchColumn,2));
@@ -184,7 +187,80 @@ public class QualityProbe extends ViewerProbe
             finally{shell.dispose();}
             return null;
         });
+        verifyAllMethodKinds();
         report.put("qualityPassed",true);
+    }
+
+    private void verifyAllMethodKinds() throws Exception
+    {
+        String moved=method("Перемещённый","1"),edited=method("ПереносСПравкой","2");
+        String stable=method("БезПравок","3"),changed=method("ОбычнаяПравка","4");
+        String removed=method("Удалённый","5"),added=method("Добавленный","6");
+        String longName="ПолучитьПервыйПодходящийЭлементКоллекции".repeat(4);
+        String longMethod=method(longName,"7");
+        String a="#Область Один\n"+moved+edited+stable+changed+removed+longMethod+"#КонецОбласти\n#Область Два\n#КонецОбласти\n";
+        String b="#Область Один\n"+stable+changed.replace("4","40")+longMethod.replace("7","70")+"#КонецОбласти\n#Область Два\n"+moved+edited.replace("2","20")+added+"#КонецОбласти\n";
+        var result=MethodAwareBslDiff.compute(a,b,new NullProgressMonitor());
+        require(result.methods().size()==6,"All five kinds and a long method are available");
+        ui(()->{
+            Shell shell=new Shell(display);shell.setLayout(new FillLayout());shell.setSize(1100,850);
+            var constructor=BslStructuralCompare.class.getDeclaredConstructor(Composite.class,String.class,String.class);
+            constructor.setAccessible(true);Object viewer=constructor.newInstance(shell,a,b);
+            Composite root=(Composite)field(viewer,"root");
+            try
+            {
+                set(viewer,"methodChanges",result.methods());set(viewer,"movePairs",result.moves());
+                call(viewer,"show",result.diff());shell.open();shell.layout(true,true);display.update();
+                Object nav=field(viewer,"overview");Button compare=(Button)field(viewer,"compareMethod");
+                Composite panel=(Composite)field(viewer,"methodPanel");
+                for(var method:result.methods())
+                {
+                    for(boolean lhs:List.of(true,false))
+                    {
+                        if((lhs?method.left():method.right()).isEmpty())continue;
+                        StyledText text=(StyledText)field(field(viewer,lhs?"left":"right"),"text");
+                        int offset=text.getText().indexOf("Функция "+method.name()+"(")+9;
+                        text.setCaretOffset(offset);
+                        require(compare.isEnabled()&&call(nav,"selectedMethod")==method,"Either source side selects exact method: "+method.name());
+                        require(((Label)field(viewer,"selectedMethod")).getText().equals(method.name()),"Panel preserves actual method name");
+                        require(!((Label)field(viewer,"methodKind")).getText().isEmpty(),"Panel identifies change kind");
+                        require(((Label)field(viewer,"methodRoute")).getText().contains("—")==(method.kind()==MethodAwareBslDiff.MethodKind.ADDED||method.kind()==MethodAwareBslDiff.MethodKind.REMOVED),"Only absent side has no source coordinate");
+                        require(compare.getBounds().x+compare.getBounds().width<=panel.getClientArea().width,"Long method name leaves Compare action visible");
+                        require(((Label)field(viewer,"selectedMethod")).getToolTipText().equals(method.name()),"Full name remains in tooltip");
+                    }
+                }
+                Object leftSide=field(viewer,"left");StyledText left=(StyledText)field(leftSide,"text");
+                @SuppressWarnings("unchecked") List<Integer> lines=(List<Integer>)field(leftSide,"sourceLines");
+                int padding=lines.indexOf(null);require(padding>=0,"Fixture includes alignment padding");
+                left.setCaretOffset(left.getOffsetAtLine(padding));
+                require(call(nav,"selectedMethod")==null&&!compare.isEnabled(),"Synthetic padding never selects a method");
+                capture(root,"quality-method-panel-c.png");
+            }
+            finally{shell.dispose();}
+            for(boolean isAdded:List.of(true,false))
+            {
+                String old=isAdded?"":added,next=isAdded?added:"";
+                var pair=MethodAwareBslDiff.compute(old,next,new NullProgressMonitor());
+                Shell emptyShell=new Shell(display);emptyShell.setLayout(new FillLayout());
+                try
+                {
+                    Object absentViewer=constructor.newInstance(emptyShell,old,next);
+                    call(absentViewer,"show",pair.diff());
+                    Object absentSide=field(absentViewer,isAdded?"left":"right");
+                    @SuppressWarnings("unchecked") List<Integer> lines=(List<Integer>)field(absentSide,"sourceLines");
+                    require(lines.stream().allMatch(Objects::isNull),"Absent side cannot invent source line 1");
+                    require(controls((Composite)field(absentViewer,"root"),Label.class).stream().anyMatch(label->label.getText().contains(Messages.BslDiff_MethodAbsent)),"Absent side is explicitly labelled");
+                }
+                finally{emptyShell.dispose();}
+            }
+            return null;
+        });
+        report.put("allMethodKindsPanelAndEmptyEndpoints",true);
+    }
+
+    private static String method(String name,String value)
+    {
+        return "Функция "+name+"() Экспорт\nВозврат "+value+";\nКонецФункции\n\n";
     }
 
     static Object lineBackground(StyledText text,int row)throws Exception

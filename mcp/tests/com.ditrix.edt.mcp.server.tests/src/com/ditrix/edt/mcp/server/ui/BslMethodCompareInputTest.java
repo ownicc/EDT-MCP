@@ -25,7 +25,7 @@ public class BslMethodCompareInputTest
         String a = "Функция Имя()\nВозврат 1;\nКонецФункции\n\n";
         String b = "Функция Другая()\nВозврат 2;\nКонецФункции\n\n";
         var result = MethodAwareBslDiff.compute(a+b,b+a.replace("1", "3"),new NullProgressMonitor());
-        var move = result.moves().stream().filter(m->m.key().endsWith(":имя")).findFirst().orElseThrow();
+        var move = result.methods().stream().filter(m->m.key().endsWith(":имя")).findFirst().orElseThrow();
         var input = new BslMethodCompareInput(move,a+b,b+a.replace("1", "3"));
         assertFalse(input.getCompareConfiguration().isLeftEditable());
         assertFalse(input.getCompareConfiguration().isRightEditable());
@@ -37,5 +37,26 @@ public class BslMethodCompareInputTest
         assertTrue(left.contains("Возврат 1;"));assertTrue(right.contains("Возврат 3;"));
         assertFalse(left.contains("Другая"));assertFalse(right.contains("Другая"));
         assertTrue(input.getTitle().contains("1 → 5"));
+    }
+
+    @Test public void addedAndRemovedMethodsHaveExplicitEmptyReadOnlyEndpoints() throws Exception
+    {
+        String method = "// Описание\r\nФункция ТолькоОднаВерсия() Экспорт\r\nВозврат 1;\r\nКонецФункции";
+        for (boolean added : List.of(true, false))
+        {
+            String a = added ? "" : method, b = added ? method : "";
+            var change = MethodAwareBslDiff.compute(a,b,new NullProgressMonitor()).methods().get(0);
+            var input = new BslMethodCompareInput(change,a,b);
+            var node = (DiffNode)input.prepareInput(new NullProgressMonitor());
+            assertEquals(a, new String(((IEncodedStreamContentAccessor)node.getLeft()).getContents().readAllBytes(), StandardCharsets.UTF_8));
+            assertEquals(b, new String(((IEncodedStreamContentAccessor)node.getRight()).getContents().readAllBytes(), StandardCharsets.UTF_8));
+            assertFalse(input.getCompareConfiguration().isLeftEditable());
+            assertFalse(input.getCompareConfiguration().isRightEditable());
+            assertTrue(input.getTitle().contains(added ? "— → 1" : "1 → —"));
+            assertTrue(input.getTitle().contains("ТолькоОднаВерсия"));
+            assertTrue((added ? input.getCompareConfiguration().getLeftLabel(null)
+                : input.getCompareConfiguration().getRightLabel(null)).contains(Messages.BslDiff_MethodAbsent));
+        }
+        assertEquals(new BslMethodCompareInput.Fragment("",0,0), BslMethodCompareInput.extract("", List.of()));
     }
 }

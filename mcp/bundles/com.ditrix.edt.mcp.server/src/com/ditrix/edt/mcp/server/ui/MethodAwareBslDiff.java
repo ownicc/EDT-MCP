@@ -26,14 +26,16 @@ final class MethodAwareBslDiff
     static final int MAX_LINES = 20000;
     record Token(String type, String text, int start, int length) { }
     record Parsed(IParseResult tree, List<Token> tokens, int bom, List<String> errors) { }
-    record Part(String key, int start, int end, List<Token> tokens, List<String> context) { }
+    record Part(String key, String name, int start, int end, List<Token> tokens, List<String> context) { }
     record Projection(List<Part> methods, List<Token> outside, String fallback) { }
     record Pair(List<Token> left, List<Token> right) { }
-    record Plan(List<Pair> pairs, List<Map<String, Object>> moves, String fallback) { }
+    record Plan(List<Pair> pairs, List<Map<String, Object>> moves, String fallback, List<MethodChange> methods) { }
     record Changes(List<Token> left, List<Token> right, List<Map<String, Object>> moves) { }
     record Move(String key, List<Span> left, List<Span> right) { }
+    enum MethodKind { CHANGED, MOVED, MOVED_CHANGED, ADDED, REMOVED }
+    record MethodChange(String key, String name, List<Span> left, List<Span> right, MethodKind kind) { }
     record Comparison(Result diff, List<Span> leftMoves, List<Span> rightMoves,
-        String fallback, boolean byteChanges, List<Move> moves) { }
+        String fallback, boolean byteChanges, List<Move> moves, List<MethodChange> methods) { }
     private final IParser parser;
     private final IProgressMonitor monitor;
     private final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
@@ -96,7 +98,7 @@ final class MethodAwareBslDiff
         checkpoint();
         boolean changed = !lhs.isEmpty() || !rhs.isEmpty() || !lm.isEmpty();
         return new Comparison(new Result(malformed ? "Text" : "BSL", changed ? "changed" : "unchanged",
-            rows, lhs, rhs), leftMoves, rightMoves, plan.fallback, !a.equals(b), List.copyOf(moves));
+            rows, lhs, rhs), leftMoves, rightMoves, plan.fallback, !a.equals(b), List.copyOf(moves), plan.methods);
     }
 
     private void checkpoint()
@@ -139,7 +141,7 @@ final class MethodAwareBslDiff
             if (node == null || method.getName() == null) return new Projection(List.of(), p.tokens, "missing-identity:flat-tokens");
             int start = node.getOffset() + p.bom, end = start + node.getLength();
             start = documentationStart(document, source, start);
-            parts.add(new Part(method.eClass().getName() + ":" + method.getName().toLowerCase(Locale.ROOT), start, end, List.of(), List.of()));
+            parts.add(new Part(method.eClass().getName() + ":" + method.getName().toLowerCase(Locale.ROOT), method.getName(), start, end, List.of(), List.of()));
             it.prune();
         }
         parts.sort(Comparator.comparingInt(Part::start));
@@ -151,7 +153,7 @@ final class MethodAwareBslDiff
             while (tokenIndex < p.tokens.size() && p.tokens.get(tokenIndex).start < part.start) outside.add(p.tokens.get(tokenIndex++));
             int first = tokenIndex;
             while (tokenIndex < p.tokens.size() && p.tokens.get(tokenIndex).start < part.end) tokenIndex++;
-            filled.add(new Part(part.key, part.start, part.end, p.tokens.subList(first, tokenIndex),
+            filled.add(new Part(part.key, part.name, part.start, part.end, p.tokens.subList(first, tokenIndex),
                 contexts.floorEntry(part.start).getValue()));
             cursor = part.end;
         }
@@ -160,10 +162,10 @@ final class MethodAwareBslDiff
     }
 
     Plan plan(Parsed left, Parsed right, String a, String b) {
-        if (!left.errors.isEmpty() || !right.errors.isEmpty()) return new Plan(List.of(), List.of(), "syntax-errors:text-lines");
+        if (!left.errors.isEmpty() || !right.errors.isEmpty()) return new Plan(List.of(), List.of(), "syntax-errors:text-lines", List.of());
         Projection l = project(left, a), r = project(right, b);
         if (l.fallback != null || r.fallback != null) return new Plan(List.of(new Pair(left.tokens, right.tokens)), List.of(),
-            l.fallback != null ? l.fallback : r.fallback);
+            l.fallback != null ? l.fallback : r.fallback, List.of());
         Map<String, Part> lm = new LinkedHashMap<>(), rm = new LinkedHashMap<>();
         for (Part p : l.methods) lm.put(p.key, p); for (Part p : r.methods) rm.put(p.key, p);
         List<Pair> pairs = new ArrayList<>(); pairs.add(new Pair(l.outside, r.outside));
@@ -186,7 +188,27 @@ final class MethodAwareBslDiff
             moves.add(Map.of("key", key, "leftStart", x.start, "leftLength", x.end - x.start,
                 "rightStart", y.start, "rightLength", y.end - y.start));
         }
-        return new Plan(pairs, moves, null);
+        List<MethodChange> methods = new ArrayList<>();
+        Document sourceA = new Document(a), sourceB = new Document(b);
+        for (String key : all)
+        {
+            checkpoint();
+            Part x = lm.get(key), y = rm.get(key);
+            boolean edited = x != null && y != null && (x.end - x.start != y.end - y.start
+                || !a.regionMatches(x.start, b, y.start, x.end - x.start));
+            MethodKind kind = x == null ? MethodKind.ADDED : y == null ? MethodKind.REMOVED
+                : moved.contains(key) ? (edited ? MethodKind.MOVED_CHANGED : MethodKind.MOVED)
+                : edited ? MethodKind.CHANGED : null;
+            if (kind != null) methods.add(new MethodChange(key, y == null ? x.name : y.name,
+                endpoint(a, sourceA, x), endpoint(b, sourceB, y), kind));
+        }
+        return new Plan(pairs, moves, null, List.copyOf(methods));
+    }
+
+    private static List<Span> endpoint(String source, Document document, Part part)
+    {
+        return part == null ? List.of() : spans(source, document, List.of(
+            new Token("method", source.substring(part.start, part.end), part.start, part.end - part.start)));
     }
 
     private static int documentationStart(Document document, String source, int start)
@@ -376,7 +398,11 @@ final class MethodAwareBslDiff
 
     static List<Span> spans(String source, List<Token> tokens)
     {
-        Document document = new Document(source);
+        return spans(source, new Document(source), tokens);
+    }
+
+    private static List<Span> spans(String source, Document document, List<Token> tokens)
+    {
         List<Span> result = new ArrayList<>();
         try
         {

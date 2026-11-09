@@ -45,7 +45,9 @@ final class BslDiffOverview
     private final List<Hit> leftHits = new ArrayList<>(), rightHits = new ArrayList<>();
     private Change selected;
     private final Map<String, MethodAwareBslDiff.Move> moveByLabel = new HashMap<>();
-    private java.util.function.Consumer<MethodAwareBslDiff.Move> moveSelection = move -> { };
+    private List<MethodAwareBslDiff.MethodChange> methods = List.of();
+    private MethodAwareBslDiff.MethodChange selectedMethod;
+    private java.util.function.Consumer<MethodAwareBslDiff.MethodChange> methodSelection = method -> { };
     private int dragOffset = -1;
     private boolean syncing;
     private boolean settingCaret;
@@ -150,13 +152,14 @@ final class BslDiffOverview
         }
     }
 
-    void show(Result result, List<MethodAwareBslDiff.Move> moves)
+    void show(Result result, List<MethodAwareBslDiff.Move> moves, List<MethodAwareBslDiff.MethodChange> methods)
     {
         rows = result.rows();
+        this.methods = methods;
         changes.clear();
         selected = null;
         moveByLabel.clear();
-        moveSelection.accept(null);
+        setMethod(null);
         Map<Integer, Integer> a = new HashMap<>(), b = new HashMap<>();
         for (int i = 0; i < result.rows().size(); i++)
         {
@@ -206,43 +209,53 @@ final class BslDiffOverview
     private void select(Change change)
     {
         selected = change;
-        moveSelection.accept(selectedMove());
-        jump(change.kind == 4 ? change.badgeRow : change.start);
+        int row = change.kind == 4 ? change.badgeRow : change.start;
+        var a = methodAt(row, true);
+        var b = methodAt(row, false);
+        setMethod(change.kind == 4 ? (change.left ? a : b)
+            : a == null ? b : b == null || a == b ? a : null);
+        jump(row);
     }
 
     private void selectAtCaret(StyledText text, boolean lhs)
     {
         if (settingCaret) return;
         int row = text.getLineAtOffset(text.getCaretOffset());
-        Change target = null;
-        if (row < rows.size() && (lhs ? rows.get(row).left() : rows.get(row).right()) != null)
-            for (Change change : changes)
-                if (change.kind == 4 && change.left == lhs && change.start <= row && row < change.end)
-                {
-                    target = change;
-                    break;
-                }
-        if (selected == target) return;
-        selected = target;
-        moveSelection.accept(selectedMove());
+        var target = methodAt(row, lhs);
+        if (selectedMethod == target) return;
+        selected = changes.stream().filter(change -> change.start <= row && row < change.end
+            && (change.kind != 4 || change.left == lhs)).findFirst().orElse(null);
+        setMethod(target);
         bar.redraw();
     }
 
-    void onMoveSelection(java.util.function.Consumer<MethodAwareBslDiff.Move> listener)
+    private MethodAwareBslDiff.MethodChange methodAt(int row, boolean lhs)
     {
-        moveSelection = listener;
-        listener.accept(selectedMove());
-    }
-
-    MethodAwareBslDiff.Move selectedMove()
-    {
-        if (selected == null) return null;
-        if (!selected.id.isEmpty()) return moveByLabel.get(selected.id);
-        for (Change change : changes)
-            if (change.kind == 4 && change.start <= selected.start && selected.start < change.end)
-                return moveByLabel.get(change.id);
+        if (row >= rows.size()) return null;
+        Integer line = lhs ? rows.get(row).left() : rows.get(row).right();
+        if (line == null) return null;
+        for (var method : methods)
+        {
+            var spans = lhs ? method.left() : method.right();
+            if (!spans.isEmpty() && spans.get(0).line() <= line && line <= spans.get(spans.size() - 1).line())
+                return method;
+        }
         return null;
     }
+
+    private void setMethod(MethodAwareBslDiff.MethodChange method)
+    {
+        selectedMethod = method;
+        methodSelection.accept(method);
+    }
+
+    void onMethodSelection(java.util.function.Consumer<MethodAwareBslDiff.MethodChange> listener)
+    {
+        methodSelection = listener;
+        listener.accept(selectedMethod);
+    }
+
+    MethodAwareBslDiff.MethodChange selectedMethod() { return selectedMethod; }
 
     private void jump(int row)
     {

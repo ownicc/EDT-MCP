@@ -89,6 +89,14 @@ public class Messages extends NLS {
     public static String BslDiff_MoveJump; // NOSONAR Eclipse NLS field
     public static String BslDiff_NoMethodSelected; // NOSONAR Eclipse NLS field
     public static String BslDiff_SelectMethodHint; // NOSONAR Eclipse NLS field
+    public static String BslDiff_SelectedMethod; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodChanged; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodMoved; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodMovedChanged; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodAdded; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodRemoved; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodAbsent; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodRoute; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchOld; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchNew; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchBoth; // NOSONAR Eclipse NLS field

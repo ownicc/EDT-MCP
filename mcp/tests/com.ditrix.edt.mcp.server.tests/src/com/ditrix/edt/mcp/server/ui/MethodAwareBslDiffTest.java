@@ -9,6 +9,54 @@ import org.junit.Test;
 
 public class MethodAwareBslDiffTest
 {
+    @Test public void exportsAllChangedMethodsAndOmitsUnchangedNeighbours() throws Exception
+    {
+        String moved = method("Перенос", "Возврат 1;");
+        String editedMove = method("ПереносСПравкой", "Возврат 2;");
+        String stable = method("Стабильный", "Возврат 3;");
+        String changed = method("Изменённый", "Возврат 4;");
+        String removed = method("Удалённый", "Возврат 5;");
+        String added = method("Добавленный", "Возврат 6;");
+        String a = "#Область Один\n" + moved + editedMove + stable + changed + removed
+            + "#КонецОбласти\n#Область Два\n#КонецОбласти\n";
+        String b = "#Область Один\n" + stable + changed.replace("4", "40")
+            + "#КонецОбласти\n#Область Два\n" + moved + editedMove.replace("2", "20") + added + "#КонецОбласти\n";
+        var result = compare(a, b);
+        assertNull(result.fallback());
+        var kinds = new java.util.HashMap<String, MethodAwareBslDiff.MethodKind>();
+        for (var method : result.methods())
+        {
+            kinds.put(method.key().substring(method.key().indexOf(':') + 1), method.kind());
+            assertEquals(method.kind() == MethodAwareBslDiff.MethodKind.ADDED, method.left().isEmpty());
+            assertEquals(method.kind() == MethodAwareBslDiff.MethodKind.REMOVED, method.right().isEmpty());
+            if (!method.left().isEmpty()) assertTrue(BslMethodCompareInput.extract(a, method.left()).text().endsWith("КонецФункции"));
+            if (!method.right().isEmpty()) assertTrue(BslMethodCompareInput.extract(b, method.right()).text().endsWith("КонецФункции"));
+        }
+        assertEquals(java.util.Map.of("перенос", MethodAwareBslDiff.MethodKind.MOVED,
+            "переноссправкой", MethodAwareBslDiff.MethodKind.MOVED_CHANGED,
+            "изменённый", MethodAwareBslDiff.MethodKind.CHANGED,
+            "удалённый", MethodAwareBslDiff.MethodKind.REMOVED,
+            "добавленный", MethodAwareBslDiff.MethodKind.ADDED), kinds);
+    }
+
+    @Test public void formattingOnlyMethodChangeIsSelectable() throws Exception
+    {
+        String a = method("Форматирование", "Возврат 1;");
+        var result = compare(a, a.replace("Возврат", "    Возврат"));
+        assertNull(result.fallback());
+        assertEquals(1, result.methods().size());
+        assertEquals(MethodAwareBslDiff.MethodKind.CHANGED, result.methods().get(0).kind());
+        assertTrue(result.diff().left().isEmpty());
+        assertTrue(result.diff().right().isEmpty());
+    }
+
+    @Test public void ambiguousAndMalformedMethodsDoNotExposeGuessedPairs() throws Exception
+    {
+        String a = method("Дубль", "Возврат 1;");
+        assertTrue(compare(a + a, a + a.replace("1", "2")).methods().isEmpty());
+        assertTrue(compare(a, "Функция Дубль(\nВозврат 2;").methods().isEmpty());
+    }
+
     @Test public void tokenDiffIsolatesOneRepeatedCallArgument()
     {
         var engine = new MethodAwareBslDiff(null, new NullProgressMonitor());
