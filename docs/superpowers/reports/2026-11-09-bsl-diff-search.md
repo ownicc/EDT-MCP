@@ -42,3 +42,20 @@ in aligned-row, side, then column order; each result identifies its side.
 
 Changes develop in the existing worktree/local branch. No new workspace,
 persistent launcher, dependency, push or PR is introduced.
+
+## Installed and attended verification
+
+Local plugin **1.0.0.202611092000** is installed in the same EDT for workspace
+`/home/ownicc/.local/share/1C/1cedtstart/projects/Kasl`. SHA-256:
+`24a8dbe4c933a44d24e4527858007b606cec91d6e13bbe69a93ed329be6aa3d2`.
+Installed, built and native-tested JARs match. Runtime PID 794127 was checked for
+`GTK_THEME=Adwaita:light` and
+`__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json`.
+
+In the actual Kasl window, Find searched for `БезНеопределенных` and showed
+`New 1 / 1`, highlighting the added function after alignment. Closing search and
+pressing actual Ctrl+F reopened the inline bar. Screenshot:
+`/tmp/edt-diff-quality/Kasl-search.png`.
+Review `659f43d1-1e23-4d56-a55e-9da57ab8ff5e` remains awaitingApproval,
+applied=false, mutationCommitted=false. All 165 original snapshot files retain
+their SHA-256 hashes. The process is left running with the search example open.

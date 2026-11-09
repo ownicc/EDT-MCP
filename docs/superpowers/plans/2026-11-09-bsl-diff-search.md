@@ -27,7 +27,11 @@ test `ui/BslDiffSearchTest.java` under the existing test source root.
   scrolling; Ctrl+F/F3/Esc for source controls and search bar.
 - [x] Run focused tests and actual SWT probe of scope/navigation, unchanged
   selected method, read-only method tab and large-font gutter; inspect capture.
-- [ ] Commit and merge locally to master; update Beads and report evidence.
+- [x] Commit and merge locally to master; update Beads and report evidence.
 
 Deployment of this iteration is separate from local validation: preserve the
 currently open Kasl review until the new controls are verified.
+
+Verified controls were subsequently installed in the existing Kasl EDT. The
+actual process uses the user's Adwaita light / NVIDIA EGL variables; Ctrl+F
+and the new-source-only result were verified in that window. No source write.
