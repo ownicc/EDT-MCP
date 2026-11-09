@@ -31,6 +31,7 @@ import com.ditrix.edt.mcp.server.protocol.ToolResult;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
 import com.ditrix.edt.mcp.server.utils.ProjectContext;
+import com.ditrix.edt.mcp.server.utils.ModuleTargetResolver;
 
 /** Explicit editor activation; source and dirty state are never changed. */
 public class OpenInEditorTool implements IMcpTool
@@ -55,7 +56,11 @@ public class OpenInEditorTool implements IMcpTool
     {
         return JsonSchemaBuilder.object()
             .stringProperty("projectName", "EDT project name", true) //$NON-NLS-1$ //$NON-NLS-2$
-            .stringProperty("modulePath", "BSL module path from src/, e.g. CommonModules/My/Module.bsl", true) //$NON-NLS-1$ //$NON-NLS-2$
+            .stringProperty("modulePath", "BSL path from src/; exactly one of modulePath or objectName") //$NON-NLS-1$ //$NON-NLS-2$
+            .stringProperty("objectName", "Type.Name; TYPE may be Russian/English, name is a programmatic identifier, not a synonym") //$NON-NLS-1$ //$NON-NLS-2$
+            .stringProperty("moduleType", "With objectName: ObjectModule, ManagerModule, FormModule, CommandModule, RecordSetModule or Module; defaults by type") //$NON-NLS-1$ //$NON-NLS-2$
+            .stringProperty("formName", "With objectName and FormModule: form identifier; not required for CommonForm") //$NON-NLS-1$ //$NON-NLS-2$
+            .stringProperty("commandName", "With objectName and CommandModule: command identifier; not required for CommonCommand") //$NON-NLS-1$ //$NON-NLS-2$
             .stringProperty("methodName", "Case-insensitive method name; cannot be combined with line/column") //$NON-NLS-1$ //$NON-NLS-2$
             .integerProperty("line", "1-based line in the current editor document") //$NON-NLS-1$ //$NON-NLS-2$
             .integerProperty("column", "1-based column; requires line; default 1") //$NON-NLS-1$ //$NON-NLS-2$
@@ -84,7 +89,7 @@ public class OpenInEditorTool implements IMcpTool
     @Override
     public String execute(Map<String, String> params)
     {
-        String required = JsonUtils.requireArguments(params, "projectName", "modulePath"); //$NON-NLS-1$ //$NON-NLS-2$
+        String required = JsonUtils.requireArguments(params, "projectName"); //$NON-NLS-1$
         if (required != null)
         {
             return required;
@@ -93,7 +98,17 @@ public class OpenInEditorTool implements IMcpTool
         try
         {
             String projectName = JsonUtils.extractStringArgument(params, "projectName"); //$NON-NLS-1$
-            String modulePath = JsonUtils.extractStringArgument(params, "modulePath").replace('\\', '/'); //$NON-NLS-1$
+            ModuleTargetResolver.Result target = ModuleTargetResolver.resolve(
+                JsonUtils.extractStringArgument(params, "modulePath"), //$NON-NLS-1$
+                JsonUtils.extractStringArgument(params, "objectName"), //$NON-NLS-1$
+                JsonUtils.extractStringArgument(params, "moduleType"), //$NON-NLS-1$
+                JsonUtils.extractStringArgument(params, "formName"), //$NON-NLS-1$
+                JsonUtils.extractStringArgument(params, "commandName")); //$NON-NLS-1$
+            if (target.error() != null)
+            {
+                return target.error();
+            }
+            String modulePath = target.modulePath().replace('\\', '/');
             String method = JsonUtils.extractStringArgument(params, "methodName"); //$NON-NLS-1$
             String methodName = method == null || method.isBlank() ? null : method.trim();
             Integer line = coordinate(JsonUtils.extractStringArgument(params, "line"), "line"); //$NON-NLS-1$
@@ -104,7 +119,7 @@ public class OpenInEditorTool implements IMcpTool
                 throw new IllegalArgumentException("modulePath must identify a .bsl module"); //$NON-NLS-1$
             }
             org.eclipse.core.runtime.IPath path = new org.eclipse.core.runtime.Path(modulePath);
-            if (path.isAbsolute() || path.getDevice() != null || Arrays.asList(path.segments()).contains("..")) //$NON-NLS-1$
+            if (path.isAbsolute() || path.getDevice() != null || Arrays.asList(modulePath.split("/")).contains("..")) //$NON-NLS-1$
             {
                 throw new IllegalArgumentException("modulePath must be a project-relative path from src/"); //$NON-NLS-1$
             }

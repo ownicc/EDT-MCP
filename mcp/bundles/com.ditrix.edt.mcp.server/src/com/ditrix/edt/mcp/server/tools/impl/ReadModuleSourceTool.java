@@ -26,6 +26,7 @@ import com.ditrix.edt.mcp.server.protocol.McpKeys;
 import com.ditrix.edt.mcp.server.protocol.ToolResult;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.ContentHash;
+import com.ditrix.edt.mcp.server.utils.ModuleDocumentSnapshot;
 import com.ditrix.edt.mcp.server.utils.FrontMatter;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
 import com.ditrix.edt.mcp.server.utils.InterceptionUtils;
@@ -73,6 +74,7 @@ public class ReadModuleSourceTool implements IMcpTool
                 "EDT project name (required)", true) //$NON-NLS-1$
             .stringProperty(McpKeys.MODULE_PATH,
                 "Path from src/, e.g. 'CommonModules/MyModule/Module.bsl' (required)", true) //$NON-NLS-1$
+            .enumProperty("view", "Saved disk source (default), or an existing live document. Document view never opens or saves an editor.", "disk", "document")
             .integerProperty(START_LINE,
                 "First line, 1-based inclusive; omit to read from the start.") //$NON-NLS-1$
             .integerProperty(END_LINE,
@@ -119,6 +121,11 @@ public class ReadModuleSourceTool implements IMcpTool
             return err;
         }
 
+        String view = JsonUtils.extractStringArgument(params, "view");
+        if (view == null) view = "disk";
+        if (!"disk".equals(view) && !"document".equals(view))
+            return ToolResult.error("view must be disk or document; received '" + view + "'. Use disk for saved source.").toJson();
+
         // Get project
         ProjectContext ctx = ProjectContext.of(projectName);
         if (!ctx.exists())
@@ -141,22 +148,29 @@ public class ReadModuleSourceTool implements IMcpTool
             // Canonicalize the display path; retain the selector for the model footer.
             String canonicalModulePath = BslModuleUtils.sourceRelativePath(file);
 
-            // Read file content with UTF-8 BOM detection
-            List<String> allLines = BslModuleUtils.readFileLines(file);
-
+            ModuleDocumentSnapshot.Snapshot snapshot = null;
+            if ("document".equals(view))
+            {
+                snapshot = ModuleDocumentSnapshot.read(file);
+                if (snapshot == null) return ToolResult.error("No connected document for " + canonicalModulePath
+                    + ". Open it in EDT first, or use view=disk to read saved source.").toJson();
+            }
+            else if (PlatformUI.isWorkbenchRunning())
+            {
+                try { snapshot = ModuleDocumentSnapshot.read(file); }
+                catch (Exception e) { /* Optional dirty state must not prevent a disk read. */ }
+            }
+            String text = "document".equals(view) ? snapshot.text() : BslModuleUtils.readFileText(file);
+            List<String> allLines = text.lines().toList();
             int totalLines = allLines.size();
-
-            // Revision token for the optimistic-lock round-trip: hash the WHOLE file
-            // (not the returned range) from the same canonical text write_module_source
-            // recomputes (readFileText, \n-normalized), so a write with this exact
-            // expectedHash matches when nothing changed. Whole-file even on a range read,
-            // because a write targets the whole module.
-            String contentHash = ContentHash.of(BslModuleUtils.readFileText(file).replace("\r\n", "\n")); //$NON-NLS-1$ //$NON-NLS-2$
+            String contentHash = "disk".equals(view) ? ContentHash.of(text) : null;
+            String documentHash = "document".equals(view) ? snapshot.documentHash() : null;
+            Boolean dirty = snapshot == null ? null : snapshot.dirty();
 
             // Handle empty file
             if (totalLines == 0)
             {
-                return formatOutput(projectName, canonicalModulePath, allLines, 0, 0, 0, false, contentHash);
+                return formatOutput(projectName, canonicalModulePath, allLines, 0, 0, 0, false, contentHash, view, dirty, documentHash);
             }
 
             // Determine range
@@ -182,7 +196,10 @@ public class ReadModuleSourceTool implements IMcpTool
                 truncated = true;
             }
 
-            String output = formatOutput(projectName, canonicalModulePath, allLines, from, to, totalLines, truncated, contentHash);
+            String output = formatOutput(projectName, canonicalModulePath, allLines, from, to, totalLines, truncated, contentHash, view, dirty, documentHash);
+
+            // The saved semantic model cannot describe unsaved document text.
+            if ("document".equals(view)) return output;
 
             // Extension interception (module-level, best-effort): if this module is
             // adopted/intercepted across the base<->extension boundary, append the
@@ -220,9 +237,18 @@ public class ReadModuleSourceTool implements IMcpTool
     static String formatOutput(String projectName, String modulePath, List<String> allLines, // NOSONAR signature is inherent / public-or-test-contract; a parameter-object would not improve clarity
         int from, int to, int totalLines, boolean truncated, String contentHash)
     {
+        return formatOutput(projectName, modulePath, allLines, from, to, totalLines, truncated, contentHash, "disk", null, null);
+    }
+
+    static String formatOutput(String projectName, String modulePath, List<String> allLines,
+        int from, int to, int totalLines, boolean truncated, String contentHash, String view, Boolean dirty, String documentHash)
+    {
         FrontMatter fm = FrontMatter.create()
             .put(McpKeys.PROJECT_NAME, projectName)
-            .put("module", modulePath); //$NON-NLS-1$
+            .put("module", modulePath)
+            .put("view", view);
+        if (dirty != null) fm.put("dirty", dirty);
+        if (documentHash != null) fm.put("documentHash", documentHash); //$NON-NLS-1$
 
         if (contentHash != null)
         {
@@ -244,7 +270,7 @@ public class ReadModuleSourceTool implements IMcpTool
             fm.put("hint", //$NON-NLS-1$
                 "Output clamped to the configured line limit. " //$NON-NLS-1$
                 + "To continue reading, call read_module_source again with the same projectName and modulePath " //$NON-NLS-1$
-                + "and startLine=" + (to + 1) + ". " //$NON-NLS-1$
+                + "and view=" + view + " and startLine=" + (to + 1) + ". " //$NON-NLS-1$
                 + "For an overview of procedures, functions and regions, call get_module_structure."); //$NON-NLS-1$
         }
 

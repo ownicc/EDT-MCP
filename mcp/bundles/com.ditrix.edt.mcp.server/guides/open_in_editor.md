@@ -1,7 +1,11 @@
 Open or activate an existing BSL module in the EDT workbench. Optional navigation uses the current editor document, including unsaved edits. The tool does not change or save source.
 
 ## Parameters
-- `projectName` and `modulePath` are required. Use a path from `src/`, for example `CommonModules/Calc/Module.bsl`. Only workspace BSL modules in the selected project are supported; external/absolute paths and metadata/form designers are excluded.
+- `projectName` is required. Pass exactly one of `modulePath` or `objectName`.
+- `modulePath` is a path from `src/`, for example `CommonModules/Calc/Module.bsl` or the configuration module `Configuration/ManagedApplicationModule.bsl`. Only workspace BSL modules in the selected project are supported; external/absolute paths and metadata/form designers are excluded.
+- `objectName` uses the existing `write_module_source` addressing convention: `Type.Name`. Only the TYPE token may be Russian or English (`CommonModule.Calc` / `ОбщийМодуль.Calc`); the object name is a programmatic identifier, not a synonym.
+- Optional `moduleType` with `objectName`: `ObjectModule`, `ManagerModule`, `FormModule`, `CommandModule`, `RecordSetModule`, or `Module`. The default is `Module` for CommonModule/CommonForm/WebService/HTTPService, `CommandModule` for CommonCommand, and `ObjectModule` for other types. Use `modulePath` for configuration modules.
+- `FormModule` requires `formName` except for CommonForm. `CommandModule` requires `commandName` except for CommonCommand. These names are programmatic identifiers. `moduleType` cannot be combined with `modulePath`.
 - `methodName` navigates to the declaration line, case-insensitively, for either Russian or English BSL. A missing or ambiguous declaration is refused. If the scanner cannot account for every declaration (for example a split header), use line/column navigation instead. Method lookup uses the same declaration scanner as the text-based BSL tools; it does not require a ready semantic model.
 - Alternatively, `line` and optional `column` select a 1-based position. Column defaults to 1. The caret may be placed immediately after the last character of a line, but never on a different line through an oversized column.
 - Do not combine `methodName` with `line` or `column`. A column without a line is refused.
@@ -13,6 +17,16 @@ Open or activate an existing BSL module in the EDT workbench. Optional navigatio
 ```
 ```json
 {"projectName":"TestConfiguration","modulePath":"CommonModules/Calc/Module.bsl","line":6,"column":2}
+```
+
+```json
+{"projectName":"TestConfiguration","objectName":"ОбщийМодуль.Calc","methodName":"Add"}
+```
+```json
+{"projectName":"TestConfiguration","objectName":"Document.Order","moduleType":"FormModule","formName":"ItemForm","line":1}
+```
+```json
+{"projectName":"TestConfiguration","objectName":"Document.Order","moduleType":"CommandModule","commandName":"Print"}
 ```
 
 ## Result and side effects

@@ -218,6 +218,112 @@ public class BslWriteReviewsTest
         }
     }
 
+    @Test
+    public void withdrawalReleasesPayloadModuleAndNotifiesObservers() throws Exception
+    {
+        AtomicInteger calls = new AtomicInteger();
+        try (BslWriteReviews reviews = new BslWriteReviews(Clock.systemUTC(), Runnable::run))
+        {
+            String large = "x".repeat(4_000_000);
+            String id = reviews.register(write("a.bsl", large), "x", (key, value) -> {
+                calls.incrementAndGet(); return null;
+            }).snapshot().reviewId();
+            String other = reviews.register(write("b.bsl", large), "x", (key, value) -> null).snapshot().reviewId();
+            assertNotNull(reviews.register(write("c.bsl", large), "x", (key, value) -> null).errorJson());
+            List<BslWriteReviews.Snapshot> observed = new ArrayList<>();
+            reviews.subscribe(id, observed::add);
+            var opening = reviews.openingAcknowledgement(id);
+            var cancelled = reviews.cancel(id);
+            assertEquals(BslWriteReviews.State.CANCELLED, cancelled.status());
+            assertEquals(Boolean.FALSE, cancelled.mutationCommitted());
+            assertNotNull(cancelled.completedAt());
+            assertEquals("client-withdrawn", cancelled.reason());
+            assertFalse(opening.get());
+            assertEquals(List.of(BslWriteReviews.State.AWAITING_APPROVAL, BslWriteReviews.State.CANCELLED),
+                observed.stream().map(BslWriteReviews.Snapshot::status).toList());
+            assertSame(cancelled, reviews.cancel(id));
+            assertEquals(2, observed.size());
+            reviews.apply(id);
+            assertEquals(0, calls.get());
+            assertNotNull(reviews.register(write("a.bsl", large), "new", (key, value) -> null).snapshot());
+            assertEquals(BslWriteReviews.State.AWAITING_APPROVAL, reviews.get(other).status());
+            assertNull(reviews.cancel("unknown"));
+        }
+    }
+
+    @Test
+    public void withdrawalAtDeadlineReportsExpiry()
+    {
+        TestClock clock = new TestClock();
+        try (BslWriteReviews reviews = new BslWriteReviews(clock, Runnable::run))
+        {
+            String id = reviews.register(write("a.bsl", "new"), "x", (key, value) -> null).snapshot().reviewId();
+            clock.now = clock.now.plus(Duration.ofMinutes(30));
+            var expired = reviews.cancel(id);
+            assertEquals(BslWriteReviews.State.EXPIRED, expired.status());
+            assertEquals("approval-deadline", expired.reason());
+            assertSame(expired, reviews.cancel(id));
+        }
+    }
+
+    @Test
+    public void withdrawalPreservesApplyingAndEveryTerminalOutcome()
+    {
+        for (BslWriteReviews.State terminal : BslWriteReviews.State.values())
+        {
+            if (!terminal.terminal()) continue;
+            Queue<Runnable> work = new ArrayDeque<>();
+            try (BslWriteReviews reviews = new BslWriteReviews(Clock.systemUTC(), work::add))
+            {
+                String id = reviews.register(write("a.bsl", "new"), "x", (key, value) -> {
+                    assertTrue(reviews.tryEnterMutation(key));
+                    assertNull(reviews.cancel(key).mutationCommitted());
+                    return new BslWriteReviews.Outcome(terminal, true, "original result", null);
+                }).snapshot().reviewId();
+                reviews.apply(id);
+                var applying = reviews.get(id);
+                assertSame(applying, reviews.cancel(id));
+                assertEquals(BslWriteReviews.State.APPLYING, applying.status());
+                work.remove().run();
+                var completed = reviews.get(id);
+                assertSame(completed, reviews.cancel(id));
+                assertEquals(terminal, completed.status());
+                assertEquals(Boolean.TRUE, completed.mutationCommitted());
+                assertEquals("original result", completed.resultMarkdown());
+            }
+        }
+    }
+
+    @Test
+    public void concurrentApplyAndWithdrawalHaveOneTruthfulWinner() throws Exception
+    {
+        for (int attempt = 0; attempt < 40; attempt++)
+        {
+            List<Runnable> work = Collections.synchronizedList(new ArrayList<>());
+            AtomicInteger writes = new AtomicInteger();
+            try (BslWriteReviews reviews = new BslWriteReviews(Clock.systemUTC(), work::add))
+            {
+                String id = reviews.register(write("a.bsl", "new"), "x", (key, value) -> {
+                    assertTrue(reviews.tryEnterMutation(key));
+                    writes.incrementAndGet();
+                    return new BslWriteReviews.Outcome(BslWriteReviews.State.APPLIED, true, "written", null);
+                }).snapshot().reviewId();
+                var start = new java.util.concurrent.CountDownLatch(1);
+                var withdrawn = new java.util.concurrent.atomic.AtomicReference<BslWriteReviews.Snapshot>();
+                Thread accept = new Thread(() -> { await(start); reviews.apply(id); });
+                Thread cancel = new Thread(() -> { await(start); withdrawn.set(reviews.cancel(id)); });
+                accept.start(); cancel.start(); start.countDown();
+                accept.join(5000); cancel.join(5000);
+                assertFalse(accept.isAlive()); assertFalse(cancel.isAlive());
+                assertTrue(work.size() <= 1);
+                if (withdrawn.get().status() == BslWriteReviews.State.CANCELLED) assertTrue(work.isEmpty());
+                else assertEquals(BslWriteReviews.State.APPLYING, withdrawn.get().status());
+                for (Runnable run : work) run.run();
+                assertEquals(reviews.get(id).status() == BslWriteReviews.State.APPLIED ? 1 : 0, writes.get());
+            }
+        }
+    }
+
     private static void await(java.util.concurrent.CountDownLatch latch)
     {
         try { latch.await(); }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<fragment>
+  <extension point="org.eclipse.ui.editors">
+    <editor id="com.ditrix.edt.mcp.server.tests.plainTextEditor"
+      name="Plain text test editor"
+      class="com.ditrix.edt.mcp.server.ui.PlainTextWorkbenchEditor"/>
+  </extension>
+</fragment>

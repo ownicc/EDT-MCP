@@ -209,6 +209,7 @@ public class ToolSettingsReadOnlyMigrationTest
         result.remove("business_process_route_map");
         result.remove("project_checks");
         result.remove("open_in_editor");
+        result.remove("cancel_write_review");
         return result;
     }
 

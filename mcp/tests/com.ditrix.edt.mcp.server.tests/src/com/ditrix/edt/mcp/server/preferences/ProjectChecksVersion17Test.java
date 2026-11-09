@@ -49,7 +49,7 @@ public class ProjectChecksVersion17Test
             PreferenceStore store = stored(id, 14);
             ToolSettingsService.ensureMigratedForTest(store);
             Set<String> expected = id.equals("analysis-only")
-                ? Set.of("owner_disabled", "get_form_screenshot", "business_process_route_map", "project_checks", "open_in_editor")
+                ? Set.of("owner_disabled", "get_form_screenshot", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review")
                 : Set.of("owner_disabled", "get_form_screenshot");
             assertEquals(expected, disabled(store));
             assertEquals(PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION,
@@ -64,8 +64,8 @@ public class ProjectChecksVersion17Test
             PreferenceStore store = stored(id, version);
             ToolSettingsService.ensureMigratedForTest(store);
             Set<String> expected = version < 16
-                ? Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor")
-                : Set.of("owner_disabled", "project_checks", "open_in_editor");
+                ? Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review")
+                : Set.of("owner_disabled", "project_checks", "open_in_editor", "cancel_write_review");
             assertEquals(expected, disabled(store));
             assertEquals(id, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
             assertEquals(PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION,

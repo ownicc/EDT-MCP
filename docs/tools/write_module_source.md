@@ -19,6 +19,7 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 | normalizeInvalidCharacters | — | boolean | Replace the characters the 1C standard InvalidCharacterInFile forbids in the SOURCE you supply - en/em/figure dash, horizontal bar and typographic minus become '-', a no-break space becomes a space, a soft hyphen is dropped (default true). They are invisible in a diff and read exactly like their ASCII twins, so they otherwise land in the module as a marker. Set false to write the source byte-for-byte. |
 | expectedSource | — | string | Lost-update guard for mode=replace: the module content you last read; mismatch rejects. |
 | overwrite | — | boolean | Force mode=replace over an existing module without an expectedSource check (default false). |
+| requestId | — | string | Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write. |
 | expectedHash | — | string | Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for every method-targeted mode. |
 
 ## Guide
@@ -28,11 +29,23 @@ Writes BSL source to a single 1C metadata object module (a `.bsl` file under `sr
 
 By default, a changing call opens a nonmodal read-only comparison in EDT and returns JSON with `reviewId`, `status`, `applied: false`, and the decision deadline. No source or metadata is written before the person presses **Apply** in the tab header. **Reject** or closing an awaiting tab writes nothing. Both comparison sides are read-only; saving or merge-copy shortcuts cannot accept a proposal.
 
-Poll `get_write_review_status(reviewId)` about every three seconds until the status is terminal. Awaiting approval is not a completed write. The decision deadline is 30 minutes. A changed base becomes `stale`; read it again and submit a new proposal. Save or discard unsaved target edits before submitting or applying. Server/project closure cancels work that has not entered mutation; IDs are lost on plugin restart.
+Poll `get_write_review_status(reviewId)` about every three seconds until the status is terminal. Awaiting approval is not a completed write. The decision deadline is 30 minutes. A changed base becomes `stale`; read it again and submit a new proposal. Save or discard unsaved target edits before submitting or applying. Server/project closure cancels work that has not entered mutation; in-memory review IDs may be lost on plugin restart. An optional requestId retains a bounded operation receipt as described below.
 
 When `mutationCommitted: true`, source was written even if a later metadata/export step failed. An unknown mutation outcome requires reading source before retrying. Never blindly resend an append after a lost connection or uncertain result.
 
 The human can turn off **Review BSL changes before applying** in the plugin General preferences. This affects new calls only, preserves the historical immediate Markdown result, and leaves pending proposals awaiting their own decisions. Destructive-consent allowances and `skipSyntaxCheck` do not bypass review; no MCP approval or preference-bypass parameter exists. Without a workbench, review-enabled changing writes are refused. Byte-identical proposals return JSON `noChange` without metadata follow-up.
+
+## Request receipts and replay
+
+Supply an optional `requestId` containing 1 to 128 characters, unique for each operation in this workspace. Retrying that ID with the same effective arguments (including defaulted mode/boolean settings and the resolved module selector) returns its existing receipt without preparing or executing another write. Changing those arguments produces `requestIdConflict`. A request ID is never a way to bypass a changed hash or a human decision.
+
+Admission is written and flushed to the plugin's workspace state directory before execution. Receipts contain IDs, an argument digest, timestamps and a bounded result; source arguments and proposal payloads are not persisted. Calls using `requestId` return a JSON envelope with `requestId`, `retainedUntil`, `status`, mutation outcome fields, and `resultMarkdown` for a direct write. Calls without it retain the existing response format. A large result may be summarized with `resultTruncated: true` while preserving the mutation outcome.
+
+A concurrent duplicate reports `inProgress` with an unknown mutation outcome until the first call reports a result. Review receipts include `reviewId` and follow its latest decision, including cancellation or completion after the original call returned. Only the human can Apply in EDT. Poll `get_write_review_status` with exactly one of `requestId` or `reviewId`; requestId lookup does not require resending source arguments.
+
+After plugin/EDT restart, a completed receipt remains replayable. An interrupted operation or pending review becomes `status: unknown`, `recovery: interrupted`, `mutationOutcomeUnknown: true`; it is never automatically retried or recreated. Reread source and reconcile the operation before deciding whether a genuinely new operation is needed. Receipts do not promise exactly-once mutation across process/power failure or failed storage. If `receiptPersistenceFailed: true`, the returned outcome is the strongest fact observed in this process; restart recovery may report unknown. Admission failure starts no write.
+
+Retention is seven days from admission, with at most 1000 receipts of at most 64 KiB each. An unexpired receipt is never evicted for capacity: new admission refuses when full. A known expired ID returns `requestIdExpired`; older files may be removed when admitting another operation. There is no safe replay guarantee after `retainedUntil`. **Never recycle a requestId**, including after expiry, project deletion, cancellation, or a workspace restart. Copying a project into another workspace does not copy these workspace-local receipts.
 
 ## When to use
 
@@ -67,6 +80,7 @@ Passing both is rejected; passing neither is rejected. `moduleType` is meaningfu
 | `skipSyntaxCheck` | optional | default false. |
 | `expectedSource` | mode=replace | lost-update guard. |
 | `overwrite` | mode=replace | force without expectedSource. |
+| `requestId` | optional | workspace-unique operation ID; JSON receipt replay and recovery, seven-day retention; never reuse. |
 | `expectedHash` | any mode | cheap lost-update guard; REQUIRED for all method-targeted modes. |
 
 ## moduleType to path

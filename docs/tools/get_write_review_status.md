@@ -1,14 +1,15 @@
 # get_write_review_status
 
-Get the status of a BSL write review by reviewId. Poll until terminal; only the human can apply it in EDT. Parameters and examples: get_tool_guide('get_write_review_status').
+Get a BSL write review by reviewId or a durable operation receipt by requestId. Only the human can apply a review in EDT. Parameters and examples: get_tool_guide('get_write_review_status').
 
 ## Parameters
 | Parameter | Required | Type | Description |
 | --- | --- | --- | --- |
-| reviewId | yes | string | ID returned by write_module_source. |
+| reviewId | — | string | Review ID returned by write_module_source. Pass exactly one of reviewId or requestId. |
+| requestId | — | string | Operation ID supplied to write_module_source, including recovery after restart. |
 
 ## Guide
-Read the status of a review returned by `write_module_source`. This tool never accepts or rejects changes and never returns module source.
+Read the status of a review or a durable request receipt from `write_module_source`. Pass exactly one of `reviewId` or `requestId`. This tool never accepts or rejects changes and never returns module source.
 
 ## Workflow
 
@@ -16,12 +17,24 @@ Call with `reviewId` and wait about three seconds between polls while `status` i
 
 Terminal states are `applied`, `rejected`, `stale`, `expired`, `cancelled`, and `failed`. `mutationCommitted: true` means source was written even if follow-up failed. `mutationOutcomeUnknown: true` means the write has entered or returned an opaque outcome: reread source before deciding what to do. Never blindly retry an append after a connection loss or uncertain outcome.
 
-`stale` requires reading the current module and submitting a new proposal. Closing a pending tab rejects it; the decision deadline is 30 minutes. Server/project shutdown cancels proposals that have not entered mutation. IDs do not survive plugin/EDT restart; unknown IDs and retained-status eviction are errors, not rejections.
+`stale` requires reading the current module and submitting a new proposal. Closing a pending tab rejects it; the decision deadline is 30 minutes. Server/project shutdown cancels proposals that have not entered mutation. In-memory review IDs may not survive plugin/EDT restart; unknown IDs and retained-status eviction are errors, not rejections. With requestId, a matching persisted review receipt can also be found by its reviewId.
+
+## Recovery by requestId
+
+Use the optional `requestId` originally supplied to `write_module_source` to retrieve its receipt without resending source. Completed receipts preserve the known result, including `resultMarkdown` for a direct write. A duplicate currently executing in this process reports `inProgress`; an interrupted operation or pending review recovered after restart reports `unknown`, `recovery: interrupted`, and `mutationOutcomeUnknown: true`. Neither polling nor replay executes or accepts a write. Reread source before deciding what to do after an uncertain outcome.
+
+Receipts are workspace-local and bounded to seven days from admission (`retainedUntil`), 1000 entries and 64 KiB per entry. There is no safe replay guarantee after expiry; never recycle request IDs. A known expired ID refuses. `receiptPersistenceFailed: true` means the latest result could not be saved; recovery after restart may report unknown. Storage failure is not proof that source was unchanged. Large results may carry `resultTruncated: true` while preserving the known mutation outcome.
 
 ## Example
 
 ```json
 {"reviewId":"the-id-returned-by-write_module_source"}
+```
+
+For a durable operation receipt instead:
+
+```json
+{"requestId":"unique-operation-id-supplied-to-write_module_source"}
 ```
 
 ---

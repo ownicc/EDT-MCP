@@ -149,6 +149,7 @@ public final class Toolsets
         assign(CODE,
             "open_in_editor", //$NON-NLS-1$
             "get_write_review_status", //$NON-NLS-1$
+            "cancel_write_review", //$NON-NLS-1$
             "write_module_source", "read_method_source", "get_method_call_hierarchy", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             "get_outgoing_structures", "go_to_definition", "get_symbol_info", "find_references", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
             "get_content_assist", "validate_query"); //$NON-NLS-1$ //$NON-NLS-2$

@@ -43,12 +43,13 @@ import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
 import com.ditrix.edt.mcp.server.utils.PreparedBslWrite;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviewCommit;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
+import com.ditrix.edt.mcp.server.utils.BslWriteRequests;
 import com.ditrix.edt.mcp.server.utils.BslSyntaxChecker;
 import com.ditrix.edt.mcp.server.utils.ContentHash;
 import com.ditrix.edt.mcp.server.utils.FrontMatter;
 import com.ditrix.edt.mcp.server.utils.InvalidFileCharacters;
 import com.ditrix.edt.mcp.server.utils.MetadataScope;
-import com.ditrix.edt.mcp.server.utils.MetadataTypeUtils;
+import com.ditrix.edt.mcp.server.utils.ModuleTargetResolver;
 import com.ditrix.edt.mcp.server.utils.ProjectContext;
 import com.ditrix.edt.mcp.server.utils.Refusals;
 import com.ditrix.edt.mcp.server.utils.VendorSupportGuard;
@@ -61,6 +62,10 @@ import com.ditrix.edt.mcp.server.utils.VendorSupportGuard;
  */
 public class WriteModuleSourceTool implements IMcpTool
 {
+    private final BslWriteRequests requestStore;
+    public WriteModuleSourceTool() { this(null); }
+    WriteModuleSourceTool(BslWriteRequests requestStore) { this.requestStore = requestStore; }
+
     public static final String NAME = "write_module_source"; //$NON-NLS-1$
 
     private static final String MODE_REPLACE = "replace"; //$NON-NLS-1$
@@ -76,8 +81,6 @@ public class WriteModuleSourceTool implements IMcpTool
     private static final String MODULE_TYPE_MODULE = "Module"; //$NON-NLS-1$
     private static final String MODULE_TYPE_OBJECT_MODULE = "ObjectModule"; //$NON-NLS-1$
     private static final String MODULE_TYPE_COMMAND_MODULE = "CommandModule"; //$NON-NLS-1$
-
-    private static final String MODULE_FILE_SUFFIX = "/Module.bsl"; //$NON-NLS-1$
 
     /** Maximum source length to prevent accidental huge writes */
     private static final int MAX_SOURCE_LENGTH = 500_000;
@@ -143,6 +146,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 "Lost-update guard for mode=replace: the module content you last read; mismatch rejects.") //$NON-NLS-1$
             .booleanProperty("overwrite", //$NON-NLS-1$
                 "Force mode=replace over an existing module without an expectedSource check (default false).") //$NON-NLS-1$
+            .stringProperty("requestId", "Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write.")
             .stringProperty("expectedHash", //$NON-NLS-1$
                 "Lost-update guard: the hash from the read that produced your edit. The write is " //$NON-NLS-1$
                 + "rejected if the module changed since; required for every method-targeted mode.") //$NON-NLS-1$
@@ -176,7 +180,6 @@ public class WriteModuleSourceTool implements IMcpTool
     @Override
     public String execute(Map<String, String> params)
     {
-        boolean reviewEnabled = ConsentSettingsService.getInstance().isBslWriteReviewEnabled();
         // 1. Extract and default the request parameters.
         WriteRequest req = WriteRequest.from(params);
 
@@ -195,7 +198,31 @@ public class WriteModuleSourceTool implements IMcpTool
             return target.error;
         }
         req.modulePath = target.modulePath;
+        String requestId = JsonUtils.extractStringArgument(params, "requestId");
+        if (requestId != null)
+        {
+            if (requestId.isBlank() || requestId.length() > 128)
+                return ToolResult.error("requestId must contain 1 to 128 characters and must never be reused for another write.")
+                    .put("code", "invalidRequestId").toJson();
+            try
+            {
+                BslWriteRequests store = requestStore != null ? requestStore : BslWriteRequests.shared();
+                req.requestId = requestId;
+                req.requestStore = store;
+                return store.execute(requestId, requestDigest(req), () -> executeWrite(req));
+            }
+            catch (java.io.IOException e)
+            {
+                return ToolResult.error("Cannot open workspace write receipts; no write was started. Check workspace storage: " + e.getMessage())
+                    .put("requestId", requestId).put("mutationCommitted", false).toJson();
+            }
+        }
+        return executeWrite(req);
+    }
 
+    private String executeWrite(WriteRequest req)
+    {
+        boolean reviewEnabled = ConsentSettingsService.getInstance().isBslWriteReviewEnabled();
         // 4. Validate project
         ProjectContext ctx = ProjectContext.of(req.projectName);
         if (!ctx.exists())
@@ -338,6 +365,8 @@ public class WriteModuleSourceTool implements IMcpTool
         final String expectedSource;
         final boolean overwrite;
         final String expectedHash;
+        String requestId;
+        BslWriteRequests requestStore;
 
         private WriteRequest(Map<String, String> params)
         {
@@ -546,6 +575,7 @@ public class WriteModuleSourceTool implements IMcpTool
             () -> reviews.tryEnterMutation(id), this::finishReviewedWrite));
         if (admission.errorJson() != null) return admission.errorJson();
         String id = admission.snapshot().reviewId();
+        if (req.requestStore != null) req.requestStore.observeReview(req.requestId, reviews, id);
         String openingError = admission.reused() ? BslWriteReviewUi.awaitOpeningAndFocus(id)
             : BslWriteReviewUi.open(write, id);
         if (openingError != null) return openingError;
@@ -733,7 +763,7 @@ public class WriteModuleSourceTool implements IMcpTool
      * enforced here): exactly one must be given. moduleType is a decorator on the
      * objectName path only — it is meaningless with an explicit modulePath, so it is
      * flagged instead of being silently ignored. formName/commandName are validated
-     * deeper in {@link #resolveModulePath} (they depend on the resolved moduleType).
+     * deeper in {@link ModuleTargetResolver} (they depend on the resolved moduleType).
      * The resolved path is then validated against path traversal and a {@code .bsl}
      * extension, mirroring the inline checks exactly.
      *
@@ -744,52 +774,9 @@ public class WriteModuleSourceTool implements IMcpTool
     private ModuleTargetResult resolveModuleTarget(String modulePath, String objectName,
         String moduleType, String formName, String commandName)
     {
-        boolean hasModulePath = modulePath != null && !modulePath.isEmpty();
-        boolean hasObjectName = objectName != null && !objectName.isEmpty();
-        boolean hasModuleType = moduleType != null && !moduleType.isEmpty();
-
-        if (hasModulePath && hasObjectName)
-        {
-            return new ModuleTargetResult(ToolResult.error("modulePath and objectName are mutually exclusive; " + //$NON-NLS-1$
-                "pass only one (modulePath for a direct path, or objectName to resolve it)").toJson(), null); //$NON-NLS-1$
-        }
-        if (!hasModulePath && !hasObjectName)
-        {
-            return new ModuleTargetResult(
-                ToolResult.error("either modulePath or objectName is required").toJson(), null); //$NON-NLS-1$
-        }
-        if (hasModulePath && hasModuleType)
-        {
-            return new ModuleTargetResult(ToolResult.error("moduleType applies only with objectName; " + //$NON-NLS-1$
-                "it is meaningless with an explicit modulePath, so drop one of them").toJson(), null); //$NON-NLS-1$
-        }
-
-        if (!hasModulePath)
-        {
-            String resolved = resolveModulePath(objectName, moduleType, formName, commandName);
-            if (isErrorJson(resolved))
-            {
-                // resolveModulePath signals failure by returning a ready
-                // ToolResult.error(...).toJson() payload; surface it as-is.
-                return new ModuleTargetResult(resolved, null);
-            }
-            modulePath = resolved;
-        }
-
-        // Validate modulePath: prevent path traversal
-        if (modulePath.contains("..")) //$NON-NLS-1$
-        {
-            return new ModuleTargetResult(ToolResult.error("modulePath must not contain '..'").toJson(), null); //$NON-NLS-1$
-        }
-
-        // Validate modulePath: only .bsl files allowed
-        if (!modulePath.endsWith(".bsl")) //$NON-NLS-1$
-        {
-            return new ModuleTargetResult(
-                ToolResult.error("only .bsl module files can be written").toJson(), null); //$NON-NLS-1$
-        }
-
-        return new ModuleTargetResult(null, modulePath);
+        ModuleTargetResolver.Result result = ModuleTargetResolver.resolveForWrite(
+            modulePath, objectName, moduleType, formName, commandName);
+        return new ModuleTargetResult(result.error(), result.modulePath());
     }
 
     /**
@@ -1340,132 +1327,6 @@ public class WriteModuleSourceTool implements IMcpTool
                 "up-to-date contentHash.").toJson(); //$NON-NLS-1$
         }
         return null;
-    }
-
-    /**
-     * Returns {@code true} when the given resolver result is a structured error
-     * payload (a {@link ToolResult#error} JSON object) rather than a resolved
-     * module path. A resolved path is a plain {@code src/}-relative string, so it
-     * can never begin with the JSON object opener.
-     */
-    private static boolean isErrorJson(String resolverResult)
-    {
-        return resolverResult.startsWith("{"); //$NON-NLS-1$
-    }
-
-    /**
-     * Resolves objectName + moduleType to a module file path relative to src/.
-     * On success returns the plain path; on failure returns a ready
-     * {@link ToolResult#error} JSON payload (detected by {@link #isErrorJson})
-     * so the error reaches the client through the structured error contract
-     * rather than a bare "Error:" string.
-     */
-    private String resolveModulePath(String objectName, String moduleType,
-        String formName, String commandName)
-    {
-        // Parse objectName: "Document.MyDoc" -> typePart="Document", namePart="MyDoc"
-        int dotIndex = objectName.indexOf('.'); //$NON-NLS-1$
-        if (dotIndex <= 0 || dotIndex >= objectName.length() - 1)
-        {
-            return ToolResult.error("objectName must be in format 'Type.Name' " + //$NON-NLS-1$
-                "(e.g. 'Document.MyDoc', 'CommonModule.MyModule')").toJson(); //$NON-NLS-1$
-        }
-
-        String typePart = objectName.substring(0, dotIndex);
-        String namePart = objectName.substring(dotIndex + 1);
-
-        // Resolve type to English singular
-        String englishType = MetadataTypeUtils.toEnglishSingular(typePart);
-        if (englishType == null)
-        {
-            return ToolResult.error("unknown metadata type: " + typePart).toJson(); //$NON-NLS-1$
-        }
-
-        // Get directory name
-        String dirName = MetadataTypeUtils.getDirectoryName(typePart);
-        if (dirName == null)
-        {
-            return ToolResult.error("metadata type '" + typePart + "' has no source directory").toJson(); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-
-        // Determine default moduleType based on metadata type
-        moduleType = resolveDefaultModuleType(moduleType, englishType);
-
-        // Build path based on moduleType
-        switch (moduleType)
-        {
-            case MODULE_TYPE_MODULE:
-                return dirName + "/" + namePart + MODULE_FILE_SUFFIX; //$NON-NLS-1$
-
-            case MODULE_TYPE_OBJECT_MODULE:
-                return dirName + "/" + namePart + "/ObjectModule.bsl"; //$NON-NLS-1$ //$NON-NLS-2$
-
-            case "ManagerModule": //$NON-NLS-1$
-                return dirName + "/" + namePart + "/ManagerModule.bsl"; //$NON-NLS-1$ //$NON-NLS-2$
-
-            case "RecordSetModule": //$NON-NLS-1$
-                return dirName + "/" + namePart + "/RecordSetModule.bsl"; //$NON-NLS-1$ //$NON-NLS-2$
-
-            case "FormModule": //$NON-NLS-1$
-                // CommonForms don't need formName — path is always Module.bsl
-                if ("CommonForm".equals(englishType)) //$NON-NLS-1$
-                {
-                    return dirName + "/" + namePart + MODULE_FILE_SUFFIX; //$NON-NLS-1$
-                }
-                if (formName == null || formName.isEmpty())
-                {
-                    return ToolResult.error("formName is required when moduleType=FormModule").toJson(); //$NON-NLS-1$
-                }
-                return dirName + "/" + namePart + "/Forms/" + formName + MODULE_FILE_SUFFIX; //$NON-NLS-1$ //$NON-NLS-2$
-
-            case MODULE_TYPE_COMMAND_MODULE:
-                // CommonCommands don't need commandName — path is always CommandModule.bsl
-                if ("CommonCommand".equals(englishType)) //$NON-NLS-1$
-                {
-                    return dirName + "/" + namePart + "/CommandModule.bsl"; //$NON-NLS-1$ //$NON-NLS-2$
-                }
-                if (commandName == null || commandName.isEmpty())
-                {
-                    return ToolResult.error("commandName is required when moduleType=CommandModule").toJson(); //$NON-NLS-1$
-                }
-                return dirName + "/" + namePart + "/Commands/" + commandName + "/CommandModule.bsl"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-
-            default:
-                return ToolResult.error("unknown moduleType: " + moduleType + //$NON-NLS-1$
-                    ". Allowed: ObjectModule, ManagerModule, FormModule, " + //$NON-NLS-1$
-                    "CommandModule, RecordSetModule, Module").toJson(); //$NON-NLS-1$
-        }
-    }
-
-    /**
-     * Returns the supplied {@code moduleType} unchanged when it is non-empty,
-     * otherwise derives the default module type from the English metadata type:
-     * {@code Module} for module-bearing singletons (CommonModule, CommonForm,
-     * WebService, HTTPService), {@code CommandModule} for CommonCommand, and
-     * {@code ObjectModule} for everything else.
-     *
-     * @param moduleType the requested module type (may be {@code null} or empty)
-     * @param englishType the resolved English singular metadata type
-     * @return the explicit module type, or the derived default when none was given
-     */
-    private static String resolveDefaultModuleType(String moduleType, String englishType)
-    {
-        if (moduleType != null && !moduleType.isEmpty())
-        {
-            return moduleType;
-        }
-        if ("CommonModule".equals(englishType) //$NON-NLS-1$
-            || "CommonForm".equals(englishType) //$NON-NLS-1$
-            || "WebService".equals(englishType) //$NON-NLS-1$
-            || "HTTPService".equals(englishType)) //$NON-NLS-1$
-        {
-            return MODULE_TYPE_MODULE;
-        }
-        if ("CommonCommand".equals(englishType)) //$NON-NLS-1$
-        {
-            return MODULE_TYPE_COMMAND_MODULE;
-        }
-        return MODULE_TYPE_OBJECT_MODULE;
     }
 
     /**

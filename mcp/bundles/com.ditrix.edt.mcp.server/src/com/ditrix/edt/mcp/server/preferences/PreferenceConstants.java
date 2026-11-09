@@ -116,8 +116,9 @@ public final class PreferenceConstants
      * 16 = recorded read-only presets gain the destructive {@code business_process_route_map}.
      * 17 = a stored read-only profile gains {@code project_checks}.
      * 18 = a stored read-only profile gains {@code open_in_editor}.
+     * 19 = a stored read-only profile gains {@code cancel_write_review}.
      */
-    public static final int TOOL_PREFS_MIGRATION_VERSION = 18;
+    public static final int TOOL_PREFS_MIGRATION_VERSION = 19;
 
     /** Explicit opt-ins: raw git commands, the external Workmate agent and buffered form screenshots. */
     public static final String DEFAULT_DISABLED_TOOLS = "git,ask_workmate,get_form_screenshot"; //$NON-NLS-1$

@@ -37,6 +37,124 @@ public class OpenInEditorToolTest
     }
 
     @Test
+    public void metadataSelectorsReachProjectValidationForEnglishAndRussianTypes()
+    {
+        for (Map<String, String> target : java.util.List.of(
+            Map.of("objectName", "CommonModule.Calc"),
+            Map.of("objectName", "ОбщийМодуль.Вычисления"),
+            Map.of("objectName", "Document.Order"),
+            Map.of("objectName", "Документ.Заказ"),
+            Map.of("objectName", "Catalog.Products", "moduleType", "ManagerModule"),
+            Map.of("objectName", "РегистрСведений.Цены", "moduleType", "RecordSetModule"),
+            Map.of("objectName", "Document.Order", "moduleType", "FormModule", "formName", "ItemForm"),
+            Map.of("objectName", "Документ.Заказ", "moduleType", "CommandModule", "commandName", "Печать"),
+            Map.of("objectName", "CommonForm.Options"),
+            Map.of("objectName", "ОбщаяФорма.Настройки", "moduleType", "FormModule"),
+            Map.of("objectName", "CommonCommand.Print"),
+            Map.of("objectName", "ОбщаяКоманда.Печать", "moduleType", "CommandModule"),
+            Map.of("objectName", "WebService.Api"),
+            Map.of("objectName", "HTTPСервис.Api")))
+        {
+            String result = executeTarget(target);
+            assertTrue(target + ": " + result, result.contains("Project not found"));
+        }
+    }
+
+    @Test
+    public void objectAddressesUseTheExistingCanonicalModulePaths()
+    {
+        for (String type : java.util.List.of("CommonModule", "ОбщийМодуль"))
+        {
+            assertResolvedPath("CommonModules/Вычисления/Module.bsl", type + ".Вычисления", null, null, null);
+        }
+        for (String type : java.util.List.of("Document", "Документ"))
+        {
+            assertResolvedPath("Documents/Заказ/ObjectModule.bsl", type + ".Заказ", null, null, null);
+            assertResolvedPath("Documents/Заказ/ManagerModule.bsl", type + ".Заказ", "ManagerModule", null, null);
+            assertResolvedPath("Documents/Заказ/Forms/Форма/Module.bsl", type + ".Заказ", "FormModule", "Форма", null);
+            assertResolvedPath("Documents/Заказ/Commands/Печать/CommandModule.bsl", type + ".Заказ", "CommandModule", null, "Печать");
+        }
+        for (String type : java.util.List.of("InformationRegister", "РегистрСведений"))
+        {
+            assertResolvedPath("InformationRegisters/Цены/RecordSetModule.bsl", type + ".Цены", "RecordSetModule", null, null);
+        }
+        for (String type : java.util.List.of("CommonForm", "ОбщаяФорма"))
+        {
+            assertResolvedPath("CommonForms/Настройки/Module.bsl", type + ".Настройки", null, null, null);
+            assertResolvedPath("CommonForms/Настройки/Module.bsl", type + ".Настройки", "FormModule", null, null);
+        }
+        for (String type : java.util.List.of("CommonCommand", "ОбщаяКоманда"))
+        {
+            assertResolvedPath("CommonCommands/Печать/CommandModule.bsl", type + ".Печать", null, null, null);
+        }
+        assertResolvedPath("WebServices/Api/Module.bsl", "WebService.Api", null, null, null);
+        assertResolvedPath("HTTPServices/Api/Module.bsl", "HTTPСервис.Api", null, null, null);
+    }
+
+    private static void assertResolvedPath(String expected, String objectName, String moduleType, String formName, String commandName)
+    {
+        var resolved = com.ditrix.edt.mcp.server.utils.ModuleTargetResolver.resolve(null, objectName, moduleType, formName, commandName);
+        assertNull(resolved.error(), resolved.error());
+        assertEquals(expected, resolved.modulePath());
+    }
+
+    @Test
+    public void exactlyOneModuleSelectorIsRequired()
+    {
+        assertTargetError(Map.of(), "either modulePath or objectName is required");
+        assertTargetError(Map.of("modulePath", "Module.bsl", "objectName", "CommonModule.Calc"), "mutually exclusive");
+        assertTargetError(Map.of("modulePath", "Module.bsl", "moduleType", "Module"), "moduleType applies only with objectName");
+    }
+
+    @Test
+    public void metadataSelectorsPreserveResolverValidation()
+    {
+        assertTargetError(Map.of("objectName", "NoDot"), "must be in format");
+        assertTargetError(Map.of("objectName", "UnknownType.Name"), "unknown metadata type");
+        assertTargetError(Map.of("objectName", "Document.Order", "moduleType", "UnknownModule"), "unknown moduleType");
+        assertTargetError(Map.of("objectName", "Document.Order", "moduleType", "FormModule"), "formName is required");
+        assertTargetError(Map.of("objectName", "Document.Order", "moduleType", "CommandModule"), "commandName is required");
+        assertTargetError(Map.of("objectName", "Document.Order", "line", "1", "methodName", "Run"), "methodName");
+    }
+
+    @Test
+    public void allSelectorsRetainProjectPathConfinement()
+    {
+        assertTargetError(Map.of("modulePath", "../Module.bsl"), "project-relative");
+        assertTargetError(Map.of("modulePath", "/tmp/Module.bsl"), "project-relative");
+        assertTargetError(Map.of("objectName", "CommonModule.../../Outside"), "project-relative");
+        assertTargetError(Map.of("objectName", "Document.Order", "moduleType", "FormModule", "formName", "../../Outside"), "project-relative");
+        assertTargetError(Map.of("objectName", "Document.Order", "moduleType", "CommandModule", "commandName", "../../Outside"), "project-relative");
+        assertTrue(executeTarget(Map.of("modulePath", "CommonModules\\Calc\\Module.BSL")).contains("Project not found"));
+        assertTrue(executeTarget(Map.of("modulePath", "Configuration/ManagedApplicationModule.bsl")).contains("Project not found"));
+    }
+
+    @Test
+    public void schemaDeclaresAlternateAddressingAndRequiresOnlyProjectName()
+    {
+        var schema = com.google.gson.JsonParser.parseString(new OpenInEditorTool().getInputSchema()).getAsJsonObject();
+        assertEquals("[\"projectName\"]", schema.getAsJsonArray("required").toString());
+        for (String name : java.util.List.of("modulePath", "objectName", "moduleType", "formName", "commandName"))
+        {
+            assertTrue(name, schema.getAsJsonObject("properties").has(name));
+        }
+    }
+
+    private static String executeTarget(Map<String, String> target)
+    {
+        var args = new java.util.HashMap<>(target);
+        args.put("projectName", "MissingOpenEditorProject");
+        return new OpenInEditorTool().execute(args);
+    }
+
+    private static void assertTargetError(Map<String, String> target, String message)
+    {
+        String result = executeTarget(target);
+        assertTrue(result, result.contains("\"success\":false"));
+        assertTrue(result, result.contains(message));
+    }
+
+    @Test
     public void noNavigationRetainsTheExistingEditorSelection() throws Exception
     {
         assertNull(OpenInEditorTool.locate(new Document("text"), null, null, null));

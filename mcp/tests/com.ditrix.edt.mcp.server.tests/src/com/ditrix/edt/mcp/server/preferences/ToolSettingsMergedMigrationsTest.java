@@ -10,7 +10,7 @@ import java.util.Set;
 import org.eclipse.jface.preference.PreferenceStore;
 import org.junit.Test;
 
-/** Independent boundary fixtures for merging the v16, v17 and v18 read-only migrations. */
+/** Independent boundary fixtures for merging the v16 through v19 read-only migrations. */
 public class ToolSettingsMergedMigrationsTest
 {
     @Test
@@ -21,9 +21,9 @@ public class ToolSettingsMergedMigrationsTest
             PreferenceStore store = stored(15, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
             ToolSettingsService.ensureMigratedForTest(store);
             assertEquals(preset, Set.of("owner_disabled", "obsolete_owner_tool",
-                "business_process_route_map", "project_checks", "open_in_editor"), disabled(store));
+                "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"), disabled(store));
             assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-            assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
@@ -34,10 +34,10 @@ public class ToolSettingsMergedMigrationsTest
         {
             PreferenceStore store = stored(16, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
             ToolSettingsService.ensureMigratedForTest(store);
-            assertEquals(preset, Set.of("owner_disabled", "obsolete_owner_tool", "project_checks", "open_in_editor"),
+            assertEquals(preset, Set.of("owner_disabled", "obsolete_owner_tool", "project_checks", "open_in_editor", "cancel_write_review"),
                 disabled(store));
             assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-            assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
@@ -48,16 +48,16 @@ public class ToolSettingsMergedMigrationsTest
         {
             PreferenceStore store = stored(16, preset, Set.of("owner_disabled", "business_process_route_map"));
             ToolSettingsService.ensureMigratedForTest(store);
-            assertEquals(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor"),
+            assertEquals(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"),
                 disabled(store));
-            assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
     @Test
-    public void bothRegistriesKeepSeparateLiteralVersion16Through18Obligations()
+    public void bothRegistriesKeepSeparateLiteralVersion16Through19Obligations()
     {
-        assertEquals(18, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
+        assertEquals(19, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
         for (var additions : List.of(ToolSettingsService.ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION,
             ToolSettingsService.CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION))
         {
@@ -65,11 +65,12 @@ public class ToolSettingsMergedMigrationsTest
             assertEquals(Set.of("business_process_route_map"), additions.get(16));
             assertEquals(Set.of("project_checks"), additions.get(17));
             assertEquals(Set.of("open_in_editor"), additions.get(18));
+            assertEquals(Set.of("cancel_write_review"), additions.get(19));
         }
     }
 
     @Test
-    public void version15MigrationsPublishOneCombinedDisabledSetThenVersion18()
+    public void version15MigrationsPublishOneCombinedDisabledSetThenVersion19()
     {
         PreferenceStore store = stored(15, "code-review", Set.of("owner_disabled"));
         List<String> writes = new ArrayList<>();
@@ -82,11 +83,11 @@ public class ToolSettingsMergedMigrationsTest
             }
         });
         ToolSettingsService.ensureMigratedForTest(store);
-        assertEquals(List.of(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor")),
+        assertEquals(List.of(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review")),
             published);
         assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
             PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
-        assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+        assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         writes.clear();
         ToolSettingsService.ensureMigratedForTest(store);
         assertTrue("the combined migration is one-shot", writes.isEmpty());
@@ -96,22 +97,22 @@ public class ToolSettingsMergedMigrationsTest
     public void anAlreadyCompleteDisabledSetNeedsOnlyTheVersionStamp()
     {
         PreferenceStore store = stored(15, "analysis-only",
-            Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor"));
+            Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"));
         String before = store.getString(PreferenceConstants.PREF_DISABLED_TOOLS);
         List<String> writes = new ArrayList<>();
         store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
         ToolSettingsService.ensureMigratedForTest(store);
         assertEquals(before, store.getString(PreferenceConstants.PREF_DISABLED_TOOLS));
         assertEquals(List.of(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
-        assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+        assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
     }
 
     @Test
-    public void version18RetainsOwnerOptInsWithoutWritingAgain()
+    public void version19RetainsOwnerOptInsWithoutWritingAgain()
     {
         for (String preset : List.of("analysis-only", "code-review"))
         {
-            PreferenceStore store = stored(18, preset, Set.of("owner_disabled"));
+            PreferenceStore store = stored(19, preset, Set.of("owner_disabled"));
             List<String> writes = new ArrayList<>();
             store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
             ToolSettingsService.ensureMigratedForTest(store);
@@ -132,7 +133,7 @@ public class ToolSettingsMergedMigrationsTest
                 assertEquals(preset, Set.of("owner_disabled"), disabled(store));
                 assertEquals(!preset.isEmpty(), store.contains(PreferenceConstants.PREF_TOOL_PRESET_ID));
                 assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-                assertEquals(18, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+                assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
             }
         }
     }

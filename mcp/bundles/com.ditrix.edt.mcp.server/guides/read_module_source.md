@@ -41,3 +41,9 @@ For an empty file, `startLine`/`endLine` are omitted, `totalLines` is `0`, and t
 - The returned source is clean BSL with no line-number prefixes; line numbers live in the frontmatter only.
 - The source may contain Cyrillic identifiers (procedure/variable names); this tool returns the text verbatim and is not dialect-aware.
 - To round-trip a safe edit: read here, take `contentHash`, then pass it as `write_module_source`'s `expectedHash`.
+
+## Disk and document views
+
+`view=disk` is the default and returns saved source with the existing whole-file `contentHash` for `write_module_source(expectedHash=...)`. `view=document` reads an already connected editor/file buffer, including unsaved changes, without opening or saving an editor. Open the module first when no document is connected. A running workbench is required for document view; its UI wait is limited to 3 seconds.
+
+Results identify `view`. `dirty` describes the connected buffer when its state is observable; an omitted field means unknown, not clean. Document view returns a whole-document `documentHash` prefixed with `document:` and omits `contentHash`. A document token is informational and cannot be used as a disk-write `expectedHash`. Save or discard unsaved changes explicitly before writing, then reread with `view=disk`. Document view omits the saved-model interception footer because it may not describe unsaved text. Ranges and continuation use the selected view; preserve `view=document` on subsequent calls.

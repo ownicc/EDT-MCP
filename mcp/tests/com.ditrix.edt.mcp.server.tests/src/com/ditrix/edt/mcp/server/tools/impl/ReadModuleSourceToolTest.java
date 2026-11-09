@@ -32,6 +32,13 @@ import com.ditrix.edt.mcp.server.tools.IMcpTool.ResponseType;
  */
 public class ReadModuleSourceToolTest
 {
+    @Test
+    public void rejectsUnknownViewBeforeLookingUpProject()
+    {
+        String result = new ReadModuleSourceTool().execute(Map.of("projectName", "missing", "modulePath", "Module.bsl", "view", "live"));
+        assertTrue(result, result.contains("view must be disk or document"));
+    }
+
     // ==================== Tool metadata ====================
 
     @Test

@@ -56,4 +56,53 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>workbench-tests</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>tycho-surefire-plugin</artifactId>
+            <configuration>
+              <useUIHarness>true</useUIHarness>
+              <useUIThread>false</useUIThread>
+              <forkedProcessTimeoutInSeconds>120</forkedProcessTimeoutInSeconds>
+              <includes combine.self="override">
+                <include>**/*WorkbenchTest.java</include>
+              </includes>
+              <systemProperties>
+                <edt.mcp.uiTests>true</edt.mcp.uiTests>
+                <org.eclipse.ui.testsuite>true</org.eclipse.ui.testsuite>
+              </systemProperties>
+              <bundleStartLevel>
+                <bundle>
+                  <id>org.eclipse.equinox.event</id>
+                  <level>4</level>
+                  <autoStart>true</autoStart>
+                </bundle>
+              </bundleStartLevel>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.eclipse.tycho</groupId>
+            <artifactId>target-platform-configuration</artifactId>
+            <configuration>
+              <dependency-resolution>
+                <!-- E4's EventBrokerFactory needs an EventAdmin implementation;
+                     the API alone lets the workbench exit before any test starts. -->
+                <extraRequirements combine.children="append">
+                  <requirement>
+                    <type>eclipse-plugin</type>
+                    <id>org.eclipse.equinox.event</id>
+                    <versionRange>0.0.0</versionRange>
+                  </requirement>
+                </extraRequirements>
+              </dependency-resolution>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -2,7 +2,7 @@
 
 One page per tool: what it does, every parameter, and how it works. Generated from the live server by `docs/generate_tool_docs.py` (re-run to refresh; the source of truth is each tool's Java).
 
-**104 tools.**
+**105 tools.**
 
 ## Core
 
@@ -52,12 +52,13 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 
 | Tool | Description |
 |------|-------------|
+| [`cancel_write_review`](cancel_write_review.md) | Withdraw an awaiting BSL write review by reviewId. Applying or completed reviews keep their actual outcome. Parameters and examples: get_tool_guide('cancel_w… |
 | [`find_references`](find_references.md) | Discover where a metadata object is used throughout the configuration and BSL code. Parameters and examples: get_tool_guide('find_references'). |
 | [`get_content_assist`](get_content_assist.md) | Find valid BSL completion suggestions at a source-code position. Parameters and examples: get_tool_guide('get_content_assist'). |
 | [`get_method_call_hierarchy`](get_method_call_hierarchy.md) | Trace which BSL methods call a method or are called by it; optional depth walks the chain transitively for impact analysis (callers only, max 5). Finds STATI… |
 | [`get_outgoing_structures`](get_outgoing_structures.md) | Discover the fields passed to outgoing or qualified BSL method calls. BEST-EFFORT and incomplete by design: only top-level LITERAL keys of the first argument… |
 | [`get_symbol_info`](get_symbol_info.md) | Inspect the type and documentation of a BSL symbol at its source location. Parameters and examples: get_tool_guide('get_symbol_info'). |
-| [`get_write_review_status`](get_write_review_status.md) | Get the status of a BSL write review by reviewId. Poll until terminal; only the human can apply it in EDT. Parameters and examples: get_tool_guide('get_write… |
+| [`get_write_review_status`](get_write_review_status.md) | Get a BSL write review by reviewId or a durable operation receipt by requestId. Only the human can apply a review in EDT. Parameters and examples: get_tool_g… |
 | [`go_to_definition`](go_to_definition.md) | Locate the source definition of a BSL symbol or metadata object. Parameters and examples: get_tool_guide('go_to_definition'). |
 | [`open_in_editor`](open_in_editor.md) | Open or activate a BSL module in EDT, optionally at a method or line/column. Preserves unsaved edits. Parameters and examples: get_tool_guide('open_in_editor'). |
 | [`read_method_source`](read_method_source.md) | Inspect the source of one BSL procedure or function. Parameters and examples: get_tool_guide('read_method_source'). |

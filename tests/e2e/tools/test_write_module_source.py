@@ -1359,3 +1359,63 @@ def test_objectname_replace_creates_first_module_under_real_object_folder():
     _assert_first_module_uses_existing_object_folder({
         "objectName": "Catalog.catalog", "moduleType": "ObjectModule",
     })
+
+
+@e2e_test(tool="write_module_source", kind="action")
+def test_request_id_replays_refusal_and_conflicting_arguments_never_write():
+    request_id = "e2e-write-receipt-%d" % time.time_ns()
+    params = {"projectName": "E2E_Missing_Receipt_Project", "modulePath": "Module.bsl",
+              "mode": "append", "source": "// receipt proposal\n", "requestId": request_id}
+    first = call("write_module_source", params)
+    error = assert_error(first, "missing project with durable receipt")
+    assert_error_quality(error, names=[params["projectName"]], suggests=["list_projects"])
+    assert first.structured["requestId"] == request_id, first.structured
+    assert first.structured["mutationCommitted"] is False, first.structured
+    assert first.structured["retainedUntil"], first.structured
+    replay = call("write_module_source", dict(params, skipSyntaxCheck=False, overwrite=False,
+                                              normalizeInvalidCharacters=True))
+    assert_error(replay, "same operation refusal replay")
+    assert replay.structured == first.structured, (first.structured, replay.structured)
+    recovered = call("get_write_review_status", {"requestId": request_id})
+    assert_error(recovered, "receipt preserves the original refusal")
+    assert recovered.structured == first.structured, recovered.structured
+    conflict = call("write_module_source", dict(params, source="// different operation\n"))
+    conflict_error = assert_error(conflict, "requestId argument conflict")
+    assert conflict.structured["code"] == "requestIdConflict", conflict.structured
+    assert_error_quality(conflict_error, names=[request_id], suggests=["original arguments"])
+    assert_no_diff()
+
+
+@e2e_test(tool="write_module_source", kind="action")
+def test_request_id_blank_or_oversized_refuses_before_write():
+    for request_id in (" ", "x" * 129):
+        result = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                      "mode": "append", "source": "// must not write\n", "requestId": request_id})
+        error = assert_error(result, "invalid requestId")
+        assert result.structured["code"] == "invalidRequestId", result.structured
+        assert_error_quality(error, names=["requestId"], suggests=["128", "never"])
+    assert_no_diff()
+
+
+@e2e_test(tool="write_module_source", kind="write")
+def test_request_id_replays_successful_append_without_duplicating_source():
+    request_id = "e2e-applied-receipt-%d" % time.time_ns()
+    marker = "E2E_Request_Append_Once"
+    params = {"projectName": PROJECT, "modulePath": MODULE, "mode": "append",
+              "source": "// " + marker + "\n", "expectedHash": _read_content_hash(),
+              "requestId": request_id}
+    first = call("write_module_source", params)
+    assert_ok(first, "persist successful append receipt")
+    assert first.structured["mutationCommitted"] is True, first.structured
+    assert first.structured["requestId"] == request_id, first.structured
+    assert_diff_contains(marker, "source was actually appended")
+    before_replay = read_disk("src/" + MODULE)
+    # The old expectedHash is now stale. Receipt replay must precede content validation.
+    replay = call("write_module_source", params)
+    assert_ok(replay, "replay applied operation")
+    assert replay.structured == first.structured, (first.structured, replay.structured)
+    assert read_disk("src/" + MODULE) == before_replay, "replay wrote to the module again"
+    assert before_replay.count(marker) == 1, before_replay
+    status = call("get_write_review_status", {"requestId": request_id})
+    assert_ok(status, "lookup applied receipt")
+    assert status.structured == first.structured, status.structured

@@ -297,6 +297,17 @@ public final class BslWriteReviews implements AutoCloseable
         return true;
     }
 
+    /** Withdraw only a pending proposal; acceptance and terminal outcomes are authoritative. */
+    public synchronized Snapshot cancel(String reviewId)
+    {
+        expireDue();
+        Entry entry = entries.get(reviewId);
+        if (entry == null) return null;
+        if (entry.snapshot.status() == State.AWAITING_APPROVAL)
+            transition(entry, new Outcome(State.CANCELLED, false, null, null), "client-withdrawn");
+        return entry.snapshot;
+    }
+
     public synchronized void reject(String id)
     {
         expireDue();

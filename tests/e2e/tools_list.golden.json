@@ -370,6 +370,75 @@
   },
   {
     "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Cancel BSL write review"
+    },
+    "description": "Withdraw an awaiting BSL write review by reviewId. Applying or completed reviews keep their actual outcome. Parameters and examples: get_tool_guide('cancel_write_review').",
+    "inputSchema": {
+      "properties": {
+        "reviewId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewId"
+      ],
+      "type": "object"
+    },
+    "name": "cancel_write_review",
+    "outputSchema": {
+      "properties": {
+        "applied": {
+          "type": "boolean"
+        },
+        "completedAt": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "modulePath": {
+          "type": "string"
+        },
+        "mutationCommitted": {
+          "type": "boolean"
+        },
+        "mutationOutcomeUnknown": {
+          "type": "boolean"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "resultMarkdown": {
+          "type": "string"
+        },
+        "reviewId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "success"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "destructiveHint": false,
       "openWorldHint": false,
       "readOnlyHint": false
@@ -3308,16 +3377,17 @@
       "readOnlyHint": true,
       "title": "BSL write review status"
     },
-    "description": "Get the status of a BSL write review by reviewId. Poll until terminal; only the human can apply it in EDT. Parameters and examples: get_tool_guide('get_write_review_status').",
+    "description": "Get a BSL write review by reviewId or a durable operation receipt by requestId. Only the human can apply a review in EDT. Parameters and examples: get_tool_guide('get_write_review_status').",
     "inputSchema": {
       "properties": {
+        "requestId": {
+          "type": "string"
+        },
         "reviewId": {
           "type": "string"
         }
       },
-      "required": [
-        "reviewId"
-      ],
+      "required": [],
       "type": "object"
     },
     "name": "get_write_review_status",
@@ -3347,7 +3417,22 @@
         "projectName": {
           "type": "string"
         },
+        "receiptPersistenceFailed": {
+          "type": "boolean"
+        },
+        "recovery": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": "string"
+        },
         "resultMarkdown": {
+          "type": "string"
+        },
+        "resultTruncated": {
+          "type": "boolean"
+        },
+        "retainedUntil": {
           "type": "string"
         },
         "reviewId": {
@@ -4233,6 +4318,12 @@
         "column": {
           "type": "integer"
         },
+        "commandName": {
+          "type": "string"
+        },
+        "formName": {
+          "type": "string"
+        },
         "line": {
           "type": "integer"
         },
@@ -4240,6 +4331,13 @@
           "type": "string"
         },
         "modulePath": {
+          "description": "BSL path from src/; exactly one of modulePath or objectName",
+          "type": "string"
+        },
+        "moduleType": {
+          "type": "string"
+        },
+        "objectName": {
           "type": "string"
         },
         "projectName": {
@@ -4247,8 +4345,7 @@
         }
       },
       "required": [
-        "projectName",
-        "modulePath"
+        "projectName"
       ],
       "type": "object"
     },
@@ -4435,6 +4532,13 @@
         },
         "startLine": {
           "type": "integer"
+        },
+        "view": {
+          "enum": [
+            "disk",
+            "document"
+          ],
+          "type": "string"
         }
       },
       "required": [
@@ -5998,6 +6102,9 @@
           "type": "boolean"
         },
         "projectName": {
+          "type": "string"
+        },
+        "requestId": {
           "type": "string"
         },
         "skipSyntaxCheck": {

@@ -204,3 +204,37 @@ def test_russian_object_name_resolves_in_upper_and_lower_case():
         assert_contains(result.text, "Функция Маркер() Экспорт", "the real Russian module must be read")
         assert_contains(result.text, "Возврат 1;", "the real method body must be read")
     assert_no_diff("case-insensitive Russian reads must leave the fixture unchanged")
+
+
+@e2e_test(tool="read_module_source", kind="read")
+def test_explicit_disk_view_preserves_the_saved_revision_token():
+    implicit = call("read_module_source", {"projectName": PROJECT, "modulePath": ERROR_MODULE})
+    explicit = call("read_module_source", {"projectName": PROJECT, "modulePath": ERROR_MODULE, "view": "disk"})
+    assert_ok(explicit, "explicit disk view")
+    import re
+    token = re.search(r'contentHash:\s*"?([0-9a-f]{16})', implicit.text).group(1)
+    assert_contains(explicit.text, token, "same saved revision")
+    assert_contains(explicit.text, "view: disk", "selected source")
+    assert_no_diff()
+
+
+@e2e_test(tool="read_module_source", kind="read")
+def test_document_view_reads_the_open_editor_without_a_disk_write_token():
+    opened = call("open_in_editor", {"projectName": PROJECT, "modulePath": ERROR_MODULE})
+    assert_ok(opened, "connect editor for document view")
+    live = call("read_module_source", {"projectName": PROJECT, "modulePath": ERROR_MODULE, "view": "document"})
+    assert_ok(live, "read connected document")
+    assert_contains(live.text, "view: document", "selected live source")
+    assert_contains(live.text, "documentHash:", "separate revision token")
+    assert_contains(live.text, "dirty: false", "clean editor")
+    assert_contains(live.text, "Error", "actual source")
+    assert "contentHash:" not in live.text, "document token must not be passed into a disk write"
+    assert_no_diff()
+
+
+@e2e_test(tool="read_module_source", kind="read")
+def test_rejects_unknown_source_view_with_an_actionable_error():
+    result = call("read_module_source", {"projectName": PROJECT, "modulePath": ERROR_MODULE, "view": "live"})
+    error = assert_error(result, "unsupported view")
+    assert_error_quality(error, names=["live", "view"], suggests=["disk", "document"])
+    assert_no_diff()
