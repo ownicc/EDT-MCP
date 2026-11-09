@@ -34,7 +34,7 @@ Linux/EDT 2026.2 validation is separate from product promotion. Windows/macOS, o
 
 The structural viewer now uses one shared scrollbar containing both a draggable viewport and red/green change marks. Blue marks show the two endpoints of a method move. Alignment padding is retained; both panes always share the same display-row position. There is no compact flag or separate minimap lane.
 
-Drag the centre of the thumb to scroll, click an edge mark to select a hunk, or click elsewhere on the track to jump. The bar accepts wheel, arrow, Page Up/Down and Home/End keys and exposes its value as an accessible scrollbar. The text panes retain native selection, horizontal scrolling and keyboard navigation. M1/M2 badges at method declarations jump to the other endpoint without offsetting the two panes. Stable method identities anchor alignment, so moved endpoints occupy distinct display positions. The selected move enables **Compare method**, opening a separate read-only snapshot tab with original source line numbers and no Apply action. Hovering a badge gives the peer source line; short method headers also show that line after their declaration. The badge stays available for long signatures and horizontal scrolling. Previous/next visits adjacent changed blocks and the move endpoints; formatting-only changes do not become structural marks.
+Drag the centre of the thumb to scroll, click an edge mark to select a hunk, or click elsewhere on the track to jump. The bar accepts wheel, arrow, Page Up/Down and Home/End keys and exposes its value as an accessible scrollbar. The text panes retain native selection, horizontal scrolling and keyboard navigation. ↔ badges at method declarations jump to the other endpoint without offsetting the two panes. Stable method identities anchor alignment, so moved endpoints occupy distinct display positions. The selected move enables **Compare method**, opening a separate read-only snapshot tab with original source line numbers and no Apply action. Hovering a badge gives the peer source line; short method headers also show that line after their declaration. The badge stays available for long signatures and horizontal scrolling. Previous/next visits adjacent changed blocks and the move endpoints; formatting-only changes do not become structural marks.
 
 The control is a small SWT Canvas, rather than platform-specific painting over a native operating-system scrollbar. All parser rules, fallback notices, prepared output bytes and approval guards are unchanged. The standard compare remains the default; opt in with `-Dedt.mcp.bslDiff=jgit` as above.
 
@@ -70,3 +70,16 @@ Run the quality probe with `GTK_THEME=Adwaita:dark` as well: selecting Light mus
 still give a white source background, independently of GTK system colours.
 The [quality report](../../docs/superpowers/reports/2026-11-09-bsl-diff-quality.md)
 records verification and installation in the user's existing Kasl workspace.
+
+## Inline search
+
+Find/Ctrl+F opens a shared search bar, defaulting to both snapshots. Select Old,
+New or Both, optionally match case, then use Enter/F3 and Shift+Enter/Shift+F3;
+Esc closes the bar. Results include unchanged source, skip alignment padding and
+retain the selected method pair. The same controls work in the read-only method
+tab. A side label and counter identify the current result.
+
+The user's Linux launch environment is `GTK_THEME=Adwaita:light` and
+`__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json`.
+The viewer runner defaults to these values and respects explicit environment
+overrides for theme regression checks.

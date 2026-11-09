@@ -121,7 +121,7 @@ public class QualityProbe extends ViewerProbe
                 var badge=(org.eclipse.swt.graphics.Rectangle)get(hits.get(0),"area");
                 StyledText left=(StyledText)field(field(viewer,"left"),"text");
                 int declaration=left.getLineAtOffset(left.getText().indexOf("Функция Переносимый"));
-                require(badge.y==left.getLinePixel(declaration),"Single move badge is beside declaration, not documentation");
+                require(badge.y==left.getLinePixel(declaration),"Single move badge is beside declaration, not documentation: badge="+badge.y+", declaration="+left.getLinePixel(declaration)+", leftTop="+left.getTopPixel()+", rightTop="+text.getTopPixel());
                 Event click=new Event();click.button=1;click.x=badge.x+2;click.y=badge.y+2;left.notifyListeners(SWT.MouseDown,click);
                 require(left.getTopPixel()==text.getTopPixel(),"Paired jump retains aligned scrolling");
                 report.put("pairedJump",true);
@@ -135,6 +135,32 @@ public class QualityProbe extends ViewerProbe
                 require(input.getTitle().toLowerCase(Locale.ROOT).contains("переносимый"),"Method tab identifies selected method");
                 report.put("methodOnlyTabOpened",true);
                 page.closeEditor(editor,false);
+                call(nav,"select",origin);
+                Object search=field(viewer,"search");Composite searchRow=(Composite)field(search,"row");
+                Event findKey=new Event();findKey.keyCode='f';findKey.stateMask=SWT.MOD1;text.notifyListeners(ST.VerifyKey,findKey);
+                require(searchRow.getVisible()&&!findKey.doit,"Ctrl+F opens inline search and consumes the key");
+                Text query=(Text)field(search,"query");Combo scope=(Combo)field(search,"scope");Button matchCase=(Button)field(search,"matchCase");
+                query.setText("возврат");
+                require(((List<?>)field(search,"matches")).size()==7,"Both snapshots searched, including unchanged and moved lines");
+                scope.select(1);scope.notifyListeners(SWT.Selection,new Event());
+                require(((List<?>)field(search,"matches")).size()==4,"New scope searches only proposed source");
+                require(text.getSelectionText().equals("Возврат"),"Match selects exact real source text after alignment");
+                scope.select(2);scope.notifyListeners(SWT.Selection,new Event());
+                Event back=new Event();back.keyCode=SWT.F3;back.stateMask=SWT.SHIFT;query.notifyListeners(SWT.KeyDown,back);
+                require((int)field(search,"current")==6,"Shift+F3 wraps backwards across both versions");
+                matchCase.setSelection(true);matchCase.notifyListeners(SWT.Selection,new Event());
+                require(((List<?>)field(search,"matches")).isEmpty(),"Case-sensitive query with no results");
+                matchCase.setSelection(false);matchCase.notifyListeners(SWT.Selection,new Event());
+                capture(root,"quality-search.png");
+                Event escape=new Event();escape.keyCode=SWT.ESC;query.notifyListeners(SWT.KeyDown,escape);
+                require(!searchRow.getVisible(),"Escape closes inline search");
+                call(search,"refresh");
+                Event reopen=new Event();reopen.keyCode=SWT.F3;text.notifyListeners(ST.VerifyKey,reopen);
+                require((int)field(search,"current")==0,"F3 after a hidden alignment refresh must select the first match once");
+                call(search,"close");
+                require(call(nav,"selectedMove")!=null&&compare.isEnabled(),"Search preserves selected move");
+                require(!text.getEditable(),"Search does not enable source writes");
+                report.put("inlineSearchBothScopesKeyboard",true);
             }
             finally{shell.dispose();}
             return null;
