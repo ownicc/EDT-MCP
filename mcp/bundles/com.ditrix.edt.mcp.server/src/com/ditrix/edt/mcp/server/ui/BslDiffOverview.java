@@ -181,15 +181,8 @@ final class BslDiffOverview
             changes.add(new Change(start, i, kind, "", false, -1, -1, -1, -1)); //$NON-NLS-1$
         }
         changes.sort(Comparator.comparingInt(Change::start));
-        GC measure = new GC(left);
-        try
-        {
-            measure.setFont(left.getFont());
-            int badgeWidth = moves.isEmpty() ? 0 : measure.stringExtent(MOVE_ICON).x + 8;
-            left.setLeftMargin(baseGutter + badgeWidth);
-            right.setLeftMargin(baseGutter + badgeWidth);
-        }
-        finally { measure.dispose(); }
+        left.setLeftMargin(baseGutter);
+        right.setLeftMargin(baseGutter);
         redraw();
     }
 
@@ -359,8 +352,13 @@ final class BslDiffOverview
             // A dedicated gutter target stays visible even for long declarations or horizontal scrolling.
             String label = MOVE_ICON;
             int width = gc.stringExtent(label).x + 8;
-            int x = 3;
+            int numberX = text.getLeftMargin() - 7 - gc.stringExtent(Integer.toString(change.sourceLine + 1)).x;
+            int gap = gc.stringExtent(" ").x; //$NON-NLS-1$
+            int x = Math.max(3, numberX - gap - width);
             int height = text.getLineHeight();
+            // The declaration's move action occupies the status column; retain the source number.
+            gc.setBackground(text.getBackground());
+            gc.fillRectangle(0, y, Math.max(0, numberX - gap), height);
             gc.setBackground(background());
             gc.fillRoundRectangle(x, y, width, height, 5, 5);
             gc.setForeground(blue());
