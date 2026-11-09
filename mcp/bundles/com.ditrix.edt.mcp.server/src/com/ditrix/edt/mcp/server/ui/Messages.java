@@ -86,6 +86,7 @@ public class Messages extends NLS {
 
     public static String BslReview_Title; // NOSONAR Eclipse NLS field
     public static String BslDiff_Find; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MoveJump; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchOld; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchNew; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchBoth; // NOSONAR Eclipse NLS field

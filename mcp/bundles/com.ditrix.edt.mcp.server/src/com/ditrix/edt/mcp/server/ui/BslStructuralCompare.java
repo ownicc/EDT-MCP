@@ -343,8 +343,8 @@ final class BslStructuralCompare
             {
                 gutterGc.setFont(text.getFont());
                 numberWidth = gutterGc.stringExtent(Integer.toString(Math.max(1, lines.size() + lineOffset))).x;
-                int markerWidth = gutterGc.stringExtent(" + ").x; //$NON-NLS-1$
-                text.setMargins(Math.max(64, numberWidth + markerWidth + 14), 4, 4, 4);
+                int markerWidth = gutterGc.stringExtent(" +").x; //$NON-NLS-1$
+                text.setMargins(Math.max(48, numberWidth + markerWidth + 14), 4, 4, 4);
             }
             finally { gutterGc.dispose(); }
             text.getAccessible().addAccessibleListener(new org.eclipse.swt.accessibility.AccessibleAdapter() {
@@ -443,7 +443,7 @@ final class BslStructuralCompare
                         ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
                             : added ? new RGB(0, 80, 20) : new RGB(138, 20, 20))
                         : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
-                    int markerX = gutter - 7 - numberWidth - event.gc.stringExtent("  +").x; //$NON-NLS-1$
+                    int markerX = gutter - 7 - numberWidth - event.gc.stringExtent(" +").x; //$NON-NLS-1$
                     event.gc.drawString(changed ? (added ? "+" : "−") : "", markerX, y, true);
                     String number = Integer.toString(original + 1 + lineOffset);
                     event.gc.drawString(number, gutter - 7 - event.gc.stringExtent(number).x, y, true);

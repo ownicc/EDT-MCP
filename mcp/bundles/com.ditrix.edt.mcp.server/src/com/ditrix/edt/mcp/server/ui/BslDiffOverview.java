@@ -30,6 +30,7 @@ import com.ditrix.edt.mcp.server.ui.StructuralBslDiff.Span;
 /** One scrollbar for aligned read-only panes; all positions are display rows, never source offsets. */
 final class BslDiffOverview
 {
+    private static final String MOVE_ICON = "↔"; //$NON-NLS-1$
     // Red/green flags can coexist in an edited hunk. A move has two linked endpoints.
     private record Change(int start, int end, int kind, String id, boolean left, int peer,
         int sourceLine, int peerLine, int badgeRow) { }
@@ -184,7 +185,7 @@ final class BslDiffOverview
         try
         {
             measure.setFont(left.getFont());
-            int badgeWidth = moves.isEmpty() ? 0 : measure.stringExtent("M" + moves.size()).x + 14; //$NON-NLS-1$
+            int badgeWidth = moves.isEmpty() ? 0 : measure.stringExtent(MOVE_ICON).x + 8;
             left.setLeftMargin(baseGutter + badgeWidth);
             right.setLeftMargin(baseGutter + badgeWidth);
         }
@@ -336,8 +337,13 @@ final class BslDiffOverview
         return spans.get(0).line();
     }
 
-    private static String moveLabel(Change change)
-    { return change.id + (change.left ? " → " : " ← ") + (change.peerLine + 1); } //$NON-NLS-1$ //$NON-NLS-2$
+    private String moveLabel(Change change)
+    {
+        String key = moveByLabel.get(change.id).key();
+        String name = key.substring(key.indexOf(':') + 1);
+        return org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_MoveJump, new Object[] {
+            name, change.left ? Messages.BslReview_Proposed : Messages.BslReview_Current, change.peerLine + 1 });
+    }
 
     private void paintMoves(GC gc, boolean lhs)
     {
@@ -351,7 +357,7 @@ final class BslDiffOverview
             int y = text.getLinePixel(change.badgeRow);
             if (y < 0 || y >= text.getClientArea().height) continue;
             // A dedicated gutter target stays visible even for long declarations or horizontal scrolling.
-            String label = change.id;
+            String label = MOVE_ICON;
             int width = gc.stringExtent(label).x + 8;
             int x = 3;
             int height = text.getLineHeight();
