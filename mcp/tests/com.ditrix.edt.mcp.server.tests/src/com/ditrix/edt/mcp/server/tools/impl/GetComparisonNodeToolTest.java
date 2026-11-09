@@ -46,6 +46,7 @@ import com.ditrix.edt.mcp.server.utils.compare.ComparisonNodeRenderer;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonScopeBuilder;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonSessionRegistry;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonView;
+import com.ditrix.edt.mcp.server.utils.compare.ComparisonTextDiff;
 import com.ditrix.edt.mcp.server.utils.compare.ElapsedTime;
 import com.ditrix.edt.mcp.server.utils.compare.PlatformAnswer;
 import com.google.gson.JsonObject;
@@ -105,6 +106,98 @@ public class GetComparisonNodeToolTest
     }
 
     // ==================== Addressing ====================
+
+    @Test
+    public void testInvalidTextDiffPairIsRefusedBeforeReading()
+    {
+        StubSource source = knownSource();
+        String result = call(source, args("comparisonId", "cmp-1", "objectFqn",
+            "Catalog.Products", "textDiff", "other-main"));
+        assertError(result);
+        assertTrue(errorMessage(result).contains("textDiff"));
+        assertEquals(0, source.reads);
+    }
+
+    @Test
+    public void testTextDiffOptionsAreDiscoverable()
+    {
+        JsonObject properties = JsonParser.parseString(new GetComparisonNodeTool(new StubSource())
+            .getInputSchema()).getAsJsonObject().getAsJsonObject("properties");
+        assertTrue(properties.has("textDiff"));
+        assertTrue(properties.has("contextLines"));
+        assertTrue(properties.has("maxDiffLines"));
+    }
+
+    @Test
+    public void testDefaultReportDoesNotReadModuleText()
+    {
+        StubSource source = knownSource();
+        String result = call(source, args("comparisonId", "cmp-1", "objectFqn", "Catalog.Products"));
+        assertFalse(result, result.contains("## Module text diff"));
+        assertTrue(source.moduleSides.isEmpty());
+    }
+
+    @Test
+    public void testEveryTextPairReadsItsOwnSidesInsideTheBoundary()
+    {
+        String[][] cases = {{"main-other", "-main text\n+other text"},
+            {"ancestor-main", "-ancestor text\n+main text"},
+            {"ancestor-other", "-ancestor text\n+other text"}};
+        for (String[] pair : cases)
+        {
+            StubSource source = knownSource();
+            source.moduleTexts.put(ComparisonSide.MAIN,
+                ComparisonTextDiff.Source.available("Main.Module", "main text\n"));
+            source.moduleTexts.put(ComparisonSide.OTHER,
+                ComparisonTextDiff.Source.available("Other.Module", "other text\n"));
+            source.moduleTexts.put(ComparisonSide.COMMON_ANCESTOR,
+                ComparisonTextDiff.Source.available("Ancestor.Module", "ancestor text\n"));
+            String result = call(source, args("comparisonId", "cmp-1", "objectFqn", "Catalog.Products",
+                "textDiff", pair[0], "contextLines", "0"));
+            assertTrue(result, result.contains(pair[1]));
+            assertEquals(2, source.moduleSides.size());
+        }
+    }
+
+    @Test
+    public void testInvalidTextLimitsAreRefusedBeforeAnyRead()
+    {
+        for (String[] invalid : new String[][] {{"contextLines", "-1"}, {"contextLines", "11"},
+            {"contextLines", "1.5"}, {"maxDiffLines", "0"}, {"maxDiffLines", "2001"}})
+        {
+            StubSource source = knownSource();
+            String result = call(source, args("comparisonId", "cmp-1", "objectFqn", "Catalog.Products",
+                "textDiff", "main-other", invalid[0], invalid[1]));
+            assertError(result);
+            assertEquals(0, source.reads);
+        }
+    }
+
+    @Test
+    public void testNumericTextLimitsWorkThroughJsonRpc()
+    {
+        StubSource source = knownSource();
+        source.moduleTexts.put(ComparisonSide.MAIN, ComparisonTextDiff.Source.available("Test.Module", "old\n"));
+        source.moduleTexts.put(ComparisonSide.OTHER, ComparisonTextDiff.Source.available("Test.Module", "new\n"));
+        var registry = com.ditrix.edt.mcp.server.tools.McpToolRegistry.getInstance();
+        registry.register(new GetComparisonNodeTool(source));
+        try
+        {
+            var handler = new com.ditrix.edt.mcp.server.protocol.McpProtocolHandler();
+            handler.processRequest("{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\","
+                + "\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},"
+                + "\"clientInfo\":{\"name\":\"numeric-text-diff-test\",\"version\":\"1\"}}}");
+            String response = handler.processRequest("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
+                + "\"params\":{\"name\":\"get_comparison_node\",\"arguments\":{\"comparisonId\":\"cmp-1\","
+                + "\"objectFqn\":\"Catalog.Products\",\"textDiff\":\"main-other\",\"contextLines\":0,\"maxDiffLines\":1}}}");
+            assertTrue(response, response.contains("Text diff truncated"));
+            assertEquals(2, source.moduleSides.size());
+        }
+        finally
+        {
+            registry.clear();
+        }
+    }
 
     @Test
     public void testUnknownComparisonIsRefusedAndNamesTheLiveOnes()
@@ -1397,6 +1490,8 @@ public class GetComparisonNodeToolTest
         private int statusReadsOutsideTheBoundary;
         private int reads;
         private boolean insideRead;
+        private final Map<ComparisonSide, ComparisonTextDiff.Source> moduleTexts = new HashMap<>();
+        private final List<ComparisonSide> moduleSides = new ArrayList<>();
         /**
          * The session's own answer about the RUN: whole configuration, or a scope. This is a
          * platform FACT and not a verdict - the fake supplies it, and the tool does the
@@ -1497,6 +1592,15 @@ public class GetComparisonNodeToolTest
         StubAccess(StubSource source)
         {
             this.source = source;
+        }
+
+        @Override
+        public ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side)
+        {
+            assertTrue("module source must be read inside its comparison boundary", source.insideRead);
+            source.moduleSides.add(side);
+            return source.moduleTexts.getOrDefault(side,
+                ComparisonTextDiff.Source.unavailable("", "No text supplied"));
         }
 
         @Override

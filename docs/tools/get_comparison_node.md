@@ -1,6 +1,6 @@
 # get_comparison_node
 
-Expand one node of a comparison started by compare_configurations: three-way property table, form structure, module sections, support state and potential problems. Address the node by objectFqn (Russian or English type tokens both work) or by the nodeId from the comparison report. The tree is built lazily, so an unfinished subtree is reported as unfinished, never as 'no differences'. Read-only: it never merges. Parameters and examples: get_tool_guide('get_comparison_node').
+Expand one node of a comparison started by compare_configurations: three-way property table, form structure, module sections, support state and potential problems, with an optional bounded module text diff. Address the node by objectFqn (Russian or English type tokens both work) or by the nodeId from the comparison report. The tree is built lazily, so an unfinished subtree is reported as unfinished, never as 'no differences'. Read-only: it never merges. Parameters and examples: get_tool_guide('get_comparison_node').
 
 ## Parameters
 | Parameter | Required | Type | Description |
@@ -12,6 +12,9 @@ Expand one node of a comparison started by compare_configurations: three-way pro
 | depth | — | integer | Child levels to descend, 1 to 5 (default 1). |
 | limit | — | integer | Maximum rows per table, 1 to 500 (default 100). |
 | waitSeconds | — | integer | Maximum time this call may wait for the node to finish comparing, in seconds; defaults to 10 and accepts 0 to 25. |
+| textDiff | — | string (one of: main-other, ancestor-main, ancestor-other) | Optional whole-module text diff; omitted by default. For a section, includes its whole owning module. Independent of the addressing side. |
+| contextLines | — | integer | Text diff context lines, 0 to 10 (default 3). |
+| maxDiffLines | — | integer | Maximum formatted text diff lines, 1 to 2000 (default 200); also bounded to 65536 bytes. Truncation is reported. |
 
 ## Guide
 Expand ONE node of a configuration comparison started by `compare_configurations`, down to the detail the tree report deliberately leaves out: a three-way property table, the per-side form structure, the module section list, the vendor-support state, the child outline and the POTENTIAL problems the engine recorded. Output is Markdown. The tool reads; it never merges and never writes the project.
@@ -38,6 +41,9 @@ A `comparisonId` belongs to one comparison only. When the session is gone, this 
 - `depth` - how many child levels to descend, `1` (default) to `5`. Depth 1 lists the node's direct children; deeper values flatten the subtree into the same table with a `Depth` column.
 - `limit` - maximum rows per table, `1` to `500` (default `100`). Differing properties are listed FIRST, so a truncated table still carries the answer.
 - `waitSeconds` - `0` to `25` (default `10`). See "The tree is lazy" below.
+- `textDiff` - optional: `main-other`, `ancestor-main`, or `ancestor-other`. Adds a pairwise text diff of a BSL module from those sides of the live comparison. This selection is independent of `side`, which only addresses `objectFqn`. Omit it to keep the existing brief report and avoid reading module text.
+- `contextLines` - text diff context, `0` to `10` (default `3`).
+- `maxDiffLines` - maximum formatted diff body lines, `1` to `2000` (default `200`), including hunk headers and end-of-file notices. The body also has a 65536-byte bound. A partial body is explicitly labelled **truncated**; an overlong line is omitted in full. These limits are separate from the per-table `limit`.
 
 ## Bilingual FQNs
 `objectFqn` accepts Russian or English type tokens, and it translates **every** structural segment while keeping every programmatic Name (and its case) verbatim:
@@ -64,6 +70,7 @@ The same honesty applies one level down: when only one side carries the object, 
 - **Support settings** - only for an object under vendor support: `User support mode` and `Parent support mode` for all three sides, plus the parent configuration name. Read from the support nodes the platform builds under the object.
 - **Form structure (Main / Other / Ancestor)** - for a form node, the same Markdown structural snapshot `get_metadata_details` renders for a form: items, attributes, commands, parameters, event handlers. Not raw XML. Its tables obey `limit` like every other table here, and each one that had to drop rows says so.
 - **Module sections** - for a BSL module node: `Depth | Type | Main | Other | Ancestor | State`, one row per procedure / function / preprocessor region.
+- **Module text diff** - only when `textDiff` is supplied. Original module line numbers in unified hunks, explicit source-side labels and per-side module names/presence. A section node currently expands to its **whole owning module**, not just the selected method/region; the output states this scope. Address a BSL module or section through its `Node id` from the child outline. Metadata/form nodes do not implicitly search their descendants for modules.
 - **Children** - `Depth | Node id | Kind | Main | Other | Ancestor | State`. Take a `Node id` from here to expand deeper.
 - **Potential problems** - labelled **POTENTIAL**: the engine reports them by inspecting the comparison, before anything is applied. A definitive blocking / non-blocking verdict would require a merge run, which this read-only toolset never performs, so the list is possibilities, not results. `Problem` and `Details` are EDT's own diagnostic wording, reproduced verbatim - the platform builds those strings from its NLS bundles under the workbench locale, so on a Russian EDT they read in Russian; the table says so above itself, and `Node id` is the locale-free identity of a row.
 
@@ -72,8 +79,12 @@ The same honesty applies one level down: when only one side carries the object, 
 - Russian FQN, other side: `{comparisonId: "cmp-mn4k7q2x-1", objectFqn: "Справочник.Товары", side: "other"}`.
 - Two levels of children, bigger tables: `{comparisonId: "cmp-mn4k7q2x-1", objectFqn: "Catalog.Products", depth: 2, limit: 300}`.
 - By node id from the report, without waiting: `{comparisonId: "cmp-mn4k7q2x-1", nodeId: 128, waitSeconds: 0}`.
+- A BSL module/section node, with text changes: `{comparisonId: "cmp-mn4k7q2x-1", nodeId: 128, textDiff: "main-other", contextLines: 3, maxDiffLines: 200}`.
+- Changes to main relative to the common ancestor: use `textDiff: "ancestor-main"` on the module/section node. An ancestor pair in a two-way session is reported as unavailable.
 
 ## Notes & gotchas
+- Text is read from the comparison's data sources, including virtual/historical sides, rather than from the current workspace module. Missing sides, existing empty modules, binary modules and failed reads are distinguished. Failed reads never become empty-side deletions. Text equality is only an observation about the selected module texts and does not override the structural status, scope/unfinished notices, or EDT's conflict verdict.
+- Text comparison accepts at most 500000 UTF-16 units and 20000 LF-delimited lines per side. Larger inputs produce an explicit refusal for the text section while retaining the structural report. EDT's own reader loads the module before these computation limits can be checked. BOM, line endings, whitespace and final-newline changes remain visible. Exact noncontiguous section fragments and a separate method-move explanation are follow-up work.
 - Every label this tool COMPUTES is language-neutral by construction: names come from the raw symlink segment, kinds from the node's own EClass name. The platform's locale-dependent node labeller is deliberately not used, so nothing this tool writes changes with the IDE language. The one exception is the platform's own text in the Potential problems table, which is declared as such where it is rendered.
 - **An object the comparison never MATCHED has no node at all**, and the refusal says exactly that: the name may not exist on the side you addressed (try the other `side` - a renamed object is reachable under its own side's name), or it may be misspelled. Being outside a `scope` is NOT one of the reasons - see the next bullet; what a scope does remove is the nodes BELOW such an object that the engine builds only out of compared content. The compare_configurations report lists the TOP-level nodes with their nodeId, as far as its own `changedOnly` and `limit` let through - it is not a full index of what the run compared.
 - **A SCOPED run says so on every node it answers - and it says it about the RUN, not about your node.** A scope does not narrow the tree: outside the scope EDT excludes an object's own features from the comparison, feature by feature and sparing its containment-many collections of metadata objects, so an object outside the scope is still matched and still answered here. Such a document opens with **Scoped comparison**, an empty child or section table below it is not by itself a statement that "the sides agree", and an `identical` state is qualified. **Which side of that line your object fell on is not stated**, because the comparison tree does not answer it: the session's own `isInScope` tests a two-directional rule that is not the one EDT excludes content by, so a per-node verdict built on it would be wrong in both directions. The notice hands you the rule instead - the `compare_configurations` report lists the effective scope, and an object is inside it when its qualified name IS an entry or sits under one. The property table is this server's own read of the matched objects and is NOT affected. Re-run `compare_configurations` with the object in `scope`, or with no `scope` at all, to have its content compared for certain.

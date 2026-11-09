@@ -2105,16 +2105,22 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Expand one node of a comparison started by compare_configurations: three-way property table, form structure, module sections, support state and potential problems. Address the node by objectFqn (Russian or English type tokens both work) or by the nodeId from the comparison report. The tree is built lazily, so an unfinished subtree is reported as unfinished, never as 'no differences'. Read-only: it never merges. Parameters and examples: get_tool_guide('get_comparison_node').",
+    "description": "Expand one node of a comparison started by compare_configurations: three-way property table, form structure, module sections, support state and potential problems, with an optional bounded module text diff. Address the node by objectFqn (Russian or English type tokens both work) or by the nodeId from the comparison report. The tree is built lazily, so an unfinished subtree is reported as unfinished, never as 'no differences'. Read-only: it never merges. Parameters and examples: get_tool_guide('get_comparison_node').",
     "inputSchema": {
       "properties": {
         "comparisonId": {
           "type": "string"
         },
+        "contextLines": {
+          "type": "integer"
+        },
         "depth": {
           "type": "integer"
         },
         "limit": {
+          "type": "integer"
+        },
+        "maxDiffLines": {
           "type": "integer"
         },
         "nodeId": {
@@ -2128,6 +2134,14 @@
             "main",
             "other",
             "ancestor"
+          ],
+          "type": "string"
+        },
+        "textDiff": {
+          "enum": [
+            "main-other",
+            "ancestor-main",
+            "ancestor-other"
           ],
           "type": "string"
         },

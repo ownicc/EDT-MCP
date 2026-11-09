@@ -8,11 +8,18 @@ package com.ditrix.edt.mcp.server.utils.compare;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import com._1c.g5.v8.dt.compare.core.ComparisonContext;
+import com._1c.g5.v8.dt.bsl.compare.BslCompareUtils;
+import com._1c.g5.v8.dt.bsl.compare.BslModuleComparisonNode;
+import com._1c.g5.v8.dt.bsl.compare.BslModuleContentInfo;
+import com._1c.g5.v8.dt.bsl.compare.BslModuleSectionComparisonNode;
+import com._1c.g5.v8.dt.core.filesystem.IQualifiedNameFilePathConverter;
+import com._1c.g5.v8.dt.md.MdPlugin;
 import com._1c.g5.v8.dt.compare.core.ComparisonProcessHandle;
 import com._1c.g5.v8.dt.compare.core.ComparisonProcessStatus;
 import com._1c.g5.v8.dt.compare.core.ComparisonUtils;
@@ -121,6 +128,63 @@ public final class ComparisonView
     public boolean isThreeWay()
     {
         return session.isThreeWay();
+    }
+
+    /** Read the addressed module/section's owning module from this session, inside its read boundary. */
+    public ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side)
+    {
+        return moduleText(node, side, () -> MdPlugin.getDefault().getInjector()
+            .getInstance(IQualifiedNameFilePathConverter.class));
+    }
+
+    ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side,
+        Supplier<IQualifiedNameFilePathConverter> converterSource)
+    {
+        String name = "";
+        try
+        {
+            if (!(node instanceof BslModuleComparisonNode) && !(node instanceof BslModuleSectionComparisonNode))
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "Address a BSL module or section node");
+            }
+            while (node != null && !(node instanceof BslModuleComparisonNode))
+            {
+                node = node.getParent();
+            }
+            if (!(node instanceof BslModuleComparisonNode module))
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "The section has no owning module");
+            }
+            if (side == ComparisonSide.COMMON_ANCESTOR && !session.isThreeWay())
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "This is a two-way comparison; no ancestor participates");
+            }
+            name = module.getSymlink(side);
+            if (name == null)
+            {
+                return ComparisonTextDiff.Source.absent("");
+            }
+            IQualifiedNameFilePathConverter converter = converterSource.get();
+            if (converter == null)
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "Module file-path converter is unavailable");
+            }
+            BslModuleContentInfo info = BslCompareUtils.readBslModuleContentInfo(module, session, side, true, converter);
+            if (info != null && info.isBinary())
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "Binary module; text is unavailable");
+            }
+            if (info == null || info.getContent() == null)
+            {
+                return ComparisonTextDiff.Source.unavailable(name, "Could not read module text from this comparison side");
+            }
+            return ComparisonTextDiff.Source.available(name, info.getContent());
+        }
+        catch (RuntimeException | LinkageError e)
+        {
+            return ComparisonTextDiff.Source.unavailable(name, "Could not read module text: "
+                + ComparisonFailures.describe(e));
+        }
     }
 
     /**

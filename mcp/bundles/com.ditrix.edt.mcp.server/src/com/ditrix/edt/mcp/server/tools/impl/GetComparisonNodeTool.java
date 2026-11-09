@@ -33,6 +33,7 @@ import com.ditrix.edt.mcp.server.utils.compare.ComparisonNodeRenderer;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonScopeBuilder;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonSessionRegistry;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonView;
+import com.ditrix.edt.mcp.server.utils.compare.ComparisonTextDiff;
 import com.ditrix.edt.mcp.server.utils.compare.ElapsedTime;
 import com.ditrix.edt.mcp.server.utils.compare.PaddedNames;
 import com.ditrix.edt.mcp.server.utils.compare.PlatformAnswer;
@@ -230,6 +231,12 @@ public class GetComparisonNodeTool implements IMcpTool
     public interface TreeAccess
         extends ComparisonNodeRenderer.NodeAccess
     {
+        /** Detached text from the requested session side; valid only inside this read boundary. */
+        default ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side)
+        {
+            return ComparisonTextDiff.Source.unavailable("", "Module text reader is unavailable");
+        }
+
         /**
          * @param symlink an all-English EDT qualified name
          * @param side the side the symlink addresses
@@ -315,7 +322,7 @@ public class GetComparisonNodeTool implements IMcpTool
     {
         return "Expand one node of a comparison started by compare_configurations: three-way " //$NON-NLS-1$
             + "property table, form structure, module sections, support state and potential " //$NON-NLS-1$
-            + "problems. Address the node by objectFqn (Russian or English type tokens both work) " //$NON-NLS-1$
+            + "problems, with an optional bounded module text diff. Address the node by objectFqn (Russian or English type tokens both work) " //$NON-NLS-1$
             + "or by the nodeId from the comparison report. The tree is built lazily, so an " //$NON-NLS-1$
             + "unfinished subtree is reported as unfinished, never as 'no differences'. Read-only: " //$NON-NLS-1$
             + "it never merges. Parameters and examples: get_tool_guide('get_comparison_node')."; //$NON-NLS-1$
@@ -344,6 +351,12 @@ public class GetComparisonNodeTool implements IMcpTool
                 "Maximum time this call may wait for the node to finish comparing, in seconds; " //$NON-NLS-1$
                     + "defaults to " + DEFAULT_WAIT_SECONDS + " and accepts 0 to " //$NON-NLS-1$ //$NON-NLS-2$
                     + MAX_WAIT_SECONDS + ".") //$NON-NLS-1$
+            .enumProperty("textDiff", "Optional whole-module text diff; omitted by default. "
+                + "For a section, includes its whole owning module. Independent of the addressing side.",
+                "main-other", "ancestor-main", "ancestor-other")
+            .integerProperty("contextLines", "Text diff context lines, 0 to 10 (default 3).")
+            .integerProperty("maxDiffLines", "Maximum formatted text diff lines, 1 to 2000 (default 200); "
+                + "also bounded to 65536 bytes. Truncation is reported.")
             .build();
     }
 
@@ -437,10 +450,26 @@ public class GetComparisonNodeTool implements IMcpTool
                 params.get(KEY_WAIT_SECONDS), DEFAULT_WAIT_SECONDS, MAX_WAIT_SECONDS);
         }
 
+        String textDiff = trimToNull(JsonUtils.extractStringArgument(params, "textDiff"));
+        if (params.containsKey("textDiff") && !List.of("main-other", "ancestor-main", "ancestor-other")
+            .contains(textDiff == null ? "" : textDiff))
+        {
+            return ToolResult.error("textDiff must be 'main-other', 'ancestor-main' or 'ancestor-other'.").toJson();
+        }
+        int contextLines = JsonUtils.extractIntArgument(params, "contextLines",
+            params.containsKey("contextLines") ? -1 : 3);
+        int maxDiffLines = JsonUtils.extractIntArgument(params, "maxDiffLines",
+            params.containsKey("maxDiffLines") ? -1 : 200);
+        if (contextLines < 0 || contextLines > 10 || maxDiffLines < 1 || maxDiffLines > 2000)
+        {
+            return ToolResult.error("contextLines must be an integer from 0 to 10; "
+                + "maxDiffLines must be an integer from 1 to 2000.").toJson();
+        }
+
         try
         {
             return expand(comparisonId, objectFqn, explicitNodeId, side, depth, limit,
-                waitSeconds.intValue());
+                waitSeconds.intValue(), textDiff, contextLines, maxDiffLines);
         }
         catch (InterruptedException e)
         {
@@ -471,8 +500,13 @@ public class GetComparisonNodeTool implements IMcpTool
 
     // ==================== Expansion ====================
 
+    private record Expansion(String markdown, ComparisonTextDiff.Source from, ComparisonTextDiff.Source to)
+    {
+    }
+
     private String expand(String comparisonId, String objectFqn, Long explicitNodeId,
-        ComparisonSide side, int depth, int limit, int waitSeconds) throws InterruptedException
+        ComparisonSide side, int depth, int limit, int waitSeconds, String textDiff,
+        int contextLines, int maxDiffLines) throws InterruptedException
     {
         if (!source.isKnown(comparisonId))
         {
@@ -516,7 +550,7 @@ public class GetComparisonNodeTool implements IMcpTool
         // document is built from THAT reading. Rendering from the wait's snapshot let a comparison
         // EDT had begun re-running be described as FINISHED, and "No differences" was then printed
         // over a tree being rebuilt. One boundary, one reading, one document.
-        String markdown = source.read(comparisonId, access -> {
+        Expansion expansion = source.read(comparisonId, access -> {
             ComparisonNode node = access.node(located.nodeId);
             if (node == null)
             {
@@ -527,13 +561,23 @@ public class GetComparisonNodeTool implements IMcpTool
             ComparisonNodeRenderer.Request request = new ComparisonNodeRenderer.Request(comparisonId,
                 address, side, access.topNodeStatus(located.statusNodeId), depth, limit, null,
                 ComparisonNodeRenderer.ContentCoverage.ofRun(access.wholeConfigurationRun()));
-            return ComparisonNodeRenderer.render(request, node, access);
+            String markdown = ComparisonNodeRenderer.render(request, node, access);
+            if (textDiff == null)
+            {
+                return new Expansion(markdown, null, null);
+            }
+            ComparisonSide from = "main-other".equals(textDiff) ? ComparisonSide.MAIN : ComparisonSide.COMMON_ANCESTOR;
+            ComparisonSide to = "ancestor-main".equals(textDiff) ? ComparisonSide.MAIN : ComparisonSide.OTHER;
+            return new Expansion(markdown, access.moduleText(node, from), access.moduleText(node, to));
         });
-        if (markdown == null)
+        if (expansion == null)
         {
             return unknownNodeError(comparisonId, located.nodeId);
         }
-        return markdown;
+        // Only immutable text observations cross the boundary. JGit does not hold the comparison's BM lock.
+        return expansion.markdown() + (textDiff == null ? "" : ComparisonTextDiff.render(
+            expansion.from(), expansion.to(), "main-other".equals(textDiff) ? "Main" : "Ancestor",
+            "ancestor-main".equals(textDiff) ? "Main" : "Other", contextLines, maxDiffLines));
     }
 
     /**
@@ -1394,6 +1438,12 @@ public class GetComparisonNodeTool implements IMcpTool
         public IComparedObjects<?> comparedObjects(ComparisonNode node)
         {
             return node == null ? null : view.comparedObjects(node, context);
+        }
+
+        @Override
+        public ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side)
+        {
+            return view.moduleText(node, side);
         }
 
         @Override
