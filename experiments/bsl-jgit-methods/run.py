@@ -162,7 +162,8 @@ def java_command(args, out, rows, by_name, jar, mode):
     (config / 'config.ini').write_text(
         'osgi.bundles=reference:' + by_name['org.eclipse.equinox.simpleconfigurator'].as_uri() + '@1:start\n'
         'osgi.bundles.defaultStartLevel=4\nosgi.framework=' + by_name['org.eclipse.osgi'].as_uri() + '\n'
-        'org.eclipse.equinox.simpleconfigurator.configUrl=file:org.eclipse.equinox.simpleconfigurator/bundles.info\n')
+        'org.eclipse.equinox.simpleconfigurator.configUrl=file:org.eclipse.equinox.simpleconfigurator/bundles.info\n'
+        'eclipse.p2.data.area=@config.dir/p2\n')
     return [args.java_home / 'bin/java', '-Xmx512m', f'-Dprobe.input={out / "input.json"}',
             f'-Dprobe.output={root / "results.json"}', f'-Dprobe.mode={mode}',
             f'-Dprobe.samples={args.samples}', f'-Dprobe.warmup={args.warmup}',

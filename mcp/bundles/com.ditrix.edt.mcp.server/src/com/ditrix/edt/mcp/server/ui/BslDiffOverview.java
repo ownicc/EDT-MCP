@@ -32,7 +32,7 @@ final class BslDiffOverview
 {
     // Red/green flags can coexist in an edited hunk. A move has two linked endpoints.
     private record Change(int start, int end, int kind, String id, boolean left, int peer,
-        int sourceLine, int peerLine) { }
+        int sourceLine, int peerLine, int badgeRow) { }
     private record Hit(Rectangle area, Change change) { }
     private final StyledText left;
     private final StyledText right;
@@ -42,6 +42,8 @@ final class BslDiffOverview
     private final List<Change> changes = new ArrayList<>();
     private final List<Hit> leftHits = new ArrayList<>(), rightHits = new ArrayList<>();
     private Change selected;
+    private final Map<String, MethodAwareBslDiff.Move> moveByLabel = new HashMap<>();
+    private java.util.function.Consumer<MethodAwareBslDiff.Move> moveSelection = move -> { };
     private int dragOffset = -1;
     private boolean syncing;
 
@@ -130,7 +132,11 @@ final class BslDiffOverview
             text.addListener(SWT.MouseDown, event -> {
                 if (event.button != 1) return;
                 for (Hit hit : lhs ? leftHits : rightHits)
-                    if (hit.area.contains(event.x, event.y)) { jump(hit.change.peer); event.doit = false; break; }
+                    if (hit.area.contains(event.x, event.y)) {
+                        Change peer = changes.stream().filter(c -> c.kind == 4 && c.id.equals(hit.change.id)
+                            && c.left != hit.change.left).findFirst().orElse(hit.change);
+                        select(peer); event.doit = false; break;
+                    }
             });
         }
     }
@@ -139,6 +145,8 @@ final class BslDiffOverview
     {
         changes.clear();
         selected = null;
+        moveByLabel.clear();
+        moveSelection.accept(null);
         Map<Integer, Integer> a = new HashMap<>(), b = new HashMap<>();
         for (int i = 0; i < result.rows().size(); i++)
         {
@@ -154,18 +162,20 @@ final class BslDiffOverview
         {
             if (move.left().isEmpty() || move.right().isEmpty()) continue;
             int x = move.left().get(0).line(), y = move.right().get(0).line();
+            int xHeader = declarationLine(move.left(), a, left), yHeader = declarationLine(move.right(), b, right);
             String label = "M" + id++; //$NON-NLS-1$
+            moveByLabel.put(label, move);
             changes.add(new Change(a.get(x), a.get(move.left().get(move.left().size() - 1).line()) + 1,
-                4, label, true, b.get(y), x, y));
+                4, label, true, b.get(yHeader), xHeader, yHeader, a.get(xHeader)));
             changes.add(new Change(b.get(y), b.get(move.right().get(move.right().size() - 1).line()) + 1,
-                4, label, false, a.get(x), y, x));
+                4, label, false, a.get(xHeader), yHeader, xHeader, b.get(yHeader)));
         }
         for (int i = 0; i < kinds.length;)
         {
             if (kinds[i] == 0) { i++; continue; }
             int start = i, kind = 0;
             while (i < kinds.length && kinds[i] != 0) kind |= kinds[i++];
-            changes.add(new Change(start, i, kind, "", false, -1, -1, -1)); //$NON-NLS-1$
+            changes.add(new Change(start, i, kind, "", false, -1, -1, -1, -1)); //$NON-NLS-1$
         }
         changes.sort(Comparator.comparingInt(Change::start));
         GC measure = new GC(left);
@@ -193,7 +203,24 @@ final class BslDiffOverview
     private void select(Change change)
     {
         selected = change;
-        jump(change.start);
+        moveSelection.accept(selectedMove());
+        jump(change.kind == 4 ? change.badgeRow : change.start);
+    }
+
+    void onMoveSelection(java.util.function.Consumer<MethodAwareBslDiff.Move> listener)
+    {
+        moveSelection = listener;
+        listener.accept(selectedMove());
+    }
+
+    MethodAwareBslDiff.Move selectedMove()
+    {
+        if (selected == null) return null;
+        if (!selected.id.isEmpty()) return moveByLabel.get(selected.id);
+        for (Change change : changes)
+            if (change.kind == 4 && change.start <= selected.start && selected.start < change.end)
+                return moveByLabel.get(change.id);
+        return null;
     }
 
     private void jump(int row)
@@ -295,6 +322,16 @@ final class BslDiffOverview
         if (bar.isFocusControl()) gc.drawFocus(0, 0, area.width, area.height);
     }
 
+    private static final java.util.regex.Pattern DECLARATION = java.util.regex.Pattern.compile(
+        "(?iu)^\\s*(?:Функция|Процедура|Function|Procedure)(?=\\s|$)");
+
+    private static int declarationLine(List<Span> spans, Map<Integer, Integer> rows, StyledText text)
+    {
+        for (Span span : spans)
+            if (DECLARATION.matcher(text.getLine(rows.get(span.line()))).find()) return span.line();
+        return spans.get(0).line();
+    }
+
     private static String moveLabel(Change change)
     { return change.id + (change.left ? " → " : " ← ") + (change.peerLine + 1); } //$NON-NLS-1$ //$NON-NLS-2$
 
@@ -307,7 +344,7 @@ final class BslDiffOverview
         for (Change change : changes)
         {
             if (change.kind != 4 || change.left != lhs) continue;
-            int y = text.getLinePixel(change.start);
+            int y = text.getLinePixel(change.badgeRow);
             if (y < 0 || y >= text.getClientArea().height) continue;
             // A dedicated gutter target stays visible even for long declarations or horizontal scrolling.
             String label = change.id;
@@ -320,7 +357,7 @@ final class BslDiffOverview
             gc.drawRoundRectangle(x, y, width, height - 1, 5, 5);
             gc.drawString(label, x + 4, y, true);
             String hint = (lhs ? " → " : " ← ") + (change.peerLine + 1); //$NON-NLS-1$ //$NON-NLS-2$
-            int end = text.getOffsetAtLine(change.start) + text.getLine(change.start).length();
+            int end = text.getOffsetAtLine(change.badgeRow) + text.getLine(change.badgeRow).length();
             int hintX = text.getLocationAtOffset(end).x + 12;
             if (hintX >= text.getLeftMargin() && hintX + gc.stringExtent(hint).x < text.getClientArea().width)
                 gc.drawString(hint, hintX, y, true);

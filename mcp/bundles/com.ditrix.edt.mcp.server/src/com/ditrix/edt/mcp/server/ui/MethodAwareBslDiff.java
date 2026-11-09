@@ -26,7 +26,7 @@ final class MethodAwareBslDiff
     static final int MAX_LINES = 20000;
     record Token(String type, String text, int start, int length) { }
     record Parsed(IParseResult tree, List<Token> tokens, int bom, List<String> errors) { }
-    record Part(String key, int start, int end, List<Token> tokens, int regionBoundaryCount) { }
+    record Part(String key, int start, int end, List<Token> tokens, List<String> context) { }
     record Projection(List<Part> methods, List<Token> outside, String fallback) { }
     record Pair(List<Token> left, List<Token> right) { }
     record Plan(List<Pair> pairs, List<Map<String, Object>> moves, String fallback) { }
@@ -74,7 +74,8 @@ final class MethodAwareBslDiff
         else
         {
             List<Token> lhs = new ArrayList<>(), rhs = new ArrayList<>();
-            for (Pair pair : plan.pairs) diff(pair.left, pair.right, lhs, rhs);
+            Document sourceA = new Document(a), sourceB = new Document(b);
+            for (Pair pair : plan.pairs) diffLines(pair.left, pair.right, sourceA, sourceB, lhs, rhs);
             changes = new Changes(lhs, rhs, plan.moves);
         }
         List<Span> lhs = spans(a, changes.left), rhs = spans(b, changes.right);
@@ -90,11 +91,12 @@ final class MethodAwareBslDiff
             rm.add(proposed);
             moves.add(new Move((String)move.get("key"), spans(a, List.of(old)), spans(b, List.of(proposed))));
         }
-        List<Row> rows = align(a, b);
+        List<Span> leftMoves = spans(a, lm), rightMoves = spans(b, rm);
+        List<Row> rows = align(a, b, plan, leftMoves, rightMoves);
         checkpoint();
         boolean changed = !lhs.isEmpty() || !rhs.isEmpty() || !lm.isEmpty();
         return new Comparison(new Result(malformed ? "Text" : "BSL", changed ? "changed" : "unchanged",
-            rows, lhs, rhs), spans(a, lm), spans(b, rm), plan.fallback, !a.equals(b), List.copyOf(moves));
+            rows, lhs, rhs), leftMoves, rightMoves, plan.fallback, !a.equals(b), List.copyOf(moves));
     }
 
     private void checkpoint()
@@ -127,18 +129,8 @@ final class MethodAwareBslDiff
     }
 
     Projection project(Parsed p, String source) {
-        // Conservative guard: do not infer method ownership through conditional compilation.
-        // This may also reject directive-looking text in a string; flat fallback preserves it.
-        List<Integer> regionBoundaries = new ArrayList<>(); int lineOffset = 0;
-        for (String line : source.split("(?<=\\n)|(?<=\\r)(?!\\n)", -1)) {
-            String t = (lineOffset == 0 && p.bom == 1 ? line.substring(1) : line).stripLeading().toLowerCase(Locale.ROOT);
-            if (t.startsWith("#") && !(t.startsWith("#\u043e\u0431\u043b\u0430\u0441\u0442\u044c") || t.startsWith("#\u043a\u043e\u043d\u0435\u0446\u043e\u0431\u043b\u0430\u0441\u0442\u0438")
-                    || t.startsWith("#region") || t.startsWith("#endregion")))
-                return new Projection(List.of(), p.tokens, "preprocessor:flat-tokens");
-            if (t.startsWith("#")) regionBoundaries.add(lineOffset);
-            lineOffset += line.length();
-        }
         List<Part> parts = new ArrayList<>();
+        Document document = new Document(source);
         EObject root = p.tree.getRootASTElement();
         if (root != null) for (var it = root.eAllContents(); it.hasNext();) {
             checkpoint(); EObject next = it.next();
@@ -146,19 +138,21 @@ final class MethodAwareBslDiff
             ICompositeNode node = NodeModelUtils.findActualNodeFor(method);
             if (node == null || method.getName() == null) return new Projection(List.of(), p.tokens, "missing-identity:flat-tokens");
             int start = node.getOffset() + p.bom, end = start + node.getLength();
-            parts.add(new Part(method.eClass().getName() + ":" + method.getName().toLowerCase(Locale.ROOT), start, end, List.of(), 0));
+            start = documentationStart(document, source, start);
+            parts.add(new Part(method.eClass().getName() + ":" + method.getName().toLowerCase(Locale.ROOT), start, end, List.of(), List.of()));
             it.prune();
         }
         parts.sort(Comparator.comparingInt(Part::start));
-        Set<String> keys = new HashSet<>(); int cursor = 0, tokenIndex = 0, regionIndex = 0;
+        Set<String> keys = new HashSet<>(); int cursor = 0, tokenIndex = 0;
         List<Token> outside = new ArrayList<>(); List<Part> filled = new ArrayList<>();
+        NavigableMap<Integer, List<String>> contexts = contexts(p, source);
         for (Part part : parts) {
             if (!keys.add(part.key) || part.start < cursor) return new Projection(List.of(), p.tokens, "ambiguous-identity:flat-tokens");
             while (tokenIndex < p.tokens.size() && p.tokens.get(tokenIndex).start < part.start) outside.add(p.tokens.get(tokenIndex++));
             int first = tokenIndex;
             while (tokenIndex < p.tokens.size() && p.tokens.get(tokenIndex).start < part.end) tokenIndex++;
-            while (regionIndex < regionBoundaries.size() && regionBoundaries.get(regionIndex) < part.start) regionIndex++;
-            filled.add(new Part(part.key, part.start, part.end, p.tokens.subList(first, tokenIndex), regionIndex));
+            filled.add(new Part(part.key, part.start, part.end, p.tokens.subList(first, tokenIndex),
+                contexts.floorEntry(part.start).getValue()));
             cursor = part.end;
         }
         outside.addAll(p.tokens.subList(tokenIndex, p.tokens.size()));
@@ -172,24 +166,159 @@ final class MethodAwareBslDiff
             l.fallback != null ? l.fallback : r.fallback);
         Map<String, Part> lm = new LinkedHashMap<>(), rm = new LinkedHashMap<>();
         for (Part p : l.methods) lm.put(p.key, p); for (Part p : r.methods) rm.put(p.key, p);
-        for (String key : lm.keySet()) if (rm.containsKey(key) && lm.get(key).regionBoundaryCount != rm.get(key).regionBoundaryCount)
-            return new Plan(List.of(new Pair(left.tokens, right.tokens)), List.of(), "region-placement:flat-tokens");
         List<Pair> pairs = new ArrayList<>(); pairs.add(new Pair(l.outside, r.outside));
         Set<String> all = new LinkedHashSet<>(lm.keySet()); all.addAll(rm.keySet());
         for (String key : all) pairs.add(new Pair(lm.containsKey(key) ? lm.get(key).tokens : List.of(),
                                                   rm.containsKey(key) ? rm.get(key).tokens : List.of()));
+        // Context transfers already explain an order change; do not also accuse the stable neighbour.
+        Set<String> moved = new LinkedHashSet<>();
+        for (String key : lm.keySet())
+            if (rm.containsKey(key) && !lm.get(key).context.equals(rm.get(key).context)) moved.add(key);
         List<Token> orderA = new ArrayList<>(), orderB = new ArrayList<>();
-        for (Part p : l.methods) if (rm.containsKey(p.key)) orderA.add(new Token("method", p.key, 0, 0));
-        for (Part p : r.methods) if (lm.containsKey(p.key)) orderB.add(new Token("method", p.key, 0, 0));
+        for (Part p : l.methods) if (rm.containsKey(p.key) && !moved.contains(p.key)) orderA.add(new Token("method", p.key, 0, 0));
+        for (Part p : r.methods) if (lm.containsKey(p.key) && !moved.contains(p.key)) orderB.add(new Token("method", p.key, 0, 0));
         List<Token> removed = new ArrayList<>(), added = new ArrayList<>(); diff(orderA, orderB, removed, added);
         Set<String> inserted = new HashSet<>(); for (Token t : added) inserted.add(t.text);
+        for (Token t : removed) if (inserted.contains(t.text)) moved.add(t.text);
         List<Map<String, Object>> moves = new ArrayList<>();
-        for (Token t : removed) if (inserted.contains(t.text)) {
-            Part x = lm.get(t.text), y = rm.get(t.text);
-            moves.add(Map.of("key", t.text, "leftStart", x.start, "leftLength", x.end - x.start,
+        for (String key : moved) {
+            Part x = lm.get(key), y = rm.get(key);
+            moves.add(Map.of("key", key, "leftStart", x.start, "leftLength", x.end - x.start,
                 "rightStart", y.start, "rightLength", y.end - y.start));
         }
         return new Plan(pairs, moves, null);
+    }
+
+    private static int documentationStart(Document document, String source, int start)
+    {
+        try
+        {
+            int line = document.getLineOfOffset(start);
+            for (int previous = line - 1; previous >= 0; previous--)
+            {
+                var info = document.getLineInformation(previous);
+                if (!source.substring(info.getOffset(), info.getOffset() + info.getLength()).stripLeading().startsWith("//")) break;
+                start = info.getOffset();
+            }
+            return start;
+        }
+        catch (BadLocationException e) { throw new IllegalArgumentException("Invalid documentation range", e); }
+    }
+
+    /** Only lexer-backed directive starts count; comments and multiline strings are excluded. */
+    private NavigableMap<Integer, List<String>> contexts(Parsed parsed, String source)
+    {
+        NavigableMap<Integer, List<String>> contexts = new TreeMap<>();
+        contexts.put(0, List.of());
+        List<String> regions = new ArrayList<>();
+        List<List<String>> branches = new ArrayList<>();
+        int previousLine = -1;
+        Document document = new Document(source);
+        try
+        {
+            for (Token token : parsed.tokens)
+            {
+                checkpoint();
+                if (!token.text.startsWith("#")) continue;
+                int line = document.getLineOfOffset(token.start);
+                if (line == previousLine) continue;
+                var info = document.getLineInformation(line);
+                int lineStart = info.getOffset() == 0 ? parsed.bom : info.getOffset();
+                if (!source.substring(lineStart, token.start).isBlank()) continue;
+                previousLine = line;
+                String directive = source.substring(token.start, info.getOffset() + info.getLength())
+                    .replaceFirst("//.*$", "").strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+                String keyword = directive.split(" ", 2)[0];
+                switch (keyword)
+                {
+                    case "#область", "#region" -> regions.add(directive.substring(keyword.length()).strip());
+                    case "#конецобласти", "#endregion" -> { if (!regions.isEmpty()) regions.remove(regions.size() - 1); }
+                    case "#если", "#if" -> branches.add(List.of(directive, directive));
+                    case "#иначе", "#else", "#иначеесли", "#elsif", "#elseif" -> {
+                        if (!branches.isEmpty())
+                        {
+                            int last = branches.size() - 1;
+                            branches.set(last, List.of(branches.get(last).get(0), directive));
+                        }
+                    }
+                    case "#конецесли", "#endif" -> { if (!branches.isEmpty()) branches.remove(branches.size() - 1); }
+                    default -> { }
+                }
+                List<String> context = new ArrayList<>();
+                for (String region : regions) context.add("region:" + region);
+                for (List<String> branch : branches) context.add("branch:" + branch);
+                contexts.put(info.getOffset() + info.getLength(), List.copyOf(context));
+            }
+        }
+        catch (BadLocationException e) { throw new IllegalArgumentException("Invalid directive range", e); }
+        return contexts;
+    }
+
+    /** Anchor whole unchanged lines before refining tokens, so repeated keywords cannot leak across statements. */
+    private void diffLines(List<Token> a, List<Token> b, Document sourceA, Document sourceB, List<Token> left, List<Token> right)
+    {
+        TokenLines l = new TokenLines(a, sourceA), r = new TokenLines(b, sourceB);
+        SequenceComparator<TokenLines> comparator = new SequenceComparator<>() {
+            @Override public boolean equals(TokenLines x, int i, TokenLines y, int j)
+            { checkpoint(); return x.keys.get(i).equals(y.keys.get(j)); }
+            @Override public int hash(TokenLines x, int i) { checkpoint(); return x.keys.get(i).hashCode(); }
+        };
+        for (Edit edit : new HistogramDiff().diff(comparator, l, r))
+        {
+            List<Token> lhs = new ArrayList<>(), rhs = new ArrayList<>();
+            for (int i = edit.getBeginA(); i < edit.getEndA(); i++) lhs.addAll(l.lines.get(i));
+            for (int i = edit.getBeginB(); i < edit.getEndB(); i++) rhs.addAll(r.lines.get(i));
+            diff(lhs, rhs, left, right);
+        }
+    }
+
+    private final class TokenLines extends Sequence
+    {
+        final List<List<Token>> lines = new ArrayList<>();
+        final List<List<String>> keys = new ArrayList<>();
+        TokenLines(List<Token> tokens, Document document)
+        {
+            List<Token> line = new ArrayList<>();
+            int previous = -1;
+            try
+            {
+                for (Token token : tokens)
+                {
+                    checkpoint();
+                    for (Token part : splitLines(token))
+                    {
+                        int number = document.getLineOfOffset(part.start);
+                        if (number != previous) { append(line); line = new ArrayList<>(); }
+                        line.add(part); previous = number;
+                    }
+                }
+            }
+            catch (BadLocationException e) { throw new IllegalArgumentException("Invalid token line", e); }
+            append(line);
+        }
+        private void append(List<Token> line)
+        {
+            if (line.isEmpty()) return;
+            lines.add(List.copyOf(line));
+            List<String> key = new ArrayList<>();
+            for (Token token : line) { key.add(token.type); key.add(token.text); }
+            keys.add(List.copyOf(key));
+        }
+        @Override public int size() { return lines.size(); }
+    }
+
+    private static List<Token> splitLines(Token token)
+    {
+        List<Token> result = new ArrayList<>();
+        int offset = 0;
+        for (String line : token.text.split("(?<=\\n)|(?<=\\r)(?!\\n)", -1))
+        {
+            int content = line.length();
+            while (content > 0 && (line.charAt(content - 1) == '\r' || line.charAt(content - 1) == '\n')) content--;
+            if (content > 0) result.add(new Token(token.type, line.substring(0, content), token.start + offset, content));
+            offset += line.length();
+        }
+        return result;
     }
 
     static class Tokens extends Sequence {
@@ -207,8 +336,29 @@ final class MethodAwareBslDiff
     void diff(List<Token> a, List<Token> b, List<Token> left, List<Token> right) {
         checkpoint();
         for (Edit e : new HistogramDiff().diff(COMPARATOR, new Tokens(a), new Tokens(b))) {
+            if (e.getLengthA() == 1 && e.getLengthB() == 1)
+            {
+                Token x = a.get(e.getBeginA()), y = b.get(e.getBeginB());
+                if (x.length > 0 && y.length > 0 && x.type.equals(y.type))
+                {
+                    int prefix = 0, suffix = 0;
+                    while (prefix < x.text.length() && prefix < y.text.length()
+                        && x.text.codePointAt(prefix) == y.text.codePointAt(prefix))
+                        prefix += Character.charCount(x.text.codePointAt(prefix));
+                    while (suffix < x.text.length() - prefix && suffix < y.text.length() - prefix
+                        && x.text.codePointBefore(x.text.length() - suffix) == y.text.codePointBefore(y.text.length() - suffix))
+                        suffix += Character.charCount(x.text.codePointBefore(x.text.length() - suffix));
+                    fragment(left, x, prefix, x.text.length() - suffix);
+                    fragment(right, y, prefix, y.text.length() - suffix);
+                    continue;
+                }
+            }
             left.addAll(a.subList(e.getBeginA(), e.getEndA())); right.addAll(b.subList(e.getBeginB(), e.getEndB()));
         }
+    }
+    private static void fragment(List<Token> target, Token token, int start, int end)
+    {
+        if (end > start) target.add(new Token(token.type, token.text.substring(start, end), token.start + start, end - start));
     }
     static List<Token> textLines(String source) {
         List<Token> tokens = new ArrayList<>();
@@ -254,16 +404,52 @@ final class MethodAwareBslDiff
     private static final class TextLines extends Sequence
     {
         final List<String> lines;
+        int[] owners;
+        Set<Integer> moved = Set.of();
         TextLines(String source) { lines = StructuralBslDiff.lines(source); }
         @Override public int size() { return lines.size(); }
     }
 
     List<Row> align(String a, String b)
     {
+        return align(a, b, null, List.of(), List.of());
+    }
+
+    private int[] owners(Plan plan, String source, boolean left)
+    {
+        int[] owners = new int[StructuralBslDiff.lines(source).size()];
+        if (plan == null) return owners;
+        Document document = new Document(source);
+        try
+        {
+            for (int i = 1; i < plan.pairs.size(); i++)
+            {
+                List<Token> tokens = left ? plan.pairs.get(i).left : plan.pairs.get(i).right;
+                if (tokens.isEmpty()) continue;
+                Token first = tokens.get(0), last = tokens.get(tokens.size() - 1);
+                int begin = document.getLineOfOffset(first.start);
+                int end = document.getLineOfOffset(last.start + last.length - 1);
+                for (int line = begin; line <= end; line++) owners[line] = i;
+            }
+        }
+        catch (BadLocationException e) { throw new IllegalArgumentException("Invalid method line", e); }
+        return owners;
+    }
+
+    private List<Row> align(String a, String b, Plan plan, List<Span> leftMoves, List<Span> rightMoves)
+    {
         TextLines left = new TextLines(a), right = new TextLines(b);
+        left.owners = owners(plan, a, true); right.owners = owners(plan, b, false);
+        left.moved = new HashSet<>(); right.moved = new HashSet<>();
+        for (Span span : leftMoves) left.moved.add(span.line());
+        for (Span span : rightMoves) right.moved.add(span.line());
         SequenceComparator<TextLines> comparator = new SequenceComparator<>() {
             @Override public boolean equals(TextLines x, int i, TextLines y, int j)
-            { checkpoint(); return x.lines.get(i).equals(y.lines.get(j)); }
+            {
+                checkpoint();
+                return (x == y || (!x.moved.contains(i) && !y.moved.contains(j)))
+                    && x.owners[i] == y.owners[j] && x.lines.get(i).equals(y.lines.get(j));
+            }
             @Override public int hash(TextLines x, int i) { checkpoint(); return x.lines.get(i).hashCode(); }
         };
         List<Row> rows = new ArrayList<>();
@@ -273,7 +459,13 @@ final class MethodAwareBslDiff
             checkpoint();
             while (x < edit.getBeginA() && y < edit.getBeginB()) rows.add(new Row(x++, y++));
             while (x < edit.getEndA() || y < edit.getEndB())
-                rows.add(new Row(x < edit.getEndA() ? x++ : null, y < edit.getEndB() ? y++ : null));
+            {
+                if (x >= edit.getEndA()) rows.add(new Row(null, y++));
+                else if (y >= edit.getEndB() || left.moved.contains(x)) rows.add(new Row(x++, null));
+                else if (right.moved.contains(y)) rows.add(new Row(null, y++));
+                else if (left.owners[x] != right.owners[y]) rows.add(new Row(x++, null));
+                else rows.add(new Row(x++, y++));
+            }
         }
         while (x < left.size() || y < right.size())
         { checkpoint(); rows.add(new Row(x < left.size() ? x++ : null, y < right.size() ? y++ : null)); }

@@ -2,11 +2,11 @@
 
 The opt-in JVM flag `-Dedt.mcp.bslDiff=jgit` uses detached EDT parser snapshots and public JGit APIs inside the existing native SWT review editor. It needs no extra runtime JAR or executable. The standard compare remains the default; `edt.mcp.difftastic` and the preserved native installation remain available independently. When both flags are present, the explicit JGit opt-in takes precedence.
 
-Unique method kind/name identities separate method reordering from edits. Ambiguous identities, conditional preprocessing and region-boundary changes fall back to flat tokens. Parser errors fall back to exact text lines. These fallbacks remain visible. Formatting-only comparisons still indicate exact text changes, and the review applies the prepared bytes through the existing guards.
+Unique method kind/name identities separate method reordering and region/conditional-context transfers from edits. Complete methods retain their identity through conditional preprocessing. Ambiguous identities fall back to line-anchored tokens; parser errors fall back to text. These fallbacks remain visible. Formatting-only comparisons still indicate exact text changes, and the review applies the prepared bytes through the existing guards.
 
 Each input is limited to 524288 UTF-16 units and 20000 lines. Larger inputs use the standard viewer with a limit notice. JGit jobs are serialized, cancel when their controls close, and check cancellation and a two-second compute budget at parser boundaries and during token/line comparison. The parser API cannot interrupt the middle of a parse; the budget is not a hard parser deadline.
 
-The light theme follows the accepted preview03: soft changed-line backgrounds, pastel exact fragments with bold colored text and underline, original numbered +/- gutters, blue method moves and hatched padding. Whitespace markers are paint overlays over real selectable characters. The dark theme remains selectable. Whitespace drawing is limited to visible columns, including horizontal scrolling.
+Both themes preserve syntax foregrounds and lexical font styles. Added/deleted blocks have subtle line backgrounds; local edits have stronger fragment backgrounds without forced bold or underline. Moves use one linked badge at the declaration and a thin gutter strip, with ordinary source backgrounds and line numbers. Original numbered +/- gutters and hatched alignment padding remain. Whitespace markers are paint overlays over real selectable characters. The dark theme remains selectable. Whitespace drawing is limited to visible columns, including horizontal scrolling.
 
 ## Isolated validation
 
@@ -34,7 +34,7 @@ Linux/EDT 2026.2 validation is separate from product promotion. Windows/macOS, o
 
 The structural viewer now uses one shared scrollbar containing both a draggable viewport and red/green change marks. Blue marks show the two endpoints of a method move. Alignment padding is retained; both panes always share the same display-row position. There is no compact flag or separate minimap lane.
 
-Drag the centre of the thumb to scroll, click an edge mark to select a hunk, or click elsewhere on the track to jump. The bar accepts wheel, arrow, Page Up/Down and Home/End keys and exposes its value as an accessible scrollbar. The text panes retain native selection, horizontal scrolling and keyboard navigation. M1/M2 badges in a dedicated gutter jump to the other endpoint without offsetting the two panes. Hovering a badge gives the peer source line; short method headers also show that line after their declaration. The badge stays available for long signatures and horizontal scrolling. Previous/next visits adjacent changed blocks and the move endpoints; formatting-only changes do not become structural marks.
+Drag the centre of the thumb to scroll, click an edge mark to select a hunk, or click elsewhere on the track to jump. The bar accepts wheel, arrow, Page Up/Down and Home/End keys and exposes its value as an accessible scrollbar. The text panes retain native selection, horizontal scrolling and keyboard navigation. M1/M2 badges at method declarations jump to the other endpoint without offsetting the two panes. Stable method identities anchor alignment, so moved endpoints occupy distinct display positions. The selected move enables **Compare method**, opening a separate read-only snapshot tab with original source line numbers and no Apply action. Hovering a badge gives the peer source line; short method headers also show that line after their declaration. The badge stays available for long signatures and horizontal scrolling. Previous/next visits adjacent changed blocks and the move endpoints; formatting-only changes do not become structural marks.
 
 The control is a small SWT Canvas, rather than platform-specific painting over a native operating-system scrollbar. All parser rules, fallback notices, prepared output bytes and approval guards are unchanged. The standard compare remains the default; opt in with `-Dedt.mcp.bslDiff=jgit` as above.
 
@@ -55,3 +55,13 @@ Initial trial runs deliberately retained their failures. Full editor cycles expo
 Whole-process file descriptors increased from 1896 to 2904 during late EDT JAR/service initialization, then plateaued across the remaining recorded cycles. Tracked live controls decreased from 216 to 150 as an unrelated startup shell closed; tracked Font/Image/TextLayout counts did not increase per cycle. These are bounded observations with platform activity, not an algorithm-only retained-memory estimate.
 
 A real MCP proposal for the copied KASL project returned awaitingApproval, applied=false and mutationCommitted=false; the original file and Git state remained unchanged. Protocol conformance passed its existing baseline. All 165 source-snapshot files in both original and copied KASL, plus all 60 preserved native experiment artifacts, matched their prior hashes. A manual launcher at `/home/ownicc/Workstation/Kasl-diff-test/open-edt-jgit.sh` uses a separate configuration with the test fragment removed; it is not started automatically.
+
+## Quality checks (2026-11-09)
+
+Use `--quality` for the corrected method matching/ranges, source coverage of the
+95 frozen inputs, actual light/dark lexical styles, declaration badge placement,
+paired jump and a separate read-only method tab. The runner replaces an older
+`experiment.bslviewer` fragment if the source installation already contains one.
+The probe reports changed frozen cases explicitly: earlier token ranges are not
+blindly treated as correct after the range algorithm changes. Parser regressions
+in `MethodAwareBslDiffTest` independently pin the corrected semantic behaviour.

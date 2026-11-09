@@ -51,11 +51,20 @@ def main():
     p.add_argument('--bundle', type=Path, required=True)
     p.add_argument('--overview', action='store_true',
                    help='Run focused aligned SWT overview checks instead of the stress probe')
+    p.add_argument('--quality', action='store_true', help='Check corrected method moves, ranges, styles and method-only tab')
     args = p.parse_args()
+    if args.overview and args.quality: p.error('choose --overview or --quality')
     out = args.output.resolve(); out.mkdir(exist_ok=False, parents=True)
     installation = out / 'edt'
     shutil.copytree(args.native_install, installation, symlinks=True,
                     ignore=shutil.ignore_patterns('org.eclipse.osgi', '*.log', '.lock'))
+    # A copied runtime must not mutate Oomph/p2 properties of the user's shared profile.
+    configuration = installation / 'configuration/config.ini'
+    settings = [row for row in configuration.read_text().splitlines()
+                if not row.startswith('eclipse.p2.profile=')]
+    settings = ['eclipse.p2.data.area=@config.dir/p2' if row.startswith('eclipse.p2.data.area=') else row
+                for row in settings]
+    configuration.write_text('\n'.join(settings) + '\n')
     shutil.copytree(args.native_workspace, out / 'workspace', symlinks=True,
                     ignore=shutil.ignore_patterns('.lock', '*.log', '.bak_*.log'))
     plugin = installation / 'prototype-plugins' / args.bundle.name
@@ -65,6 +74,8 @@ def main():
     for line in info.read_text().splitlines():
         if not line or line.startswith('#'): continue
         name, version, url, level, auto = line.split(',')
+        if name == 'experiment.bslviewer':
+            continue
         if name == 'com.ditrix.edt.mcp.server':
             with zipfile.ZipFile(plugin) as z:
                 manifest = z.read('META-INF/MANIFEST.MF').decode()
@@ -77,6 +88,8 @@ def main():
         sources = [HERE / 'ViewerProbe.java']
         if args.overview:
             sources.append(HERE / 'OverviewProbe.java')
+        if args.quality:
+            sources.append(HERE / 'QualityProbe.java')
         subprocess.run([args.java_home / 'bin/javac', '-proc:none', '-encoding', 'UTF-8', '-cp', cp,
                         '-d', classes, *sources], stdout=log, stderr=log, check=True)
     jar = out / 'viewer-probe.jar'
@@ -84,7 +97,7 @@ def main():
         z.writestr('META-INF/MANIFEST.MF', 'Manifest-Version: 1.0\nBundle-ManifestVersion: 2\n'
                    'Bundle-SymbolicName: experiment.bslviewer;singleton:=true\nBundle-Version: 0.0.1\n'
                    'Fragment-Host: com.ditrix.edt.mcp.server\nBundle-RequiredExecutionEnvironment: JavaSE-17\n\n')
-        probe = 'OverviewProbe' if args.overview else 'ViewerProbe'
+        probe = 'QualityProbe' if args.quality else 'OverviewProbe' if args.overview else 'ViewerProbe'
         z.writestr('fragment.xml', '<fragment><extension point="org.eclipse.ui.startup"><startup '
                    f'class="com.ditrix.edt.mcp.server.ui.{probe}"/></extension></fragment>')
         for file in classes.rglob('*.class'): z.write(file, str(file.relative_to(classes)))
