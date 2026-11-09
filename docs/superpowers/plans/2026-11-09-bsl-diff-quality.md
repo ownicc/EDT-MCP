@@ -42,9 +42,10 @@ identity/ranges for paired navigation and method-only extraction.
 - [ ] Establish focused baseline; add real-parser regressions for the spec cases.
 - [ ] Observe failures for conditional/region moves and unchanged next headers.
 - [ ] Replace global preprocessor/region fallback with validated method projection,
-  preserve conservative ambiguous/malformed fallback, track actual region paths.
+  preserve conservative ambiguous/malformed fallback, track actual region and conditional branch paths.
 - [ ] Anchor fine token differences inside local line edits; verify repeated
-  prefixes, moved+edited functions, Cyrillic/BOM/CRLF and source preservation.
+  prefixes, moved+edited functions, multiline string opening/continuation clipping,
+  Cyrillic/BOM/CRLF and source preservation.
 - [ ] Run focused tests; commit the algorithm change.
 
 ## Task 2: Readable viewer and method-only tab
