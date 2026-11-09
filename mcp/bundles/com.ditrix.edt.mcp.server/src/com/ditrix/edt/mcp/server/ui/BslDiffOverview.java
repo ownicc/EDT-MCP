@@ -48,6 +48,8 @@ final class BslDiffOverview
     private java.util.function.Consumer<MethodAwareBslDiff.Move> moveSelection = move -> { };
     private int dragOffset = -1;
     private boolean syncing;
+    private boolean settingCaret;
+    private List<StructuralBslDiff.Row> rows = List.of();
 
     BslDiffOverview(StyledText left, StyledText right, Canvas bar, Function<RGB, Color> colors,
         BooleanSupplier dark)
@@ -111,6 +113,10 @@ final class BslDiffOverview
         for (boolean lhs : List.of(true, false))
         {
             StyledText text = lhs ? left : right;
+            text.addCaretListener(event -> selectAtCaret(text, lhs));
+            text.addListener(SWT.MouseUp, event -> {
+                if (event.button == 1 && event.x >= text.getLeftMargin()) selectAtCaret(text, lhs);
+            });
             // Retain StyledText's native keyboard/selection scrolling, but replace both visible bars.
             text.getVerticalBar().setVisible(false);
             text.addListener(SWT.MouseWheel, event -> { event.doit = false; wheel(event.count); });
@@ -146,6 +152,7 @@ final class BslDiffOverview
 
     void show(Result result, List<MethodAwareBslDiff.Move> moves)
     {
+        rows = result.rows();
         changes.clear();
         selected = null;
         moveByLabel.clear();
@@ -203,6 +210,24 @@ final class BslDiffOverview
         jump(change.kind == 4 ? change.badgeRow : change.start);
     }
 
+    private void selectAtCaret(StyledText text, boolean lhs)
+    {
+        if (settingCaret) return;
+        int row = text.getLineAtOffset(text.getCaretOffset());
+        Change target = null;
+        if (row < rows.size() && (lhs ? rows.get(row).left() : rows.get(row).right()) != null)
+            for (Change change : changes)
+                if (change.kind == 4 && change.left == lhs && change.start <= row && row < change.end)
+                {
+                    target = change;
+                    break;
+                }
+        if (selected == target) return;
+        selected = target;
+        moveSelection.accept(selectedMove());
+        bar.redraw();
+    }
+
     void onMoveSelection(java.util.function.Consumer<MethodAwareBslDiff.Move> listener)
     {
         moveSelection = listener;
@@ -221,9 +246,24 @@ final class BslDiffOverview
 
     private void jump(int row)
     {
-        for (StyledText text : List.of(left, right))
-            text.setSelection(text.getOffsetAtLine(Math.min(text.getLineCount() - 1, row)));
+        settingCaret = true;
+        try
+        {
+            for (StyledText text : List.of(left, right))
+                text.setSelection(text.getOffsetAtLine(Math.min(text.getLineCount() - 1, row)));
+        }
+        finally { settingCaret = false; }
         revealLine(row);
+    }
+
+    void revealMatch(BslDiffSearch.Match match)
+    {
+        StyledText text = match.left() ? left : right;
+        int offset = text.getOffsetAtLine(match.row()) + match.column();
+        settingCaret = true;
+        try { text.setSelection(offset, offset + match.length()); }
+        finally { settingCaret = false; }
+        revealLine(match.row());
     }
 
     void revealLine(int row) { scrollTo(Math.max(0, row - 3) * right.getLineHeight()); }

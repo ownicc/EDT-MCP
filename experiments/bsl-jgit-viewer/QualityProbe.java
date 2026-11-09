@@ -161,6 +161,25 @@ public class QualityProbe extends ViewerProbe
                 require(call(nav,"selectedMove")!=null&&compare.isEnabled(),"Search preserves selected move");
                 require(!text.getEditable(),"Search does not enable source writes");
                 report.put("inlineSearchBothScopesKeyboard",true);
+                int stableCaret=text.getText().indexOf("Функция Стабильный")+5;
+                int movedCaret=text.getText().indexOf("Возврат 12;")+3;
+                text.setCaretOffset(stableCaret);
+                require(!compare.isEnabled()&&call(nav,"selectedMove")==null,"Caret outside a moved method clears the comparison target");
+                int leftTop=left.getTopPixel(),rightTop=text.getTopPixel();
+                text.setCaretOffset(movedCaret);
+                require(compare.isEnabled()&&call(nav,"selectedMove")!=null,"Caret in moved method selects comparison without a badge click");
+                require(left.getTopPixel()==leftTop&&text.getTopPixel()==rightTop,"Selecting by caret must not jump to the method declaration");
+                require(((Label)field(viewer,"selectedMethod")).getText().contains("переносимый"),"Comparison toolbar identifies the selected method");
+                text.setCaretOffset(stableCaret);
+                int matchRow=text.getLineAtOffset(movedCaret),matchColumn=movedCaret-text.getOffsetAtLine(matchRow);
+                call(nav,"revealMatch",new BslDiffSearch.Match(false,matchRow,matchColumn,2));
+                require(!compare.isEnabled(),"Programmatic search selection preserves the previous target");
+                Event bodyClick=new Event();bodyClick.button=1;bodyClick.x=text.getLeftMargin()+10;
+                text.notifyListeners(SWT.MouseUp,bodyClick);
+                require(compare.isEnabled(),"Body click selects the method even when its caret offset did not change");
+                call(nav,"select",origin);
+                require(compare.isEnabled(),"Programmatic paired navigation preserves its selected method");
+                report.put("caretAndBodyMethodSelection",true);
             }
             finally{shell.dispose();}
             return null;

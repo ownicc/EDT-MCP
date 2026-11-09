@@ -51,6 +51,7 @@ final class BslStructuralCompare
     private final Button previous;
     private final Button next;
     private final Button compareMethod;
+    private final Label selectedMethod;
     private final String before;
     private final String after;
     private final Side left;
@@ -84,7 +85,7 @@ final class BslStructuralCompare
         root.setLayout(new GridLayout(1, false));
         Composite toolbar = new Composite(root, SWT.NONE);
         toolbar.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-        toolbar.setLayout(new GridLayout(6, false));
+        toolbar.setLayout(new GridLayout(7, false));
         summary = new Label(toolbar, SWT.WRAP);
         summary.setText(Messages.BslDiff_Computing);
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -106,11 +107,17 @@ final class BslStructuralCompare
         next.setEnabled(false);
         previous.addListener(SWT.Selection, event -> navigate(false));
         next.addListener(SWT.Selection, event -> navigate(true));
+        selectedMethod = new Label(toolbar, SWT.NONE);
+        GridData methodNameData = new GridData(SWT.FILL, SWT.CENTER, false, false);
+        methodNameData.widthHint = 180;
+        selectedMethod.setLayoutData(methodNameData);
         compareMethod = new Button(toolbar, SWT.PUSH);
         compareMethod.setText(Messages.BslDiff_CompareMethod);
         compareMethod.setEnabled(false);
         if (!allowMethodComparison)
         {
+            selectedMethod.setVisible(false);
+            methodNameData.exclude = true;
             compareMethod.setVisible(false);
             GridData hidden = new GridData(); hidden.exclude = true;
             compareMethod.setLayoutData(hidden);
@@ -124,19 +131,21 @@ final class BslStructuralCompare
         overview = new BslDiffOverview(left.text, right.text, right.overview, this::color, () -> dark);
         search = new BslDiffSearchBar(root,
             (query, scope, matchCase) -> BslDiffSearch.find(before, after, searchRows, query, scope, matchCase),
-            match -> {
-                StyledText text = match.left() ? left.text : right.text;
-                int offset = text.getOffsetAtLine(match.row()) + match.column();
-                text.setSelection(offset, offset + match.length());
-                overview.revealLine(match.row());
-            }, List.of(left.text, right.text));
+            overview::revealMatch, List.of(left.text, right.text));
         search.row.moveAbove(columns);
         find.addListener(SWT.Selection, event -> search.open());
         compareMethod.addListener(SWT.Selection, event -> {
             var move = overview.selectedMove();
             if (move != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(move, this.before, this.after));
         });
-        overview.onMoveSelection(move -> compareMethod.setEnabled(allowMethodComparison && move != null));
+        overview.onMoveSelection(move -> {
+            compareMethod.setEnabled(allowMethodComparison && move != null);
+            String name = move == null ? Messages.BslDiff_NoMethodSelected : move.key().substring(move.key().indexOf(':') + 1);
+            selectedMethod.setText(name);
+            selectedMethod.setToolTipText(move == null ? Messages.BslDiff_SelectMethodHint : name);
+            compareMethod.setToolTipText(move == null ? Messages.BslDiff_SelectMethodHint : Messages.BslDiff_CompareMethod + ": " + name); //$NON-NLS-1$
+            toolbar.layout(true, true);
+        });
         Result initial = StructuralBslDiff.parse(
             "{\"language\":\"BSL\",\"status\":\"unchanged\",\"chunks\":[]}", before, after); //$NON-NLS-1$
         render(initial);
