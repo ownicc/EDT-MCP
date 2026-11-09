@@ -58,6 +58,13 @@ def main():
     installation = out / 'edt'
     shutil.copytree(args.native_install, installation, symlinks=True,
                     ignore=shutil.ignore_patterns('org.eclipse.osgi', '*.log', '.lock'))
+    # A copied runtime must not mutate Oomph/p2 properties of the user's shared profile.
+    configuration = installation / 'configuration/config.ini'
+    settings = [row for row in configuration.read_text().splitlines()
+                if not row.startswith('eclipse.p2.profile=')]
+    settings = ['eclipse.p2.data.area=@config.dir/p2' if row.startswith('eclipse.p2.data.area=') else row
+                for row in settings]
+    configuration.write_text('\n'.join(settings) + '\n')
     shutil.copytree(args.native_workspace, out / 'workspace', symlinks=True,
                     ignore=shutil.ignore_patterns('.lock', '*.log', '.bak_*.log'))
     plugin = installation / 'prototype-plugins' / args.bundle.name

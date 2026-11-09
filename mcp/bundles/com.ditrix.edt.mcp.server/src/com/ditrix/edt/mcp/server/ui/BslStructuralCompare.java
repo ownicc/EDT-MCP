@@ -258,7 +258,8 @@ final class BslStructuralCompare
         summary.setText(result.language().equals("BSL") //$NON-NLS-1$
             ? (changedRows.isEmpty() ? Messages.BslDiff_NoStructuralChanges : Messages.BslDiff_Structural)
             : Messages.BslDiff_TextFallback + " " + result.language()); //$NON-NLS-1$
-        if (changedRows.isEmpty() && byteChanges) summary.setText(Messages.BslDiff_FormattingOnly);
+        if (changedRows.isEmpty() && before.equals(after)) summary.setText(Messages.BslDiff_Identical);
+        else if (changedRows.isEmpty() && byteChanges) summary.setText(Messages.BslDiff_FormattingOnly);
         if (fallbackReason != null) summary.setText(summary.getText() + " — " + fallbackReason);
         summary.getParent().layout(true, true);
         if (changed) navigate(true);
@@ -391,7 +392,6 @@ final class BslStructuralCompare
                 else if (changes.containsKey(original))
                     event.lineBackground = color(dark ? (added ? new RGB(24, 40, 29) : new RGB(45, 28, 30))
                         : added ? new RGB(240, 249, 241) : new RGB(255, 242, 241));
-                else if (moves.contains(original)) event.lineBackground = color(dark ? new RGB(30, 47, 70) : new RGB(224, 237, 255));
             });
             text.addPaintListener(event -> {
                 int top = text.getTopIndex();
@@ -413,17 +413,21 @@ final class BslStructuralCompare
                     boolean changed = changes.containsKey(original), moved = moves.contains(original);
                     event.gc.setBackground(text.getBackground());
                     event.gc.fillRectangle(0, y, gutter, height);
-                    event.gc.setFont(changed || moved ? JFaceResources.getFontRegistry().getBold(JFaceResources.TEXT_FONT) : text.getFont());
+                    event.gc.setFont(text.getFont());
                     event.gc.setForeground(changed
                         ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
                             : added ? new RGB(0, 80, 20) : new RGB(138, 20, 20))
-                        : moved ? color(dark ? new RGB(138, 188, 255) : new RGB(18, 75, 142))
                         : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
-                    event.gc.drawString(changed ? (added ? "+" : "−") : moved ? "↕" : "", gutter - 61, y, true);
+                    event.gc.drawString(changed ? (added ? "+" : "−") : "", gutter - 61, y, true);
                     String number = Integer.toString(original + 1 + lineOffset);
                     event.gc.drawString(number, gutter - 7 - event.gc.stringExtent(number).x, y, true);
-                    if (changed || moved) event.gc.fillRectangle(gutter - 4, y, 3, height);
-                    if (!changed) continue;
+                    if (changed || moved)
+                    {
+                        if (moved && !changed) event.gc.setBackground(color(dark ? new RGB(115, 151, 197) : new RGB(126, 159, 201)));
+                        else event.gc.setBackground(event.gc.getForeground());
+                        event.gc.fillRectangle(gutter - 4, y, 2, height);
+                    }
+                    if (!changed || wholeLineChanged(lines.get(original), changes.get(original))) continue;
                     event.gc.setForeground(dark ? color(darkForeground(null)) : text.getForeground());
                     int lineOffset = text.getOffsetAtLine(row);
                     var selection = text.getSelection();

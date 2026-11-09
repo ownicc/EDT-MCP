@@ -226,4 +226,32 @@ public class MethodAwareBslDiffTest
         assertTrue(result.diff().rows().contains(new StructuralBslDiff.Row(stableLine,0)));
     }
 
+    @Test public void repeatedCommentDeletionDoesNotIndexTheOtherSideDuringSelfComparison() throws Exception
+    {
+        String a="// A\n// X\n// X\n// X\n// X\n// Z";
+        String b="// B\n// Y\n// Q";
+        var result=compare(a,b);
+        assertEquals("changed",result.diff().status());
+        assertEquals(6,result.diff().rows().stream().filter(row->row.left()!=null).count());
+        assertEquals(3,result.diff().rows().stream().filter(row->row.right()!=null).count());
+    }
+
+    @Test public void bomDoesNotHideFirstRegionContext() throws Exception
+    {
+        String source="\ufeff#Область A\n"+method("Переносимый", "Возврат 1;")+"#КонецОбласти\n";
+        // First run the supported parser lifecycle, then inspect its semantic projection.
+        compare(source,source);
+        var provider=org.eclipse.xtext.resource.IResourceServiceProvider.Registry.INSTANCE
+            .getResourceServiceProvider(org.eclipse.emf.common.util.URI.createURI("memory:/review.bsl"));
+        var engine=new MethodAwareBslDiff(provider.get(org.eclipse.xtext.parser.IParser.class),new NullProgressMonitor());
+        assertEquals(List.of("region:a"),engine.project(engine.parse(source),source).methods().get(0).context());
+    }
+
+    @Test public void bomDoesNotHideFirstConditionalBranchTransfer() throws Exception
+    {
+        String a=method("Переносимый", "Возврат 1;");
+        var result=compare("\ufeff#If Client Then\n"+a+"#Else\n#EndIf\n", "\ufeff#If Client Then\n#Else\n"+a+"#EndIf\n");
+        assertEquals(1,result.moves().size());
+    }
+
 }

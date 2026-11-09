@@ -56,6 +56,7 @@ public class QualityProbe extends ViewerProbe
         String a="#Область Один\n"+moved+"#КонецОбласти\n#Область Два\n"+stable+"#КонецОбласти\n";
         String b="#Область Один\n#КонецОбласти\n#Область Два\n"+stable+moved.replace("11","12")+added+"#КонецОбласти\n";
         var result=MethodAwareBslDiff.compute(a,b,new NullProgressMonitor());
+        var identical=MethodAwareBslDiff.compute(stable,stable,new NullProgressMonitor());
         require(result.fallback()==null&&result.moves().size()==1,"Conditional moved+edited method paired exactly once");
         ui(()->{
             Shell shell=new Shell(display);shell.setLayout(new FillLayout());shell.setSize(1500,950);
@@ -95,6 +96,19 @@ public class QualityProbe extends ViewerProbe
                     capture(root,dark?"quality-dark.png":"quality-light.png");
                 }
                 report.put("syntaxPreservedBothThemes",true);
+                int movedRow=text.getLineAtOffset(text.getText().indexOf("Функция Переносимый"));
+                require(lineBackground(text,movedRow)==null,"Moved body has no full blue fill (variant A)");
+                report.put("movedBodyUnfilled",true);
+                Shell equalityShell=new Shell(display);equalityShell.setLayout(new FillLayout());
+                try
+                {
+                    Object equality=constructor.newInstance(equalityShell,stable,stable);
+                    call(equality,"show",identical.diff());
+                    String summary=((Label)field(equality,"summary")).getText();
+                    require(summary.equals("Texts are identical")||summary.equals("Тексты совпадают"),"Identical method bodies must not claim text or formatting differs");
+                }
+                finally{equalityShell.dispose();}
+                report.put("identicalMethodNotice",true);
                 Button compare=controls(root,Button.class).stream().filter(c->c.getText().equals("Сравнить метод")||c.getText().equals("Compare method")).findFirst().orElseThrow(()->new AssertionError("Compare method action exists"));
                 Object nav=field(viewer,"overview");
                 @SuppressWarnings("unchecked") List<Object> changes=(List<Object>)field(nav,"changes");
@@ -104,6 +118,8 @@ public class QualityProbe extends ViewerProbe
                 require(!hits.isEmpty(),"Move badge is visible");
                 var badge=(org.eclipse.swt.graphics.Rectangle)get(hits.get(0),"area");
                 StyledText left=(StyledText)field(field(viewer,"left"),"text");
+                int declaration=left.getLineAtOffset(left.getText().indexOf("Функция Переносимый"));
+                require(badge.y==left.getLinePixel(declaration),"Single move badge is beside declaration, not documentation");
                 Event click=new Event();click.button=1;click.x=badge.x+2;click.y=badge.y+2;left.notifyListeners(SWT.MouseDown,click);
                 require(left.getTopPixel()==text.getTopPixel(),"Paired jump retains aligned scrolling");
                 report.put("pairedJump",true);
@@ -124,6 +140,15 @@ public class QualityProbe extends ViewerProbe
         report.put("qualityPassed",true);
     }
 
+    static Object lineBackground(StyledText text,int row)throws Exception
+    {
+        Class<?> type=Class.forName("org.eclipse.swt.custom.StyledTextEvent");
+        var constructor=type.getDeclaredConstructor(StyledTextContent.class);constructor.setAccessible(true);
+        Event event=(Event)constructor.newInstance(text.getContent());event.widget=text;
+        event.detail=text.getOffsetAtLine(row);event.text=text.getLine(row);
+        text.notifyListeners(ST.LineGetBackground,event);
+        return field(event,"lineBackground");
+    }
     static StyleRange[] lineStyles(StyledText text,int row)throws Exception
     {
         Class<?> type=Class.forName("org.eclipse.swt.custom.StyledTextEvent");

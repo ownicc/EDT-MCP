@@ -39,14 +39,14 @@ native tests/probe under `experiments/bsl-jgit-viewer` as necessary.
 **Interface:** Keep Comparison/Move/Span consumers working; carry exact method
 identity/ranges for paired navigation and method-only extraction.
 
-- [ ] Establish focused baseline; add real-parser regressions for the spec cases.
-- [ ] Observe failures for conditional/region moves and unchanged next headers.
-- [ ] Replace global preprocessor/region fallback with validated method projection,
+- [x] Establish focused baseline; add real-parser regressions for the spec cases.
+- [x] Observe failures for conditional/region moves and unchanged next headers.
+- [x] Replace global preprocessor/region fallback with validated method projection,
   preserve conservative ambiguous/malformed fallback, track actual region and conditional branch paths.
-- [ ] Anchor fine token differences inside local line edits; verify repeated
+- [x] Anchor fine token differences inside local line edits; verify repeated
   prefixes, moved+edited functions, multiline string opening/continuation clipping,
   Cyrillic/BOM/CRLF and source preservation.
-- [ ] Run focused tests; commit the algorithm change.
+- [x] Run focused tests; commit the algorithm change.
 
 ## Task 2: Readable viewer and method-only tab
 
@@ -56,22 +56,23 @@ identity/ranges for paired navigation and method-only extraction.
 «Сравнить метод». Reuse BslStructuralCompare on detached method text in a separate
 CompareEditorInput, label source offsets, expose no approval controls there.
 
-- [ ] Add failing checks for syntax-preserving changes and selected move action.
-- [ ] Remove forced diff foreground/bold/underline, retain readable subtle whole
+- [x] Add failing checks for syntax-preserving changes and selected move action.
+- [x] Remove forced diff foreground/bold/underline, retain readable subtle whole
   block backgrounds and stronger local fragments; update both themes.
-- [ ] Add selection callback/action and read-only method tab with original line
+- [x] Add selection callback/action and read-only method tab with original line
   coordinates; reuse current parser/viewer, disposal and cancellation behaviour.
-- [ ] Native checks: paired jump, selected moved+edited method comparison,
+- [x] Native checks: paired jump, selected moved+edited method comparison,
   source line labels, missing selection disabled, no write action; commit.
 
 ## Task 3: Verification and attended KASL example
 
 **Files:** experiment README, report under `docs/superpowers/reports`, Beads epic.
 
-- [ ] Run complete Maven/Tycho verify and native Xvfb regression corpus, adjusting
+- [x] Run complete Maven/Tycho verify and native Xvfb regression corpus, adjusting
   frozen expectations only for intentional corrections with independent assertions.
-- [ ] Fresh whole-branch review; reproduce/fix material findings and rerun affected
+- [x] Fresh whole-branch review; reproduce/fix material findings and rerun affected
   checks. Update plan/ledger/evidence and appropriate Beads tasks.
-- [ ] Commit, merge locally into master, preserve unrelated working changes.
-- [ ] Update the existing demo plugin/launcher, show complex copied KASL example,
+- [x] Commit, merge locally into master, preserve unrelated working changes.
+- [ ] Install the verified build into the existing Kasl EDT installation (user
+  selected /home/ownicc/.local/share/1C/1cedtstart/projects/Kasl), show the complex example,
   verify original hashes and leave changes awaiting human approval; show git diff.

@@ -223,7 +223,8 @@ final class MethodAwareBslDiff
                 int line = document.getLineOfOffset(token.start);
                 if (line == previousLine) continue;
                 var info = document.getLineInformation(line);
-                if (!source.substring(info.getOffset(), token.start).isBlank()) continue;
+                int lineStart = info.getOffset() == 0 ? parsed.bom : info.getOffset();
+                if (!source.substring(lineStart, token.start).isBlank()) continue;
                 previousLine = line;
                 String directive = source.substring(token.start, info.getOffset() + info.getLength())
                     .replaceFirst("//.*$", "").strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
@@ -403,6 +404,8 @@ final class MethodAwareBslDiff
     private static final class TextLines extends Sequence
     {
         final List<String> lines;
+        int[] owners;
+        Set<Integer> moved = Set.of();
         TextLines(String source) { lines = StructuralBslDiff.lines(source); }
         @Override public int size() { return lines.size(); }
     }
@@ -436,16 +439,16 @@ final class MethodAwareBslDiff
     private List<Row> align(String a, String b, Plan plan, List<Span> leftMoves, List<Span> rightMoves)
     {
         TextLines left = new TextLines(a), right = new TextLines(b);
-        int[] lhsOwners = owners(plan, a, true), rhsOwners = owners(plan, b, false);
-        Set<Integer> lm = new HashSet<>(), rm = new HashSet<>();
-        for (Span span : leftMoves) lm.add(span.line());
-        for (Span span : rightMoves) rm.add(span.line());
+        left.owners = owners(plan, a, true); right.owners = owners(plan, b, false);
+        left.moved = new HashSet<>(); right.moved = new HashSet<>();
+        for (Span span : leftMoves) left.moved.add(span.line());
+        for (Span span : rightMoves) right.moved.add(span.line());
         SequenceComparator<TextLines> comparator = new SequenceComparator<>() {
             @Override public boolean equals(TextLines x, int i, TextLines y, int j)
             {
                 checkpoint();
-                return !lm.contains(i) && !rm.contains(j) && lhsOwners[i] == rhsOwners[j]
-                    && x.lines.get(i).equals(y.lines.get(j));
+                return (x == y || (!x.moved.contains(i) && !y.moved.contains(j)))
+                    && x.owners[i] == y.owners[j] && x.lines.get(i).equals(y.lines.get(j));
             }
             @Override public int hash(TextLines x, int i) { checkpoint(); return x.lines.get(i).hashCode(); }
         };
@@ -458,9 +461,9 @@ final class MethodAwareBslDiff
             while (x < edit.getEndA() || y < edit.getEndB())
             {
                 if (x >= edit.getEndA()) rows.add(new Row(null, y++));
-                else if (y >= edit.getEndB() || lm.contains(x)) rows.add(new Row(x++, null));
-                else if (rm.contains(y)) rows.add(new Row(null, y++));
-                else if (lhsOwners[x] != rhsOwners[y]) rows.add(new Row(x++, null));
+                else if (y >= edit.getEndB() || left.moved.contains(x)) rows.add(new Row(x++, null));
+                else if (right.moved.contains(y)) rows.add(new Row(null, y++));
+                else if (left.owners[x] != right.owners[y]) rows.add(new Row(x++, null));
                 else rows.add(new Row(x++, y++));
             }
         }
