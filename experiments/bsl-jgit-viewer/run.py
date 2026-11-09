@@ -124,7 +124,7 @@ def main():
                '-clean', '-consolelog', '-pluginCustomization', str(out / 'test.ini'), '-vmargs', '-Dedt.mcp.bslDiff=jgit',
                '-Dviewer.probe.output=' + str(out), '-Dviewer.probe.input=' + str(out / 'input.json'),
                '-Dviewer.probe.expected=' + str(out / 'expected.json')]
-    env = dict(os.environ, GTK_THEME='Adwaita:light', GDK_BACKEND='x11', NO_AT_BRIDGE='0', EDT_MCP_AUTO_START='true', EDT_MCP_PORT='8766')
+    env = dict(os.environ, GTK_THEME=os.environ.get('GTK_THEME', 'Adwaita:light'), GDK_BACKEND='x11', NO_AT_BRIDGE='0', EDT_MCP_AUTO_START='true', EDT_MCP_PORT='8766')
     with (out / 'process.log').open('w') as log:
         command = ['xvfb-run', '-a', '-s', '-screen 0 1600x1000x24', *command]
         process = subprocess.Popen(command, cwd=installation, env=env, stdout=log, stderr=log, start_new_session=True)

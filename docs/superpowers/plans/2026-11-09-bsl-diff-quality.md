@@ -73,6 +73,12 @@ CompareEditorInput, label source offsets, expose no approval controls there.
 - [x] Fresh whole-branch review; reproduce/fix material findings and rerun affected
   checks. Update plan/ledger/evidence and appropriate Beads tasks.
 - [x] Commit, merge locally into master, preserve unrelated working changes.
-- [ ] Install the verified build into the existing Kasl EDT installation (user
+- [x] Install the verified build into the existing Kasl EDT installation (user
   selected /home/ownicc/.local/share/1C/1cedtstart/projects/Kasl), show the complex example,
   verify original hashes and leave changes awaiting human approval; show git diff.
+
+Final installation: 1.0.0.202611091928, marker variant A. The attended run exposed
+and fixed a Light/dark-GTK background mismatch; native RED/GREEN under dark GTK
+and 28 focused tests passed after that fix. The actual method tab was opened and
+the main review left pending. All 165 original KASL snapshot files are unchanged.
+Evidence and installation backup are recorded in the quality report.
