@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BSL diff — выбранный метод, вариант C</title>
+<style>
+:root{color-scheme:light;--ink:#26323a;--muted:#65717c;--border:#d1d6db;--blue:#1769b4;--blue-soft:#eef5fc;--panel:#fff;--canvas:#f2f4f6}
+*{box-sizing:border-box}body{margin:0;background:var(--canvas);font:14px/1.45 "Noto Sans","Segoe UI",Arial,sans-serif;color:var(--ink)}button,select{font:inherit}button{cursor:pointer}button:disabled{cursor:default;color:#8c949b;background:#f4f5f6;border-color:#dadddf}button:focus-visible,select:focus-visible{outline:3px solid #7bb6eb;outline-offset:3px}main{max-width:1580px;margin:auto;padding:32px 28px 56px}h1{margin:0 0 8px;font-size:27px;font-weight:650}p{margin:0}.intro{color:var(--muted);max-width:920px}.demo-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:22px 0}.demo-controls label{font-weight:600}.demo-controls select{background:white;border:1px solid var(--border);border-radius:5px;padding:7px 30px 7px 10px;max-width:520px}.note{font-size:12px;color:var(--muted)}.option{background:var(--panel);border:1px solid var(--border);border-radius:9px;margin:18px 0;overflow:hidden}.option.selected{border-color:var(--blue);box-shadow:0 0 0 2px #1769b41a}.option-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:#fafbfc;border-bottom:1px solid var(--border)}h2{display:flex;align-items:center;gap:10px;font-size:16px;margin:0;font-weight:600}.letter{display:inline-grid;place-items:center;border:1px solid #c7cfd6;background:white;border-radius:4px;width:27px;height:27px;font-weight:700}.recommended{color:#176345;background:#edf7f1;border:1px solid #c5dfd1;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}.pick{border:1px solid #a9b6c2;border-radius:5px;background:white;color:#244b6a;padding:6px 12px}.selected .pick{border-color:var(--blue);background:var(--blue-soft)}.viewport{overflow-x:auto}.app{min-width:880px;padding:13px 16px 0;background:white}.path{font-size:12px;color:#58646f;margin:0 0 10px}.toolbar{display:flex;align-items:center;gap:14px;min-height:48px;margin-bottom:10px}.toolbar-title{flex:1;min-width:140px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.utilities{display:flex;align-items:center;gap:5px;flex-shrink:0}.tool,.action{display:inline-flex;align-items:center;justify-content:center;border:1px solid #c8cccf;border-radius:4px;padding:6px 9px;background:linear-gradient(white,#f0f1f2);color:#303940;white-space:nowrap;font-size:12px;min-height:31px}.tool{cursor:default}.tool-icon{width:32px;padding:6px}.method-group{display:flex;align-items:stretch;gap:0;border:1px solid #a9bdd1;border-radius:5px;background:var(--blue-soft);min-height:46px;flex-shrink:0;max-width:420px}.method-identity{display:flex;align-items:center;gap:9px;min-width:165px;max-width:245px;padding:5px 12px}.function-icon{font:600 14px/1 ui-monospace,monospace;color:#436b91;flex-shrink:0}.identity-copy{min-width:0}.identity-caption{font-size:10px;color:#607488;line-height:1.3}.method-name{display:block;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:650;color:#203e58}.method-group .action{border:0;border-left:1px solid #b9cbdc;border-radius:0 4px 4px 0;background:#fff;color:#165d9b;padding:6px 13px;font-size:12px}.method-group.empty{background:#f5f6f7;border-color:#d3d7db}.empty .method-name{font-weight:400;color:#7b858d}.method-group.empty .action{border-color:#d3d7db}.direct-action{max-width:365px;gap:8px;background:#f1f6fb;border-color:#a4bdd5;color:#15568f;padding:7px 12px;font-weight:600}.direct-action .direct-label{max-width:300px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}.selection-strip{display:flex;align-items:center;gap:14px;background:#f4f7fa;border:1px solid #cedae4;border-radius:4px;padding:7px 11px;margin:0 0 10px;min-height:44px}.strip-title{font-size:11px;color:#607488;flex-shrink:0}.strip-name{font-size:13px;font-weight:650;max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.strip-status{font-size:11px;color:#46617b;background:white;border:1px solid #d2dce5;border-radius:4px;padding:2px 7px;white-space:nowrap}.route{font-size:11px;color:#6b7580;white-space:nowrap}.selection-strip .action{margin-left:auto;background:white;color:#165d9b}.selection-strip.empty{background:#f8f9fa;border-color:#ddd}.selection-strip.empty .strip-name{font-weight:400;color:#7b858d}.pane-labels,.panes{display:grid;grid-template-columns:1fr 1fr;gap:12px}.pane-labels{font-size:12px;color:#56616b;margin-bottom:5px}.code-pane{border:1px solid #d1d5d8;min-width:0;background:white;height:290px;overflow:auto}.code-method{display:block;width:100%;border:0;border-left:3px solid transparent;background:white;text-align:left;padding:3px 8px;color:#1e2429;font:12px/1.45 "DejaVu Sans Mono",Consolas,monospace;overflow:hidden}.code-method:hover{background:#f7f9fb}.code-method.current{border-left-color:#4388c8;background:#f3f8fd}.code-line{display:flex;white-space:pre;min-height:17px}.line-no{font-weight:400;color:#7f858c;min-width:36px;text-align:right;padding-right:10px;flex-shrink:0}.code-line .kw{color:#860065;font-weight:600}.code-line .fn{font-weight:400}.code-line .edit{background:#dcefdc;border-radius:2px}.code-line .comment{color:#33806c}.code-context{color:#8a939c;font-size:11px;padding:8px 0 0}.result{display:none;margin:8px 0 0;padding:7px 9px;background:#f1f6fb;border:1px solid #d1dfed;border-radius:4px;font-size:12px;color:#244e72}.result.visible{display:block}.option-foot{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:10px 18px 13px;font-size:12px;color:#63707a}.option-foot strong{font-weight:500;color:#46535f}.feedback{margin-top:20px;padding:14px 17px;border:1px solid #ccd9e4;background:#f7fbff;border-radius:6px;color:#36516b}.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:15px;font-size:12px;color:var(--muted)}.legend span::before{content:"•";color:#527da2;margin-right:6px}@media(max-width:800px){main{padding:20px 12px}.option-heading{align-items:flex-start}h2{flex-wrap:wrap}.recommended{margin-left:37px}.option-foot{display:block}h1{font-size:23px}.demo-controls select{max-width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Вариант C — выбранный метод с изменениями</h1>
+  <p class="intro">Одна панель для обычных правок, перемещений, добавленных и удалённых методов. Выберите сценарий или щёлкните по коду: имя, статус и строки двух версий меняются вместе.</p>
+  <div class="demo-controls">
+    <label for="demo-method">Состояние макета</label>
+    <select id="demo-method">
+      <option value="first">Первый — только перемещён</option>
+      <option value="last">Последний — изменён без перемещения</option>
+      <option value="count">Количество — перемещён и изменён</option>
+      <option value="added">БезНеопределенных — добавлен</option>
+      <option value="removed">СкопироватьМассив — удалён</option>
+      <option value="long">Проверить длинное имя</option>
+      <option value="none">Метод не выбран</option>
+    </select>
+    <span class="note">HTML-макет. Изменений в EDT не делает.</span>
+  </div>
+
+  <section class="option" data-choice="c" id="option-c">
+    <div class="option-heading"><h2><span class="letter">C</span> Отдельная строка выбранного метода</h2><span class="recommended">Выбранный вариант</span></div>
+    <div class="viewport"><div class="app">
+      <div class="path">KASL / CommonModules/РаботаСМассивом/Module.bsl</div>
+      <div class="toolbar"><span class="toolbar-title">Структурное сравнение BSL</span><div class="utilities" data-utilities></div></div>
+      <div class="selection-strip" data-group="c" role="group" aria-label="Метод для сравнения">
+        <span class="strip-title">Выбранный метод</span><strong class="strip-name" data-name>Первый</strong><span class="strip-status" id="change-kind"></span><span class="route" id="route"></span><button class="action compare" data-open="c" type="button">Сравнить метод ↗</button>
+      </div>
+      <div data-diff></div><div class="result" data-result="c" role="status"></div>
+    </div></div>
+    <div class="option-foot"><span>Больше контекста: <strong>имя, тип изменения и строки двух версий</strong>.</span><span>Занимает ещё одну строку по высоте.</span></div>
+  </section>
+  <div class="feedback" id="design-feedback" role="status" aria-live="polite">Попробуйте сценарии «Изменён», «Перемещён», «Добавлен» и «Удалён». Кнопка всегда открывает отдельное сравнение выбранного метода.</div>
+  <div class="legend"><span>Выбор определяется щелчком или кареткой внутри метода</span><span>«Сравнить» показывает, какая вкладка откроется</span><span>Есть состояния без выбора и с длинным именем</span></div>
+</main>
+<script>
+'use strict';
+const methods = {
+  first:{name:'Первый',old:185,new:13,kind:'moved',body:'Возврат Список[0];'},
+  last:{name:'Последний',old:201,new:201,kind:'changed',body:'Если ВГраница = -1 Тогда'},
+  count:{name:'Количество',old:472,new:38,kind:'moved_changed',body:'Возврат Список.Количество();'},
+  added:{name:'БезНеопределенных',old:null,new:354,kind:'added',body:'Результат = Новый Массив;'},
+  removed:{name:'СкопироватьМассив',old:1280,new:null,kind:'removed',body:'Возврат Скопировать(Массив);'},
+  long:{name:'ПолучитьПервыйПодходящийЭлементКоллекцииБезНеопределенных',old:185,new:185,kind:'changed',body:'Возврат Результат;'}
+};
+const kinds={changed:'Изменён',moved:'Перемещён',moved_changed:'Перемещён и изменён',added:'Добавлен',removed:'Удалён'};
+let active='last';
+function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function utilities(){return '<span class="tool">Светлая ▾</span><span class="tool">⌕ Найти</span><span class="tool" title="Предыдущее отличие">← Предыдущее</span><span class="tool" title="Следующее отличие">Следующее →</span>';}
+function line(number,content){return '<span class="code-line"><span class="line-no">'+number+'</span><span>'+content+'</span></span>';}
+function methodMarkup(id,isNew){
+  const m=methods[id],n=isNew?m.new:m.old;
+  if(n===null)return '<div class="code-method" style="color:#83909c;background:repeating-linear-gradient(135deg,#fafbfc,#fafbfc 5px,#f0f3f6 5px,#f0f3f6 6px);height:42px;padding:10px 47px">Метод отсутствует в этой версии</div>';
+  let body=escapeHtml(m.body);
+  if(id==='last'&&isNew)body='Если ВГраница <span class="edit">&lt; 0</span> Тогда';
+  if(id==='count'&&isNew)body='<span class="edit">Если Список = Неопределено Тогда</span>';
+  return '<button type="button" class="code-method '+(id===active?'current':'')+'" data-method="'+id+'" aria-pressed="'+(id===active)+'" title="Выбрать метод '+escapeHtml(m.name)+'">'+line(n,'<span class="kw">Функция</span> <span class="fn">'+escapeHtml(m.name)+'</span>(Список) <span class="kw">Экспорт</span>')+line(n+1,'  '+body)+'</button>';
+}
+function diffMarkup(){
+  const ids=active==='long'?['long']:['first','last','count','added','removed'];
+  return '<div class="pane-labels"><span>Текущая версия</span><span>Предлагаемая версия</span></div><div class="panes">'+[false,true].map(right=>'<div class="code-pane">'+ids.map(id=>methodMarkup(id,right)).join('')+'</div>').join('')+'</div><div class="code-context">Для выбора метода щёлкните по его коду или переместите в него каретку. Для добавленного или удалённого метода одна сторона пуста.</div>';
+}
+function render(){
+  const m=methods[active],name=m?m.name:'Метод не выбран';
+  document.getElementById('demo-method').value=active;
+  document.querySelectorAll('[data-name]').forEach(el=>{el.textContent=name;el.title=m?m.name:'Щёлкните внутри метода с изменениями';});
+  document.querySelectorAll('[data-group]').forEach(el=>el.classList.toggle('empty',!m));
+  document.querySelectorAll('.compare').forEach(el=>{el.disabled=!m;el.title=m?'Открыть отдельное сравнение метода «'+m.name+'»':'Щёлкните внутри метода с изменениями';});
+  document.getElementById('change-kind').textContent=m?kinds[m.kind]:'';
+  document.getElementById('change-kind').hidden=!m;
+  document.getElementById('route').textContent=m?'Старая: '+(m.old??'—')+' → Новая: '+(m.new??'—'):'';
+  document.querySelectorAll('[data-diff]').forEach(el=>{el.innerHTML=diffMarkup();});
+  document.querySelectorAll('[data-method]').forEach(el=>el.addEventListener('click',()=>{active=el.dataset.method;render();}));
+  document.querySelectorAll('[data-result]').forEach(el=>el.classList.remove('visible'));
+}
+document.querySelectorAll('[data-utilities]').forEach(el=>el.innerHTML=utilities());
+document.getElementById('demo-method').addEventListener('change',event=>{active=event.target.value;render();});
+document.querySelectorAll('[data-open]').forEach(button=>button.addEventListener('click',()=>{
+  const m=methods[active];if(!m)return;
+  const result=document.querySelector('[data-result="'+button.dataset.open+'"]');
+  result.textContent='↗ Откроется отдельная вкладка «Сравнение метода: '+m.name+'» · '+(m.old??'пусто')+' → '+(m.new??'пусто');
+  result.classList.add('visible');
+}));
+function pickDesign(id){
+  const card=document.getElementById('option-'+id);
+  if(typeof window.toggleSelect==='function')window.toggleSelect(card);
+  else{document.querySelectorAll('.option').forEach(el=>el.classList.remove('selected'));card.classList.add('selected');}
+  document.getElementById('design-feedback').textContent='Выбран вариант '+id.toUpperCase()+'. Напишите в чате, что оставить или изменить.';
+}
+window.pickDesign=pickDesign;render();
+</script>
+</body>
+</html>
