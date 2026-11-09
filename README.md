@@ -148,6 +148,7 @@ Go to **Window → Preferences → MCP Server**. The settings page has two tabs:
 - **Server Port**: HTTP port (default: 8765)
 - **Check descriptions folder**: Optional override for the check descriptions that ship with the plugin. Leave it empty to use the bundled ones; point it at a folder to replace or translate individual checks (a file found there wins, per check)
 - **Auto-start**: Start server on EDT launch
+- **Batch method replacements**: `write_module_source(edits=[{methodName, source}, ...], expectedHash=...)` replaces up to 50 methods of one module with one review. Send only the changed methods; any invalid entry rejects the whole batch.
 - **Review BSL changes before applying**: Enabled by default. Every changing `write_module_source` call opens a nonmodal read-only diff tab with Apply/Reject buttons. Disabling affects new calls only; pending proposals still require their own decisions; `cancel_write_review` can withdraw an awaiting proposal without applying it
 
 For isolated viewer validation, `-Dedt.mcp.bslDiff=jgit` enables the experimental method-aware EDT/JGit comparison with exact-fragment highlighting and move markers. The native Difftastic prototype remains available. See [viewer validation](experiments/bsl-jgit-viewer/README.md) for limits and the reproducible isolated test setup.

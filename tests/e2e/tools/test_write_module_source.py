@@ -1419,3 +1419,109 @@ def test_request_id_replays_successful_append_without_duplicating_source():
     status = call("get_write_review_status", {"requestId": request_id})
     assert_ok(status, "lookup applied receipt")
     assert status.structured == first.structured, status.structured
+
+
+def _batch_replacements():
+    return [
+        {"methodName": "Last", "source": "Function Last() Export\n\tReturn 99;\nEndFunction"},
+        {"methodName": "First", "source": "Procedure First() Export\n\tBatchFirst();\n\tBatchSecond();\nEndProcedure"},
+        {"methodName": "Target", "source": "// anchor documentation\n&AtServer\nProcedure Target() Export\n\tValue = 42;\nEndProcedure"},
+    ]
+
+
+@e2e_test(tool="write_module_source", kind="write")
+def test_batch_three_methods_write_once_and_request_id_replays():
+    _seed_targeted()
+    request_id = "e2e-batch-%d" % time.time_ns()
+    params = {"projectName": PROJECT, "modulePath": MODULE, "edits": _batch_replacements(),
+              "expectedHash": _read_content_hash(), "requestId": request_id}
+    result = call("write_module_source", params)
+    assert_ok(result, "three method replacements")
+    assert result.structured["mutationCommitted"] is True, result.structured
+    expected = ("Procedure First() Export\r\n\tBatchFirst();\r\n\tBatchSecond();\r\nEndProcedure\r\n\r\n"
+                "// anchor documentation\r\n&AtServer\r\nProcedure Target() Export\r\n\tValue = 42;\r\nEndProcedure\r\n\r\n"
+                "Function Last() Export\r\n\tReturn 99;\r\nEndFunction\r\n")
+    disk = read_disk("src/" + MODULE)
+    # read_disk's text decoder normalizes CRLF; disk layout still has all three methods exactly once.
+    assert disk.replace("\r\n", "\n").lstrip("\ufeff") == expected.replace("\r\n", "\n"), disk
+    assert_diff_contains("BatchFirst", "batch source really landed")
+    replay = call("write_module_source", dict(params, mode="replaceMethods"))
+    assert_ok(replay, "matching batch replay with stale original hash")
+    assert replay.structured == result.structured, (result.structured, replay.structured)
+    assert read_disk("src/" + MODULE) == disk, "batch replay rewrote source"
+    changed = [dict(edit) for edit in params["edits"]]
+    changed[-1]["source"] = changed[-1]["source"].replace("42", "43")
+    conflict = call("write_module_source", dict(params, edits=changed))
+    assert_error(conflict, "changed later entry conflicts")
+    assert conflict.structured["code"] == "requestIdConflict", conflict.structured
+    assert read_disk("src/" + MODULE) == disk, "conflict changed source"
+
+
+@e2e_test(tool="write_module_source", kind="write")
+def test_batch_later_error_and_stale_hash_never_write_partial_source():
+    _seed_targeted()
+    before = read_disk("src/" + MODULE)
+    before_readback = _read_module_text()
+    content_hash = _read_content_hash()
+    cases = []
+    edits = _batch_replacements(); edits[-1]["methodName"] = "NoSuchBatchMethod"
+    cases.append((edits, content_hash, "NoSuchBatchMethod"))
+    cases.append((_batch_replacements(), "stale-batch-hash", "expectedHash"))
+    edits = _batch_replacements(); edits.append(dict(edits[0], methodName="LAST"))
+    cases.append((edits, content_hash, "duplicate"))
+    edits = _batch_replacements(); edits.append(None)
+    cases.append((edits, content_hash, "edits"))
+    for edits, token, hint in cases:
+        result = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                      "edits": edits, "expectedHash": token})
+        error = assert_error(result, "atomic batch refusal")
+        assert hint.lower() in error.lower(), (hint, error)
+        assert read_disk("src/" + MODULE) == before, "refused batch partially changed source"
+    _assert_readback_unchanged(before_readback, "refused batch")
+
+
+@e2e_test(tool="write_module_source", kind="action")
+def test_batch_review_is_one_pending_proposal_and_cancel_never_writes():
+    if os.environ.get("EDT_MCP_BSL_REVIEW_E2E") != "1":
+        from harness import E2ESkip
+        raise E2ESkip("requires an isolated stand with BSL review enabled and EDT_MCP_BSL_REVIEW_E2E=1")
+    module = "CommonModules/tests_SampleTests/Module.bsl"
+    before = read_fixture_file(TESTS_PROJECT_REL, "src/" + module)
+    read = call("read_module_source", {"projectName": TESTS_PROJECT, "modulePath": module})
+    assert_ok(read, "read base for pending batch")
+    match = _HASH_RE.search(read.text or "")
+    assert match, read.text
+    edits = [{"methodName": name, "source": "Процедура %s() Экспорт\n\t// pending batch %d\nКонецПроцедуры" % (name, i)}
+             for i, name in enumerate(("TwoPlusTwoIsFour", "SubtractionWorks", "MathHelperSubtracts"))]
+    params = {"projectName": TESTS_PROJECT, "modulePath": module, "edits": edits,
+              "expectedHash": match.group(1), "requestId": "e2e-pending-batch-%d" % time.time_ns()}
+    invalid = [dict(edit) for edit in edits]
+    invalid[-1]["methodName"] = "MissingBatchTarget"
+    refusal = call("write_module_source", dict(params, edits=invalid))
+    assert_error(refusal, "invalid batch creates no pending review")
+    # A different ID is required after a retained refusal.
+    params["requestId"] += "-valid"
+    proposed = call("write_module_source", params)
+    assert_ok(proposed, "one review for three methods")
+    assert proposed.structured["status"] == "awaitingApproval", proposed.structured
+    review_id = proposed.structured["reviewId"]
+    assert read_fixture_file(TESTS_PROJECT_REL, "src/" + module) == before, "pending batch wrote source"
+    try:
+        replay = call("write_module_source", dict(params, mode="replaceMethods"))
+        assert_ok(replay, "pending batch replay")
+        assert replay.structured["reviewId"] == review_id, (proposed.structured, replay.structured)
+        changed = [dict(edit) for edit in edits]
+        changed[0]["source"] = changed[0]["source"].replace("pending batch", "different proposal")
+        busy = call("write_module_source", {"projectName": TESTS_PROJECT, "modulePath": module,
+                    "edits": changed, "expectedHash": match.group(1)})
+        busy_error = assert_error(busy, "a second proposal cannot occupy the same module")
+        assert "review is already pending" in busy_error, busy_error
+    finally:
+        cancelled = call("cancel_write_review", {"reviewId": review_id})
+        assert_ok(cancelled, "withdraw combined proposal")
+        assert cancelled.structured["status"] == "cancelled", cancelled.structured
+    assert read_fixture_file(TESTS_PROJECT_REL, "src/" + module) == before, "cancelled batch changed source"
+    status = call("get_write_review_status", {"requestId": params["requestId"]})
+    assert_ok(status, "receipt tracks cancellation of combined proposal")
+    assert status.structured["status"] == "cancelled", status.structured
+    assert_no_diff("pending and cancelled batch leave every fixture clean")

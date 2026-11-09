@@ -23,9 +23,9 @@ English tool/docs surface; 1–50 edits; 500,000 combined raw source characters;
 
 Files: WriteModuleSourceTool.java; new WriteModuleSourceBatchTest.java; write_module_source guide/generated docs; tests/e2e/tools/test_write_module_source.py and tools_list.golden.json.
 
-- [ ] Run existing writer/preparation/receipt tests as baseline.
-- [ ] Add failing tests for three replacements (including Cyrillic, different lengths and preserved BOM/CRLF), invalid late entry/duplicate/malformed/limits/conflicting selectors/stale hash and receipt conflict/replay. Run RED.
-- [ ] Implement strict edits parsing, conditional source requirement, original-span batch composition, normalization, late CAS and digest integration. Verify focused GREEN with existing writer/review regressions.
-- [ ] Add live batch success+replay, all-or-nothing refusal and stale-hash e2e; exercise one combined pending proposal and cancellation/acceptance using existing registry/workbench fixtures.
+- [x] Run existing writer/preparation/receipt tests as baseline.
+- [x] Add failing tests for three replacements (including Cyrillic, different lengths and preserved BOM/CRLF), invalid late entry/duplicate/malformed/limits/conflicting selectors/stale hash and receipt conflict/replay. Run RED.
+- [x] Implement strict edits parsing, conditional source requirement, original-span batch composition, normalization, late CAS and digest integration. Verify focused GREEN with existing writer/review regressions.
+- [x] Add live batch success+replay, all-or-nothing refusal and stale-hash e2e; exercise one combined pending proposal and cancellation/acceptance using existing registry/workbench fixtures.
 - [ ] Update guide/README and generate actual docs/golden. Canonical build, agent validator, isolated live writer e2e and conformance; inspect known baseline limits without expanding scope.
 - [ ] Fresh whole-branch review, record results, update Beads and integrate locally into master after verification.

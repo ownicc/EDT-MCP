@@ -16,6 +16,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.Comparator;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -53,6 +56,8 @@ import com.ditrix.edt.mcp.server.utils.ModuleTargetResolver;
 import com.ditrix.edt.mcp.server.utils.ProjectContext;
 import com.ditrix.edt.mcp.server.utils.Refusals;
 import com.ditrix.edt.mcp.server.utils.VendorSupportGuard;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Tool to write BSL source code to 1C metadata object modules.
@@ -71,6 +76,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private static final String MODE_REPLACE = "replace"; //$NON-NLS-1$
     private static final String MODE_APPEND = "append"; //$NON-NLS-1$
     private static final String MODE_SEARCH_REPLACE = "searchReplace"; //$NON-NLS-1$
+    private static final String MODE_REPLACE_METHODS = "replaceMethods";
     private static final String MODE_REPLACE_METHOD = "replaceMethod"; //$NON-NLS-1$
     private static final String MODE_INSERT_BEFORE = "insertBefore"; //$NON-NLS-1$
     private static final String MODE_INSERT_AFTER = "insertAfter"; //$NON-NLS-1$
@@ -84,6 +90,7 @@ public class WriteModuleSourceTool implements IMcpTool
 
     /** Maximum source length to prevent accidental huge writes */
     private static final int MAX_SOURCE_LENGTH = 500_000;
+    private static final int MAX_BATCH_EDITS = 50;
 
     /** UTF-8 BOM bytes */
     private static final byte[] UTF8_BOM = { (byte)0xEF, (byte)0xBB, (byte)0xBF };
@@ -105,7 +112,7 @@ public class WriteModuleSourceTool implements IMcpTool
     @Override
     public String getInputSchema()
     {
-        return JsonSchemaBuilder.object()
+        String schema = JsonSchemaBuilder.object()
             .stringProperty(PROJECT_NAME,
                 "EDT project name (required)", true) //$NON-NLS-1$
             .stringProperty(MODULE_PATH,
@@ -118,15 +125,16 @@ public class WriteModuleSourceTool implements IMcpTool
                 "Module type for objectName resolution (default ObjectModule).", //$NON-NLS-1$
                 MODULE_TYPE_OBJECT_MODULE, "ManagerModule", "FormModule", MODULE_TYPE_COMMAND_MODULE, "RecordSetModule", MODULE_TYPE_MODULE) //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             .stringProperty("source", //$NON-NLS-1$
-                "BSL source to write (required): full file for replace, new fragment for " + //$NON-NLS-1$
+                "BSL source to write (required unless edits is supplied): full file for replace, new fragment for " + //$NON-NLS-1$
                 "searchReplace, text to add for append, or exactly one complete method for " + //$NON-NLS-1$
-                "a method-targeted mode.", true) //$NON-NLS-1$
+                "a method-targeted mode. Mutually exclusive with edits.") //$NON-NLS-1$
             .stringProperty("oldSource", //$NON-NLS-1$
                 "Fragment to find and replace; required for searchReplace, must match exactly once.") //$NON-NLS-1$
             .enumProperty("mode", //$NON-NLS-1$
-                "Write mode (default searchReplace).", //$NON-NLS-1$
+                "Write mode (default searchReplace, or replaceMethods when edits is supplied).", //$NON-NLS-1$
                 MODE_SEARCH_REPLACE, MODE_REPLACE, MODE_APPEND,
-                MODE_REPLACE_METHOD, MODE_INSERT_BEFORE, MODE_INSERT_AFTER)
+                MODE_REPLACE_METHOD, MODE_INSERT_BEFORE, MODE_INSERT_AFTER, MODE_REPLACE_METHODS)
+            .objectArrayProperty("edits", "Replace 1 to 50 distinct methods in one module/review. Each entry: methodName and source (one complete method). Requires expectedHash; implies mode=replaceMethods. Do not mix with top-level source, methodName, oldSource, expectedSource or overwrite. Combined source limit: 500000 characters.")
             .stringProperty("methodName", //$NON-NLS-1$
                 "Existing anchor method; required for replaceMethod, insertBefore, and insertAfter.") //$NON-NLS-1$
             .stringProperty("formName", //$NON-NLS-1$
@@ -149,8 +157,20 @@ public class WriteModuleSourceTool implements IMcpTool
             .stringProperty("requestId", "Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write.")
             .stringProperty("expectedHash", //$NON-NLS-1$
                 "Lost-update guard: the hash from the read that produced your edit. The write is " //$NON-NLS-1$
-                + "rejected if the module changed since; required for every method-targeted mode.") //$NON-NLS-1$
+                + "rejected if the module changed since; required for every method-targeted mode, including edits.") //$NON-NLS-1$
             .build();
+        JsonObject document = JsonParser.parseString(schema).getAsJsonObject();
+        document.add("oneOf", JsonParser.parseString(GsonProvider.toJson(List.of(
+            Map.of("required", List.of("source")), Map.of("required", List.of("edits"))))));
+        JsonObject edits = document.getAsJsonObject("properties").getAsJsonObject("edits");
+        JsonObject item = JsonParser.parseString(JsonSchemaBuilder.object()
+            .stringProperty("methodName", "Existing method name; unique in the original module and in this batch.", true)
+            .stringProperty("source", "One complete replacement method with the same name and kind.", true).build()).getAsJsonObject();
+        item.addProperty("additionalProperties", false);
+        edits.add("items", item);
+        edits.addProperty("minItems", 1);
+        edits.addProperty("maxItems", MAX_BATCH_EDITS);
+        return GsonProvider.toJson(document);
     }
 
     @Override
@@ -365,6 +385,8 @@ public class WriteModuleSourceTool implements IMcpTool
         final String expectedSource;
         final boolean overwrite;
         final String expectedHash;
+        List<MethodReplacement> edits;
+        final String editsError;
         String requestId;
         BslWriteRequests requestStore;
 
@@ -380,7 +402,11 @@ public class WriteModuleSourceTool implements IMcpTool
             this.source = JsonUtils.extractStringArgument(params, "source"); //$NON-NLS-1$
             this.oldSource = JsonUtils.extractStringArgument(params, "oldSource"); //$NON-NLS-1$
             String rawMode = JsonUtils.extractStringArgument(params, "mode"); //$NON-NLS-1$
-            this.mode = (rawMode == null || rawMode.isEmpty()) ? MODE_SEARCH_REPLACE : rawMode;
+            this.mode = (rawMode == null || rawMode.isEmpty())
+                ? (params.containsKey("edits") ? MODE_REPLACE_METHODS : MODE_SEARCH_REPLACE) : rawMode;
+            BatchEdits batch = parseBatchEdits(params);
+            this.edits = batch.edits();
+            this.editsError = batch.error();
             this.methodName = JsonUtils.extractStringArgument(params, "methodName"); //$NON-NLS-1$
             this.formName = JsonUtils.extractStringArgument(params, "formName"); //$NON-NLS-1$
             this.commandName = JsonUtils.extractStringArgument(params, "commandName"); //$NON-NLS-1$
@@ -418,19 +444,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private String writeModule(WriteRequest req, IFile file, boolean fileExists, MetadataScope scope,
         AtomicBoolean mutationEntered, AtomicBoolean mutationCommitted) throws Exception
     {
-        // Normalize source: \r\n -> \n (same point and order as the inline try block,
-        // i.e. AFTER validateWriteArguments measured the raw length).
-        req.source = req.source.replace("\r\n", "\n"); //$NON-NLS-1$ //$NON-NLS-2$
-
-        // Normalize the forbidden look-alike characters in the INCOMING source only (#161).
-        // Deliberately not applied to oldSource: that fragment is matched against what is
-        // already in the file, and normalizing it would stop it matching. It is also not
-        // applied to the untouched rest of the file - a write must change the lines the caller
-        // asked to change, not silently rewrite the ones it did not.
-        InvalidFileCharacters.Result charFix = req.normalizeInvalidCharacters
-            ? InvalidFileCharacters.normalize(req.source)
-            : InvalidFileCharacters.unchanged(req.source);
-        req.source = charFix.text();
+        String normalizedCharacters = normalizeIncomingSource(req);
 
         // Read current content (if file exists)
         List<String> originalLines;
@@ -484,7 +498,7 @@ public class WriteModuleSourceTool implements IMcpTool
         // another workspace writer (an editor save, another tool) for the whole compare-and-write.
         // A process writing the file outside Eclipse is not covered - IFile.setContents(FORCE)
         // has no compare-and-swap - but it IS seen by the guard's own read.
-        if (isMethodTargetedMode(req.mode) && fileExists)
+        if ((isMethodTargetedMode(req.mode) || MODE_REPLACE_METHODS.equals(req.mode)) && fileExists)
         {
             String[] lateHashError = new String[1];
             Exception[] failure = new Exception[1];
@@ -537,20 +551,18 @@ public class WriteModuleSourceTool implements IMcpTool
         return finishWrite(
             () -> AdoptedModuleState.ensureExtended(file.getProject(), scope, file.getProjectRelativePath().toString()),
             moduleState -> buildSuccessResponse(req.projectName, req.modulePath, req.mode, req.skipSyntaxCheck,
-                newLines, fileExists, totalOriginal, charFix.summary(), moduleState));
+                newLines, fileExists, totalOriginal, normalizedCharacters, moduleState));
     }
 
     record ContentPreparation(String error, List<String> lines, byte[] outputBytes,
         String normalizedCharacters) { }
 
-    /** Computes all six modes against one detached base; never rereads a workspace file. */
+    /** Computes the requested mode against one detached base; never rereads a workspace file. */
     static ContentPreparation prepareContent(WriteRequest req, String base, boolean exists,
         boolean hasBom, String delimiter)
     {
-        req.source = req.source.replace("\r\n", "\n");
-        InvalidFileCharacters.Result fix = req.normalizeInvalidCharacters
-            ? InvalidFileCharacters.normalize(req.source) : InvalidFileCharacters.unchanged(req.source);
-        req.source = fix.text();
+        if (req.editsError != null) return new ContentPreparation(req.editsError, null, null, null);
+        String normalizedCharacters = normalizeIncomingSource(req);
         String current = base.replace("\r\n", "\n");
         String error = evaluateExpectedHash(current, req.expectedHash, exists);
         if (error != null) return new ContentPreparation(error, null, null, null);
@@ -559,7 +571,7 @@ public class WriteModuleSourceTool implements IMcpTool
         error = req.skipSyntaxCheck ? null : runSyntaxCheck(computed.newLines);
         return error != null ? new ContentPreparation(error, null, null, null)
             : new ContentPreparation(null, List.copyOf(computed.newLines),
-                encodeOutput(computed.newLines, hasBom, delimiter), fix.summary());
+                encodeOutput(computed.newLines, hasBom, delimiter), normalizedCharacters);
     }
 
     private String reviewWrite(WriteRequest req, IFile file) throws Exception
@@ -599,6 +611,8 @@ public class WriteModuleSourceTool implements IMcpTool
         arguments.put("expectedSource", req.expectedSource);
         arguments.put("expectedHash", req.expectedHash);
         arguments.put("overwrite", req.overwrite);
+        // Leave legacy digests byte-for-byte compatible with already retained receipts.
+        if (req.edits != null) arguments.put("edits", req.edits);
         return PreparedBslWrite.sha256(GsonProvider.toJson(arguments).getBytes(StandardCharsets.UTF_8));
     }
 
@@ -694,6 +708,18 @@ public class WriteModuleSourceTool implements IMcpTool
         {
             return err;
         }
+        if (req.editsError != null) return req.editsError;
+        if (MODE_REPLACE_METHODS.equals(req.mode))
+        {
+            if (req.edits == null) return ToolResult.error("edits is required for mode=replaceMethods").toJson();
+            for (String key : List.of("source", "methodName", "oldSource", "expectedSource", "overwrite"))
+                if (params.containsKey(key))
+                    return ToolResult.error(key + " is mutually exclusive with edits; pass only per-entry methodName/source.").toJson();
+            if (req.expectedHash == null || req.expectedHash.isBlank())
+                return ToolResult.error("expectedHash is required for edits. Read the module and pass its contentHash.").toJson();
+            return null;
+        }
+        if (req.edits != null) return ToolResult.error("edits requires mode=replaceMethods; omit mode or use replaceMethods.").toJson();
         if (req.source == null)
         {
             return ToolResult.error("source is required").toJson(); //$NON-NLS-1$
@@ -732,6 +758,109 @@ public class WriteModuleSourceTool implements IMcpTool
             }
         }
         return null;
+    }
+
+    record MethodReplacement(String methodName, String source) { }
+    private record BatchEdits(List<MethodReplacement> edits, String error) { }
+
+    /** Strict parsing is intentional: extractObjectArray skips malformed members, unsafe for a write batch. */
+    private static BatchEdits parseBatchEdits(Map<String, String> params)
+    {
+        if (!params.containsKey("edits")) return new BatchEdits(null, null);
+        try
+        {
+            var value = JsonParser.parseString(params.get("edits"));
+            if (!value.isJsonArray() || value.getAsJsonArray().isEmpty()
+                || value.getAsJsonArray().size() > MAX_BATCH_EDITS)
+                return batchError("edits must be an array of 1 to " + MAX_BATCH_EDITS + " method replacements.");
+            List<MethodReplacement> edits = new ArrayList<>();
+            var names = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+            long length = 0;
+            for (var element : value.getAsJsonArray())
+            {
+                String label = "edits[" + edits.size() + "]";
+                if (!element.isJsonObject()) return batchError(label + " must be an object with methodName and source.");
+                var entry = element.getAsJsonObject();
+                for (String key : entry.keySet())
+                    if (!key.equals("methodName") && !key.equals("source"))
+                        return batchError(label + " has unsupported field '" + key + "'; only methodName and source are allowed.");
+                for (String key : List.of("methodName", "source"))
+                    if (!entry.has(key) || !entry.get(key).isJsonPrimitive()
+                        || !entry.getAsJsonPrimitive(key).isString() || entry.get(key).getAsString().isBlank())
+                        return batchError(label + "." + key + " must be a non-blank string.");
+                String name = entry.get("methodName").getAsString();
+                if (!names.add(name)) return batchError(label + " has duplicate methodName '" + name + "'.");
+                String source = entry.get("source").getAsString();
+                length += source.length();
+                if (length > MAX_SOURCE_LENGTH)
+                    return batchError("edits combined source exceeds maximum allowed length (" + MAX_SOURCE_LENGTH + " characters).");
+                edits.add(new MethodReplacement(name, source));
+            }
+            return new BatchEdits(List.copyOf(edits), null);
+        }
+        catch (RuntimeException e) { return batchError("edits must be a JSON array of methodName/source objects."); }
+    }
+
+    private static BatchEdits batchError(String message)
+    {
+        return new BatchEdits(null, ToolResult.error(message).toJson());
+    }
+
+    private static InvalidFileCharacters.Result normalizeIncoming(String source, boolean normalize)
+    {
+        String text = source.replace("\r\n", "\n");
+        return normalize ? InvalidFileCharacters.normalize(text) : InvalidFileCharacters.unchanged(text);
+    }
+
+    /** Both direct writes and human-reviewed proposals normalize only incoming fragments. */
+    private static String normalizeIncomingSource(WriteRequest req)
+    {
+        if (req.edits == null)
+        {
+            var fix = normalizeIncoming(req.source, req.normalizeInvalidCharacters);
+            req.source = fix.text();
+            return fix.summary();
+        }
+        List<MethodReplacement> normalized = new ArrayList<>();
+        List<String> summaries = new ArrayList<>();
+        for (int i = 0; i < req.edits.size(); i++)
+        {
+            var edit = req.edits.get(i);
+            var fix = normalizeIncoming(edit.source(), req.normalizeInvalidCharacters);
+            normalized.add(new MethodReplacement(edit.methodName(), fix.text()));
+            if (fix.summary() != null) summaries.add("edits[" + i + "]: " + fix.summary());
+        }
+        req.edits = List.copyOf(normalized);
+        return summaries.isEmpty() ? null : String.join("; ", summaries);
+    }
+
+    /** Validate every target against the same base, then splice backwards so positions cannot shift. */
+    private static MethodEditResult applyMethodReplacements(List<String> original, List<MethodReplacement> edits)
+    {
+        record Replacement(int start, int end, List<String> lines) { }
+        List<Replacement> replacements = new ArrayList<>();
+        var spans = BslModuleUtils.findMethodSpansViaText(original);
+        for (int i = 0; i < edits.size(); i++)
+        {
+            var edit = edits.get(i);
+            MethodEditResult checked = applyMethodTargetedEdit(original, MODE_REPLACE_METHOD, edit.methodName(), edit.source());
+            if (checked.error != null)
+            {
+                JsonObject error = JsonParser.parseString(checked.error).getAsJsonObject();
+                return new MethodEditResult(ToolResult.error("edits[" + i + "] (" + edit.methodName() + "): "
+                    + error.get("error").getAsString()).put("editIndex", i).toJson(), null);
+            }
+            var target = spans.stream().filter(span -> span.name.equalsIgnoreCase(edit.methodName())).findFirst().orElseThrow();
+            replacements.add(new Replacement(target.startLine, target.endLine, splitSourceLines(edit.source())));
+        }
+        replacements.sort(Comparator.comparingInt(Replacement::start).reversed());
+        List<String> result = new ArrayList<>(original);
+        for (var replacement : replacements)
+        {
+            result.subList(replacement.start(), replacement.end() + 1).clear();
+            result.addAll(replacement.start(), replacement.lines());
+        }
+        return new MethodEditResult(null, result);
     }
 
     private static boolean isMethodTargetedMode(String mode)
@@ -882,6 +1011,11 @@ public class WriteModuleSourceTool implements IMcpTool
                 return new NewLinesResult(null, splitSourceLines(sr.newContent));
             }
 
+            case MODE_REPLACE_METHODS:
+            {
+                MethodEditResult edit = applyMethodReplacements(originalLines, req.edits);
+                return new NewLinesResult(edit.error, edit.newLines);
+            }
             case MODE_REPLACE_METHOD:
             case MODE_INSERT_BEFORE:
             case MODE_INSERT_AFTER:

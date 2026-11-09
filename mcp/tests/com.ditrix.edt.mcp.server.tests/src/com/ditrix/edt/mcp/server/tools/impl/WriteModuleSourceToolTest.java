@@ -130,8 +130,11 @@ public class WriteModuleSourceToolTest
         assertTrue(schema.contains("\"replaceMethod\"")); //$NON-NLS-1$
         assertTrue(schema.contains("\"insertBefore\"")); //$NON-NLS-1$
         assertTrue(schema.contains("\"insertAfter\"")); //$NON-NLS-1$
-        // The new params are OPTIONAL — required stays projectName + source only.
-        assertTrue(schema.contains("\"required\":[\"projectName\",\"source\"]")); //$NON-NLS-1$
+        // Source is conditional: a batch supplies edits instead.
+        var parsed = JsonParser.parseString(schema).getAsJsonObject();
+        assertEquals("projectName", parsed.getAsJsonArray("required").get(0).getAsString());
+        assertFalse(parsed.getAsJsonArray("required").toString().contains("source"));
+        assertEquals(2, parsed.getAsJsonArray("oneOf").size()); //$NON-NLS-1$
     }
 
     @Test

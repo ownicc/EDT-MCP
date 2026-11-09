@@ -9,9 +9,10 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 | modulePath | — | string | src/-relative module path, e.g. 'CommonModules/MyModule/Module.bsl'. Alternative to objectName (pass exactly one). |
 | objectName | — | string | Object name 'Type.Name', e.g. 'Document.MyDoc'. Resolved with moduleType. Alternative to modulePath. |
 | moduleType | — | string (one of: ObjectModule, ManagerModule, FormModule, CommandModule, RecordSetModule, Module) | Module type for objectName resolution (default ObjectModule). |
-| source | yes | string | BSL source to write (required): full file for replace, new fragment for searchReplace, text to add for append, or exactly one complete method for a method-targeted mode. |
+| source | — | string | BSL source to write (required unless edits is supplied): full file for replace, new fragment for searchReplace, text to add for append, or exactly one complete method for a method-targeted mode. Mutually exclusive with edits. |
 | oldSource | — | string | Fragment to find and replace; required for searchReplace, must match exactly once. |
-| mode | — | string (one of: searchReplace, replace, append, replaceMethod, insertBefore, insertAfter) | Write mode (default searchReplace). |
+| mode | — | string (one of: searchReplace, replace, append, replaceMethod, insertBefore, insertAfter, replaceMethods) | Write mode (default searchReplace, or replaceMethods when edits is supplied). |
+| edits | — | array | Replace 1 to 50 distinct methods in one module/review. Each entry: methodName and source (one complete method). Requires expectedHash; implies mode=replaceMethods. Do not mix with top-level source, methodName, oldSource, expectedSource or overwrite. Combined source limit: 500000 characters. |
 | methodName | — | string | Existing anchor method; required for replaceMethod, insertBefore, and insertAfter. |
 | formName | — | string | Form name; required when moduleType=FormModule (e.g. 'ItemForm'). |
 | commandName | — | string | Command name; required when moduleType=CommandModule (e.g. 'FillByTemplate'). |
@@ -20,7 +21,7 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 | expectedSource | — | string | Lost-update guard for mode=replace: the module content you last read; mismatch rejects. |
 | overwrite | — | boolean | Force mode=replace over an existing module without an expectedSource check (default false). |
 | requestId | — | string | Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write. |
-| expectedHash | — | string | Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for every method-targeted mode. |
+| expectedHash | — | string | Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for every method-targeted mode, including edits. |
 
 ## Guide
 Writes BSL source to a single 1C metadata object module (a `.bsl` file under `src/`). Six edit modes, a mandatory BSL syntax check, and lost-update guards.
@@ -71,10 +72,11 @@ Passing both is rejected; passing neither is rejected. `moduleType` is meaningfu
 | `modulePath` | XOR objectName | `src/`-relative `.bsl` path; no `..`. |
 | `objectName` | XOR modulePath | `Type.Name`; see Bilingual. |
 | `moduleType` | with objectName | default `ObjectModule`. |
-| `source` | always | the BSL to write (max 500000 chars); exactly one complete method for a method-targeted mode. |
+| `source` | unless edits is supplied | the BSL to write (max 500000 chars); exactly one complete method for a method-targeted mode. |
 | `oldSource` | mode=searchReplace | must match exactly once. |
-| `mode` | optional | `searchReplace` (default), `replace`, `append`, `replaceMethod`, `insertBefore`, `insertAfter`. |
-| `methodName` | method-targeted modes | existing unambiguous method anchor; REQUIRED. |
+| `mode` | optional | `searchReplace` (default), `replace`, `append`, `replaceMethod`, `insertBefore`, `insertAfter`, `replaceMethods` (implied by edits). |
+| `edits` | mode=replaceMethods | 1–50 objects: `{methodName, source}`. One combined proposal; max 500000 raw source characters in total. |
+| `methodName` | single-method targeted modes | existing unambiguous method anchor; REQUIRED. |
 | `formName` | moduleType=FormModule | except CommonForm. |
 | `commandName` | moduleType=CommandModule | except CommonCommand. |
 | `skipSyntaxCheck` | optional | default false. |
@@ -150,6 +152,30 @@ When the step cannot finish, the call returns an error with `mutationCommitted:t
 Not covered - these modules are written as text only, so set their state to `Extended` in EDT: the modules of an external data source's tables, cubes and dimension tables, and `Bot`, `IntegrationService` and `WebSocketClient` modules. A recalculation's record-set module has no extension state at all. A form module needs nothing: the form's own state (`<form>Extended</form>`) is set when the form is adopted.
 
 The empty-append retry above is available when review is disabled. With review enabled, byte-identical output returns `noChange` without running the adopted-module step. Inspect the module and metadata in EDT before recovering from a failed export.
+
+## Replace several methods in one review
+
+Pass `edits` instead of top-level `source`. This implies `mode=replaceMethods`; supplying that mode explicitly is also accepted. Every entry contains exactly `methodName` and `source` (one complete Procedure/Function, including its desired contiguous documentation/annotations). Names must be distinct case-insensitively; replacements keep each method's name and kind. One entry cannot insert, delete or rename a method.
+
+One whole-module `expectedHash` is required. All targets resolve against the same original text; the server builds the complete proposal and syntax-checks it once. A bad entry rejects the entire batch before a review or source write. With review enabled there is one diff and one human Apply/Reject for all replacements. With review disabled the existing guarded write commits the combined text once. The usual dirty-buffer, vendor and late-hash guards still apply.
+
+Do not combine `edits` with top-level `source`, `methodName`, `oldSource`, `expectedSource`, `overwrite` (even false), or another mode. Malformed/non-object entries, unknown entry fields and duplicate names refuse; no entry is silently skipped. Limits: 1–50 replacements and 500000 raw source characters in total. `skipSyntaxCheck` and `normalizeInvalidCharacters` apply to the entire batch; normalization touches only incoming fragments. Method replacement errors include a zero-based `editIndex`; argument-validation messages identify the offending `edits[i]` or field.
+
+Optional `requestId` covers the complete ordered batch. A matching retained request replays its receipt; changing any entry or order conflicts. Retention/restart limits are the same as for a single edit. Do not send a whole module merely to change three methods:
+
+```json
+{
+  "projectName": "MyProj",
+  "modulePath": "CommonModules/MyModule/Module.bsl",
+  "expectedHash": "<contentHash from a disk read>",
+  "requestId": "<new unique ID>",
+  "edits": [
+    {"methodName": "Calculate", "source": "Function Calculate() Export\n    Return 2;\nEndFunction"},
+    {"methodName": "Validate", "source": "Procedure Validate() Export\n    Check();\nEndProcedure"},
+    {"methodName": "Report", "source": "Procedure Report() Export\n    Show();\nEndProcedure"}
+  ]
+}
+```
 
 ## Examples
 

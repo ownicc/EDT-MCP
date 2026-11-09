@@ -154,7 +154,8 @@ public final class InputSchemaCompactor
         // formName / commandName: with objectName on a NON-common object and
         // moduleType=FormModule / CommandModule, path resolution refuses the write without
         // them. Same conditional shape as mode->oldSource, one step further out.
-        keep.put("write_module_source", asSet("expectedHash", "mode", "oldSource", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        // edits carries batch-only guards and conflicting top-level fields not encoded in its item shape.
+        keep.put("write_module_source", asSet("edits", "expectedHash", "mode", "oldSource", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
             "methodName", "formName", "commandName")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         // The enum cannot express either fact: md is the default, and xml is legal only for
         // action=get + type=schema + a bare root. Without this one clause a schema-valid
