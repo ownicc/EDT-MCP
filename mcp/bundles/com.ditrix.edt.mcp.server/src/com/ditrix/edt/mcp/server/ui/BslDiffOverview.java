@@ -37,6 +37,7 @@ final class BslDiffOverview
     private final StyledText left;
     private final StyledText right;
     private final Canvas bar;
+    private final int baseGutter;
     private final Function<RGB, Color> colors;
     private final BooleanSupplier dark;
     private final List<Change> changes = new ArrayList<>();
@@ -53,6 +54,7 @@ final class BslDiffOverview
         this.left = left;
         this.right = right;
         this.bar = bar;
+        this.baseGutter = Math.max(left.getLeftMargin(), right.getLeftMargin());
         this.colors = colors;
         this.dark = dark;
         bar.setToolTipText(Messages.BslDiff_Overview);
@@ -183,8 +185,8 @@ final class BslDiffOverview
         {
             measure.setFont(left.getFont());
             int badgeWidth = moves.isEmpty() ? 0 : measure.stringExtent("M" + moves.size()).x + 14; //$NON-NLS-1$
-            left.setLeftMargin(64 + badgeWidth);
-            right.setLeftMargin(64 + badgeWidth);
+            left.setLeftMargin(baseGutter + badgeWidth);
+            right.setLeftMargin(baseGutter + badgeWidth);
         }
         finally { measure.dispose(); }
         redraw();
@@ -227,8 +229,10 @@ final class BslDiffOverview
     {
         for (StyledText text : List.of(left, right))
             text.setSelection(text.getOffsetAtLine(Math.min(text.getLineCount() - 1, row)));
-        scrollTo(Math.max(0, row - 3) * right.getLineHeight());
+        revealLine(row);
     }
+
+    void revealLine(int row) { scrollTo(Math.max(0, row - 3) * right.getLineHeight()); }
 
     private int maximum()
     {

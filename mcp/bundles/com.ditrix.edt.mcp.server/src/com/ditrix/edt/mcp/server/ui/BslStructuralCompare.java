@@ -58,6 +58,8 @@ final class BslStructuralCompare
     private final TreeSet<Integer> changedRows = new TreeSet<>();
     private final Map<RGB, Color> colors = new HashMap<>();
     private final BslDiffOverview overview;
+    private final BslDiffSearchBar search;
+    private List<StructuralBslDiff.Row> searchRows = List.of();
     private List<MethodAwareBslDiff.Move> movePairs = List.of();
     private static final ISchedulingRule METHOD_RULE = new ISchedulingRule() {
         @Override public boolean contains(ISchedulingRule rule) { return rule == this; }
@@ -82,7 +84,7 @@ final class BslStructuralCompare
         root.setLayout(new GridLayout(1, false));
         Composite toolbar = new Composite(root, SWT.NONE);
         toolbar.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-        toolbar.setLayout(new GridLayout(5, false));
+        toolbar.setLayout(new GridLayout(6, false));
         summary = new Label(toolbar, SWT.WRAP);
         summary.setText(Messages.BslDiff_Computing);
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -93,6 +95,9 @@ final class BslStructuralCompare
             dark = theme.getSelectionIndex() == 1;
             applyTheme();
         });
+        Button find = new Button(toolbar, SWT.PUSH);
+        find.setText(Messages.BslDiff_Find);
+        find.setToolTipText("Ctrl+F"); //$NON-NLS-1$
         previous = new Button(toolbar, SWT.PUSH);
         previous.setText(Messages.BslDiff_Previous);
         next = new Button(toolbar, SWT.PUSH);
@@ -117,6 +122,16 @@ final class BslStructuralCompare
         right = new Side(columns, Messages.BslReview_Proposed, after, injector, true, rightOffset);
         columns.setWeights(1, 1);
         overview = new BslDiffOverview(left.text, right.text, right.overview, this::color, () -> dark);
+        search = new BslDiffSearchBar(root,
+            (query, scope, matchCase) -> BslDiffSearch.find(before, after, searchRows, query, scope, matchCase),
+            match -> {
+                StyledText text = match.left() ? left.text : right.text;
+                int offset = text.getOffsetAtLine(match.row()) + match.column();
+                text.setSelection(offset, offset + match.length());
+                overview.revealLine(match.row());
+            }, List.of(left.text, right.text));
+        search.row.moveAbove(columns);
+        find.addListener(SWT.Selection, event -> search.open());
         compareMethod.addListener(SWT.Selection, event -> {
             var move = overview.selectedMove();
             if (move != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(move, this.before, this.after));
@@ -262,6 +277,7 @@ final class BslStructuralCompare
         if (fallbackReason != null) summary.setText(summary.getText() + " — " + fallbackReason);
         summary.getParent().layout(true, true);
         if (changed) navigate(true);
+        search.refresh();
     }
 
     private void render(Result result)
@@ -269,6 +285,7 @@ final class BslStructuralCompare
         left.show(result, true);
         right.show(result, false);
         overview.show(result, movePairs);
+        searchRows = result.rows();
     }
 
     private void navigate(boolean forward) { overview.navigate(forward); }
@@ -320,7 +337,16 @@ final class BslStructuralCompare
             }
             text.setFont(JFaceResources.getTextFont());
             text.setTabs(4);
-            text.setMargins(64, 4, 4, 4);
+            final int numberWidth;
+            var gutterGc = new org.eclipse.swt.graphics.GC(text);
+            try
+            {
+                gutterGc.setFont(text.getFont());
+                numberWidth = gutterGc.stringExtent(Integer.toString(Math.max(1, lines.size() + lineOffset))).x;
+                int markerWidth = gutterGc.stringExtent(" + ").x; //$NON-NLS-1$
+                text.setMargins(Math.max(64, numberWidth + markerWidth + 14), 4, 4, 4);
+            }
+            finally { gutterGc.dispose(); }
             text.getAccessible().addAccessibleListener(new org.eclipse.swt.accessibility.AccessibleAdapter() {
                 @Override public void getName(org.eclipse.swt.accessibility.AccessibleEvent event) { event.result = title; }
             });
@@ -417,7 +443,8 @@ final class BslStructuralCompare
                         ? color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
                             : added ? new RGB(0, 80, 20) : new RGB(138, 20, 20))
                         : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
-                    event.gc.drawString(changed ? (added ? "+" : "−") : "", gutter - 61, y, true);
+                    int markerX = gutter - 7 - numberWidth - event.gc.stringExtent("  +").x; //$NON-NLS-1$
+                    event.gc.drawString(changed ? (added ? "+" : "−") : "", markerX, y, true);
                     String number = Integer.toString(original + 1 + lineOffset);
                     event.gc.drawString(number, gutter - 7 - event.gc.stringExtent(number).x, y, true);
                     if (changed || moved)
