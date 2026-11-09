@@ -151,9 +151,10 @@ public final class ConsentSettingsService // NOSONAR intentional singleton (Ecli
         return toolName != null && getAllowedTools().contains(toolName);
     }
 
-    /** Defaults on for upgrades and for unavailable preference stores. */
+    /** Windowed hosts default on; the headless host never waits for an SWT decision. */
     public boolean isBslWriteReviewEnabled()
     {
+        if (com.ditrix.edt.mcp.server.HostKind.current() == com.ditrix.edt.mcp.server.HostKind.HEADLESS) return false;
         IPreferenceStore store = getStore();
         return store == null || !store.contains(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED)
             || store.getBoolean(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED);

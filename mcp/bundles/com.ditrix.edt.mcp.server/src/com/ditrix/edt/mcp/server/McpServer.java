@@ -401,7 +401,8 @@ public class McpServer
      */
     public String getCurrentToolName()
     {
-        return currentToolName;
+        ActiveToolCall call = activeToolCall.get();
+        return call != null ? call.getToolName() : currentToolName;
     }
 
     /**
@@ -423,7 +424,7 @@ public class McpServer
      */
     public boolean isToolExecuting()
     {
-        return currentToolName != null;
+        return getCurrentToolName() != null;
     }
 
     /**
@@ -433,6 +434,11 @@ public class McpServer
      */
     public long getToolExecutionSeconds()
     {
+        ActiveToolCall call = activeToolCall.get();
+        if (call != null)
+        {
+            return call.getElapsedSeconds();
+        }
         if (toolExecutionStartTime == 0)
         {
             return 0;
@@ -464,7 +470,7 @@ public class McpServer
     }
 
     /**
-     * Sets the active tool call.
+     * Sets the interrupt target to the most recently registered call; older calls are not restored.
      * 
      * @param toolCall the active tool call
      */
@@ -484,11 +490,13 @@ public class McpServer
     }
 
     /**
-     * Clears the active tool call.
+     * Clears the interrupt target only if it still belongs to this call.
+     *
+     * @param toolCall the call being finished or interrupted
      */
-    public void clearActiveToolCall()
+    public void clearActiveToolCall(ActiveToolCall toolCall)
     {
-        this.activeToolCall.set(null);
+        this.activeToolCall.compareAndSet(toolCall, null);
     }
 
     /**
@@ -510,7 +518,7 @@ public class McpServer
                 // Clear tool execution state atomically
                 this.currentToolName = null;
                 this.toolExecutionStartTime = 0;
-                this.activeToolCall.set(null);
+                clearActiveToolCall(call);
             }
             return sent;
         }

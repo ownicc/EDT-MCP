@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.ditrix.edt.mcp.server.Activator;
 import com.ditrix.edt.mcp.server.tools.impl.AdoptMetadataObjectTool;
+import com.ditrix.edt.mcp.server.tools.impl.CloneMetadataObjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.ApplyQuickFixTool;
 import com.ditrix.edt.mcp.server.tools.impl.AskWorkmateTool;
 import com.ditrix.edt.mcp.server.tools.impl.BuildExternalObjectsTool;
@@ -22,6 +23,7 @@ import com.ditrix.edt.mcp.server.tools.impl.CreateInfobaseTool;
 import com.ditrix.edt.mcp.server.tools.impl.SetInfobaseCredentialsTool;
 import com.ditrix.edt.mcp.server.tools.impl.CreateLaunchConfigTool;
 import com.ditrix.edt.mcp.server.tools.impl.CreateMetadataTool;
+import com.ditrix.edt.mcp.server.tools.impl.SortMetadataTool;
 import com.ditrix.edt.mcp.server.tools.impl.CreateProjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.DebugPauseTool;
 import com.ditrix.edt.mcp.server.tools.impl.DebugStatusTool;
@@ -75,7 +77,9 @@ import com.ditrix.edt.mcp.server.tools.impl.GoToDefinitionTool;
 import com.ditrix.edt.mcp.server.tools.impl.ImportConfigurationFromXmlTool;
 import com.ditrix.edt.mcp.server.tools.impl.ImportProjectFromFileTool;
 import com.ditrix.edt.mcp.server.tools.impl.InfobaseSessionsTool;
+import com.ditrix.edt.mcp.server.tools.impl.InfobaseExtensionsTool;
 import com.ditrix.edt.mcp.server.tools.impl.LaunchTool;
+import com.ditrix.edt.mcp.server.tools.impl.EdtDialogTool;
 import com.ditrix.edt.mcp.server.tools.impl.ListBreakpointsTool;
 import com.ditrix.edt.mcp.server.tools.impl.ListCommonPicturesTool;
 import com.ditrix.edt.mcp.server.tools.impl.GitTool;
@@ -90,6 +94,7 @@ import com.ditrix.edt.mcp.server.tools.impl.ProjectChecksTool;
 import com.ditrix.edt.mcp.server.tools.impl.ReadMethodSourceTool;
 import com.ditrix.edt.mcp.server.tools.impl.ReadModuleSourceTool;
 import com.ditrix.edt.mcp.server.tools.impl.OpenInEditorTool;
+import com.ditrix.edt.mcp.server.tools.impl.OpenEditorTool;
 import com.ditrix.edt.mcp.server.tools.impl.RemoveBreakpointTool;
 import com.ditrix.edt.mcp.server.tools.impl.RenameMetadataObjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.ResumeTool;
@@ -200,8 +205,10 @@ public final class BuiltInToolRegistrar
         catalogue.add(new SetInfobaseCredentialsTool());
         catalogue.add(new DeleteInfobaseTool());
         catalogue.add(new InfobaseSessionsTool());
+        catalogue.add(new InfobaseExtensionsTool());
         catalogue.add(new UpdateDatabaseTool());
         catalogue.add(new LaunchTool());
+        catalogue.add(new EdtDialogTool());
         catalogue.add(new ListConfigurationsTool());
         catalogue.add(new CreateLaunchConfigTool());
         catalogue.add(new DeleteLaunchConfigTool());
@@ -232,6 +239,7 @@ public final class BuiltInToolRegistrar
         // BSL code analysis tools
         catalogue.add(new ReadModuleSourceTool());
         catalogue.add(new OpenInEditorTool());
+        catalogue.add(new OpenEditorTool());
         catalogue.add(new WriteModuleSourceTool());
         catalogue.add(new GetWriteReviewStatusTool());
         catalogue.add(new CancelWriteReviewTool());
@@ -256,8 +264,10 @@ public final class BuiltInToolRegistrar
         catalogue.add(new RenameMetadataObjectTool());
         catalogue.add(new DeleteMetadataTool());
         catalogue.add(new CreateMetadataTool());
+        catalogue.add(new SortMetadataTool());
         catalogue.add(new ModifyMetadataTool());
         catalogue.add(new AdoptMetadataObjectTool());
+        catalogue.add(new CloneMetadataObjectTool());
         catalogue.add(new ValidateXdtoPackageTool());
 
         // Three-way configuration comparison (read-only: nothing is ever merged).

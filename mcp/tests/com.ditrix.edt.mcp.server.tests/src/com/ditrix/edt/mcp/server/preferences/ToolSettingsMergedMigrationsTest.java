@@ -4,26 +4,32 @@ package com.ditrix.edt.mcp.server.preferences;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.eclipse.jface.preference.PreferenceStore;
 import org.junit.Test;
 
-/** Independent boundary fixtures for merging the v16 through v19 read-only migrations. */
+/** Independent boundary fixtures for the v16-v24 preset migrations. */
 public class ToolSettingsMergedMigrationsTest
 {
     @Test
-    public void version15ReadOnlyStoresGainExactlyTheLaterTools()
+    public void version15ReadOnlyStoresGainExactlyAllLaterTools()
     {
         for (String preset : List.of("analysis-only", "code-review"))
         {
             PreferenceStore store = stored(15, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
             ToolSettingsService.ensureMigratedForTest(store);
-            assertEquals(preset, Set.of("owner_disabled", "obsolete_owner_tool",
-                "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"), disabled(store));
+            Set<String> expected = new HashSet<>(Set.of("owner_disabled", "obsolete_owner_tool",
+                "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review"));
+            if (preset.equals("analysis-only"))
+            {
+                expected.add("open_editor");
+            }
+            assertEquals(preset, expected, disabled(store));
             assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
@@ -34,10 +40,12 @@ public class ToolSettingsMergedMigrationsTest
         {
             PreferenceStore store = stored(16, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
             ToolSettingsService.ensureMigratedForTest(store);
-            assertEquals(preset, Set.of("owner_disabled", "obsolete_owner_tool", "project_checks", "open_in_editor", "cancel_write_review"),
-                disabled(store));
+            Set<String> expected = preset.equals("analysis-only")
+                ? Set.of("owner_disabled", "obsolete_owner_tool", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review")
+                : Set.of("owner_disabled", "obsolete_owner_tool", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review");
+            assertEquals(preset, expected, disabled(store));
             assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
@@ -48,31 +56,40 @@ public class ToolSettingsMergedMigrationsTest
         {
             PreferenceStore store = stored(16, preset, Set.of("owner_disabled", "business_process_route_map"));
             ToolSettingsService.ensureMigratedForTest(store);
-            assertEquals(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"),
-                disabled(store));
-            assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            Set<String> expected = preset.equals("analysis-only")
+                ? Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review")
+                : Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review");
+            assertEquals(expected, disabled(store));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         }
     }
 
     @Test
-    public void bothRegistriesKeepSeparateLiteralVersion16Through19Obligations()
+    public void bothRegistriesKeepSeparateLiteralVersion16Through24Obligations()
     {
-        assertEquals(19, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
+        assertEquals(24, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
         for (var additions : List.of(ToolSettingsService.ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION,
             ToolSettingsService.CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION))
         {
             assertEquals(Set.of("get_form_screenshot"), additions.get(15));
             assertEquals(Set.of("business_process_route_map"), additions.get(16));
             assertEquals(Set.of("project_checks"), additions.get(17));
-            assertEquals(Set.of("open_in_editor"), additions.get(18));
-            assertEquals(Set.of("cancel_write_review"), additions.get(19));
+            assertEquals(Set.of("infobase_extensions"), additions.get(18));
+            assertEquals(Set.of("clone_metadata_object"), additions.get(20));
+            assertEquals(Set.of("sort_metadata"), additions.get(21));
+            assertEquals(Set.of("edt_dialog"), additions.get(22));
+            assertEquals(Set.of("open_in_editor"), additions.get(23));
+            assertEquals(Set.of("cancel_write_review"), additions.get(24));
         }
+        assertEquals(Set.of("open_editor"),
+            ToolSettingsService.ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION.get(19));
+        assertFalse(ToolSettingsService.CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION.containsKey(19));
     }
 
     @Test
-    public void version15MigrationsPublishOneCombinedDisabledSetThenVersion19()
+    public void version15MigrationsPublishOneCombinedDisabledSetThenCurrentVersion()
     {
-        PreferenceStore store = stored(15, "code-review", Set.of("owner_disabled"));
+        PreferenceStore store = stored(15, "analysis-only", Set.of("owner_disabled"));
         List<String> writes = new ArrayList<>();
         List<Set<String>> published = new ArrayList<>();
         store.addPropertyChangeListener(event -> {
@@ -83,11 +100,11 @@ public class ToolSettingsMergedMigrationsTest
             }
         });
         ToolSettingsService.ensureMigratedForTest(store);
-        assertEquals(List.of(Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review")),
+        assertEquals(List.of(Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review")),
             published);
         assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
             PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
-        assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+        assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
         writes.clear();
         ToolSettingsService.ensureMigratedForTest(store);
         assertTrue("the combined migration is one-shot", writes.isEmpty());
@@ -97,22 +114,91 @@ public class ToolSettingsMergedMigrationsTest
     public void anAlreadyCompleteDisabledSetNeedsOnlyTheVersionStamp()
     {
         PreferenceStore store = stored(15, "analysis-only",
-            Set.of("owner_disabled", "business_process_route_map", "project_checks", "open_in_editor", "cancel_write_review"));
+            Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review"));
         String before = store.getString(PreferenceConstants.PREF_DISABLED_TOOLS);
         List<String> writes = new ArrayList<>();
         store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
         ToolSettingsService.ensureMigratedForTest(store);
         assertEquals(before, store.getString(PreferenceConstants.PREF_DISABLED_TOOLS));
         assertEquals(List.of(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
-        assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+        assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
     }
 
     @Test
-    public void version19RetainsOwnerOptInsWithoutWritingAgain()
+    public void version19PreservesExtensionAndNavigationOptInsAndAddsCloneAndSort()
     {
         for (String preset : List.of("analysis-only", "code-review"))
         {
-            PreferenceStore store = stored(19, preset, Set.of("owner_disabled"));
+            PreferenceStore store = stored(19, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
+            List<String> writes = new ArrayList<>();
+            store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(Set.of("owner_disabled", "obsolete_owner_tool", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review"), disabled(store));
+            assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
+                PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
+            writes.clear();
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertTrue(writes.isEmpty());
+        }
+    }
+
+    @Test
+    public void version20PreservesOlderOptInsAndAddsSortMetadataAndEdtDialog()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(20, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
+            List<String> writes = new ArrayList<>();
+            List<Set<String>> published = new ArrayList<>();
+            store.addPropertyChangeListener(event -> {
+                writes.add(event.getProperty());
+                if (PreferenceConstants.PREF_DISABLED_TOOLS.equals(event.getProperty()))
+                {
+                    published.add(Set.copyOf(disabled(store)));
+                }
+            });
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(Set.of("owner_disabled", "obsolete_owner_tool", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review"), disabled(store));
+            assertEquals("cancel_write_review,edt_dialog,obsolete_owner_tool,open_in_editor,owner_disabled,sort_metadata",
+                store.getString(PreferenceConstants.PREF_DISABLED_TOOLS));
+            assertEquals(List.of(Set.of("owner_disabled", "obsolete_owner_tool", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review")), published);
+            assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
+                PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
+            writes.clear();
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertTrue(writes.isEmpty());
+        }
+    }
+
+    @Test
+    public void version21AddsOnlyEdtDialogAndRetainsOlderOptIns()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(21, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
+            List<String> writes = new ArrayList<>();
+            store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(Set.of("owner_disabled", "obsolete_owner_tool", "edt_dialog", "open_in_editor", "cancel_write_review"), disabled(store));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
+                PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
+            writes.clear();
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertTrue(writes.isEmpty());
+        }
+    }
+
+    @Test
+    public void version24RetainsOwnerOptInsWithoutWritingAgain()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(24, preset, Set.of("owner_disabled"));
             List<String> writes = new ArrayList<>();
             store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
             ToolSettingsService.ensureMigratedForTest(store);
@@ -122,9 +208,45 @@ public class ToolSettingsMergedMigrationsTest
     }
 
     @Test
+    public void version18PreservesExtensionOptInsAndAddsOnlyLaterObligations()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(18, preset, Set.of("owner_disabled", "obsolete_owner_tool"));
+            List<String> writes = new ArrayList<>();
+            store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
+            ToolSettingsService.ensureMigratedForTest(store);
+            Set<String> expected = preset.equals("analysis-only")
+                ? Set.of("owner_disabled", "obsolete_owner_tool", "open_editor", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review")
+                : Set.of("owner_disabled", "obsolete_owner_tool", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review");
+            assertEquals(preset, expected, disabled(store));
+            assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+            assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
+                PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
+            writes.clear();
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertTrue(writes.isEmpty());
+        }
+    }
+
+    @Test
+    public void version17ReadOnlyStoresKeepExtensionNavigationCloneAndSortDisabled()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(17, preset, Set.of("owner_disabled", "open_editor"));
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(preset, Set.of("owner_disabled", "open_editor", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review"), disabled(store));
+            assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
+            assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+        }
+    }
+
+    @Test
     public void newerStepsLeaveOtherOrMissingPresetPromisesUnchanged()
     {
-        for (int version : List.of(15, 16, 17))
+        for (int version : List.of(15, 16, 17, 18, 19, 20, 21, 22, 23))
         {
             for (String preset : List.of("development", "all-tools", "custom", "future-preset", ""))
             {
@@ -133,8 +255,78 @@ public class ToolSettingsMergedMigrationsTest
                 assertEquals(preset, Set.of("owner_disabled"), disabled(store));
                 assertEquals(!preset.isEmpty(), store.contains(PreferenceConstants.PREF_TOOL_PRESET_ID));
                 assertEquals(preset, store.getString(PreferenceConstants.PREF_TOOL_PRESET_ID));
-                assertEquals(19, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
+                assertEquals(24, store.getInt(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION));
             }
+        }
+    }
+
+    @Test
+    public void originVersion22AddsForkToolsOnceWithoutReplayingOriginSteps()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(22, preset, Set.of("owner_disabled"));
+            List<String> writes = new ArrayList<>();
+            store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(Set.of("owner_disabled", "open_in_editor", "cancel_write_review"), disabled(store));
+            assertEquals(List.of(PreferenceConstants.PREF_DISABLED_TOOLS,
+                PreferenceConstants.PREF_TOOL_PREFS_MIGRATION), writes);
+            writes.clear();
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertTrue(writes.isEmpty());
+        }
+    }
+
+    @Test
+    public void version23KeepsNavigationOptInAndAddsOnlyWithdrawalPolicy()
+    {
+        for (String preset : List.of("analysis-only", "code-review"))
+        {
+            PreferenceStore store = stored(23, preset, Set.of("owner_disabled"));
+            ToolSettingsService.ensureMigratedForTest(store);
+            assertEquals(Set.of("owner_disabled", "cancel_write_review"), disabled(store));
+        }
+    }
+
+    @Test
+    public void forkVersion18And19ReconcileSkippedOriginTools()
+    {
+        for (int version : List.of(18, 19))
+        {
+            for (String preset : List.of("analysis-only", "code-review"))
+            {
+                Set<String> forkDisabled = version == 18
+                    ? Set.of("owner_disabled", "open_in_editor")
+                    : Set.of("owner_disabled", "open_in_editor", "cancel_write_review");
+                PreferenceStore store = stored(version, preset, forkDisabled);
+                ToolSettingsService.ensureMigratedForTest(store);
+                Set<String> expected = new HashSet<>(Set.of("owner_disabled", "open_in_editor", "cancel_write_review",
+                    "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog"));
+                if (preset.equals("analysis-only")) expected.add("open_editor");
+                assertEquals(version + " " + preset, expected, disabled(store));
+                store.setValue(PreferenceConstants.PREF_DISABLED_TOOLS, "owner_disabled");
+                List<String> writes = new ArrayList<>();
+                store.addPropertyChangeListener(event -> writes.add(event.getProperty()));
+                ToolSettingsService.ensureMigratedForTest(store);
+                assertEquals(Set.of("owner_disabled"), disabled(store));
+                assertTrue(writes.isEmpty());
+            }
+        }
+    }
+
+    @Test
+    public void forkCollisionRepairDoesNotInferProvenanceForCustomOrOriginStores()
+    {
+        for (int version : List.of(18, 19))
+        {
+            PreferenceStore custom = stored(version, "custom", Set.of("owner_disabled", "open_in_editor"));
+            ToolSettingsService.ensureMigratedForTest(custom);
+            assertEquals(Set.of("owner_disabled", "open_in_editor"), disabled(custom));
+            PreferenceStore origin = stored(version, "analysis-only", Set.of("owner_disabled"));
+            ToolSettingsService.ensureMigratedForTest(origin);
+            assertFalse(disabled(origin).contains("infobase_extensions"));
+            assertEquals(version < 19, disabled(origin).contains("open_editor"));
         }
     }
 

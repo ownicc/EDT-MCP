@@ -10,7 +10,7 @@ import org.junit.Test;
 public class OpenInEditorMigrationTest
 {
     @Test
-    public void version17ProfilesKeepTheirRecordedUiPolicy()
+    public void version22ProfilesKeepTheirRecordedUiPolicy()
     {
         Map<String, Boolean> cases = Map.of("analysis-only", true, "code-review", true,
             "custom", false, "development", false, "all-tools", false);
@@ -19,7 +19,7 @@ public class OpenInEditorMigrationTest
             PreferenceStore store = new PreferenceStore();
             store.setValue(PreferenceConstants.PREF_DISABLED_TOOLS, "write_module_source");
             store.setValue(PreferenceConstants.PREF_TOOL_PRESET_ID, entry.getKey());
-            store.setValue(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION, 17);
+            store.setValue(PreferenceConstants.PREF_TOOL_PREFS_MIGRATION, 22);
             ToolSettingsService.ensureMigratedForTest(store);
             assertEquals(entry.getKey(), entry.getValue(), Boolean.valueOf(
                 ToolSettingsService.parseDisabledTools(store.getString(PreferenceConstants.PREF_DISABLED_TOOLS))

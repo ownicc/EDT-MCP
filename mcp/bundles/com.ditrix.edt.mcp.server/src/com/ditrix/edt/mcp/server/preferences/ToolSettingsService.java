@@ -99,9 +99,19 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
 
     private static final Set<String> READ_ONLY_V17_ADDITIONS = Set.of("project_checks"); //$NON-NLS-1$
 
-    private static final Set<String> READ_ONLY_V18_ADDITIONS = Set.of("open_in_editor"); //$NON-NLS-1$
+    private static final Set<String> READ_ONLY_V18_ADDITIONS = Set.of("infobase_extensions"); //$NON-NLS-1$
 
-    private static final Set<String> READ_ONLY_V19_ADDITIONS = Set.of("cancel_write_review"); //$NON-NLS-1$
+    private static final Set<String> ANALYSIS_ONLY_V19_ADDITIONS = Set.of("open_editor"); //$NON-NLS-1$
+
+    private static final Set<String> READ_ONLY_V20_ADDITIONS = Set.of("clone_metadata_object"); //$NON-NLS-1$
+
+    private static final Set<String> READ_ONLY_V21_ADDITIONS = Set.of("sort_metadata");
+
+    private static final Set<String> READ_ONLY_V22_ADDITIONS = Set.of("edt_dialog");
+
+    private static final Set<String> READ_ONLY_V23_ADDITIONS = Set.of("open_in_editor"); //$NON-NLS-1$
+
+    private static final Set<String> READ_ONLY_V24_ADDITIONS = Set.of("cancel_write_review"); //$NON-NLS-1$
 
     /** Actual disabled-name additions registered for each Analysis Only migration. */
     static final Map<Integer, Set<String>> ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION = Map.ofEntries(
@@ -121,7 +131,12 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         Map.entry(16, READ_ONLY_V16_ADDITIONS),
         Map.entry(17, READ_ONLY_V17_ADDITIONS),
         Map.entry(18, READ_ONLY_V18_ADDITIONS),
-        Map.entry(19, READ_ONLY_V19_ADDITIONS));
+        Map.entry(19, ANALYSIS_ONLY_V19_ADDITIONS),
+        Map.entry(20, READ_ONLY_V20_ADDITIONS),
+        Map.entry(21, READ_ONLY_V21_ADDITIONS),
+        Map.entry(22, READ_ONLY_V22_ADDITIONS),
+        Map.entry(23, READ_ONLY_V23_ADDITIONS),
+        Map.entry(24, READ_ONLY_V24_ADDITIONS));
 
     /** Actual disabled-name additions registered for each Code Review migration. */
     static final Map<Integer, Set<String>> CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION = Map.ofEntries(
@@ -141,7 +156,11 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         Map.entry(16, READ_ONLY_V16_ADDITIONS),
         Map.entry(17, READ_ONLY_V17_ADDITIONS),
         Map.entry(18, READ_ONLY_V18_ADDITIONS),
-        Map.entry(19, READ_ONLY_V19_ADDITIONS));
+        Map.entry(20, READ_ONLY_V20_ADDITIONS),
+        Map.entry(21, READ_ONLY_V21_ADDITIONS),
+        Map.entry(22, READ_ONLY_V22_ADDITIONS),
+        Map.entry(23, READ_ONLY_V23_ADDITIONS),
+        Map.entry(24, READ_ONLY_V24_ADDITIONS));
 
     /*
      * Frozen history for v1-v12 and the one-shot v13 stamp only. Newer preset-owed steps use
@@ -330,9 +349,7 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         IPreferenceStore store = getStore();
         if (store == null)
         {
-            // FAIL CLOSED: with no preference store (a headless registry, a plugin not started yet)
-            // an empty set would advertise and allow EVERY tool, including the ones that ship
-            // disabled - the powerful raw git tool among them. Fall back to the shipped defaults.
+            // Stored preferences fail closed without a store; the explicit headless registry ignores them.
             return parseDisabledTools(PreferenceConstants.DEFAULT_DISABLED_TOOLS);
         }
         ensureMigrated(store);
@@ -401,8 +418,14 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
      * re-enable survive every subsequent read. It runs after v14 in the same single set write.
      * <p>
      * Version 17 adds project_checks to recorded read-only profiles.
-     * Version 18 adds open_in_editor, whose UI activation changes workspace presentation.
-     * Version 19 adds cancel_write_review, which withdraws pending human decisions.
+     * Version 18 adds infobase_extensions after it joined the Applications group.
+     * <p>
+     * Version 19 adds open_editor to recorded Analysis Only profiles.
+     * <p>
+     * Version 20 adds clone_metadata_object to recorded read-only profiles.
+     * Versions 21 and 22 add sort_metadata and edt_dialog.
+     * Versions 23 and 24 add the fork tools open_in_editor and cancel_write_review.
+     * Their earlier local-only numbers 18/19 were reassigned to avoid the origin history.
      * <p>
      * Keep v1-v14 dispatch frozen. Future preset-owed steps use {@link #storedPreset} and the
      * {@link ToolPreset#isReadOnly()} / {@link ToolPreset#isNoDebug()} promises, independent of owner
@@ -426,6 +449,10 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         {
             Set<String> disabled =
                 new LinkedHashSet<>(parseDisabledTools(store.getString(PreferenceConstants.PREF_DISABLED_TOOLS)));
+            // These unpublished fork epochs collided with origin's 18/19. Inspect the original
+            // list before v23 adds fork names, so ordinary origin owner opt-ins are not re-disabled.
+            boolean forkEpochCollision = (storedVersion == 18 || storedVersion == 19)
+                && (disabled.contains("open_in_editor") || disabled.contains("cancel_write_review")); //$NON-NLS-1$ //$NON-NLS-2$
             boolean changed = false;
             // Each step is gated by its OWN version threshold, NOT merely "storedVersion is below
             // the CURRENT version" - an installation already at version 1 (git migrated in) that has
@@ -536,7 +563,36 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
             }
             if (storedVersion < 19)
             {
-                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V19_ADDITIONS);
+                changed |= storedPreset(store) == ToolPreset.ANALYSIS_ONLY
+                    && disabled.addAll(ANALYSIS_ONLY_V19_ADDITIONS);
+            }
+            if (storedVersion < 20)
+            {
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V20_ADDITIONS);
+            }
+            if (storedVersion < 21)
+            {
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V21_ADDITIONS);
+            }
+            if (storedVersion < 22)
+            {
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V22_ADDITIONS);
+            }
+            if (storedVersion < 23)
+            {
+                if (forkEpochCollision && storedPreset(store).isReadOnly())
+                {
+                    changed |= disabled.addAll(READ_ONLY_V18_ADDITIONS);
+                    if (storedPreset(store) == ToolPreset.ANALYSIS_ONLY)
+                    {
+                        changed |= disabled.addAll(ANALYSIS_ONLY_V19_ADDITIONS);
+                    }
+                }
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V23_ADDITIONS);
+            }
+            if (storedVersion < 24)
+            {
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V24_ADDITIONS);
             }
             if (changed)
             {

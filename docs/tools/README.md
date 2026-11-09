@@ -2,7 +2,7 @@
 
 One page per tool: what it does, every parameter, and how it works. Generated from the live server by `docs/generate_tool_docs.py` (re-run to refresh; the source of truth is each tool's Java).
 
-**105 tools.**
+**110 tools.**
 
 ## Core
 
@@ -10,6 +10,7 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 
 | Tool | Description |
 |------|-------------|
+| [`edt_dialog`](edt_dialog.md) | List open EDT modal dialogs, then explicitly press an exact button on an answerable dialog. |
 | [`enable_toolset`](enable_toolset.md) | Make additional MCP tool groups visible or hide them. Parameters and examples: get_tool_guide('enable_toolset'). |
 | [`get_edt_version`](get_edt_version.md) | Identify the installed 1C:EDT version. Parameters and examples: get_tool_guide('get_edt_version'). |
 | [`get_metadata_details`](get_metadata_details.md) | Inspect metadata objects and members, including managed-form root properties and structure, and a section's command interface. Parameters and examples: get_t… |
@@ -31,7 +32,9 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 |------|-------------|
 | [`adopt_metadata_object`](adopt_metadata_object.md) | Add a base-configuration object or member to an extension for customization. Parameters and examples: get_tool_guide('adopt_metadata_object'). |
 | [`business_process_route_map`](business_process_route_map.md) | Read, replace or remove a BusinessProcess route map. Call action='get' before replacing; replace discards all existing items, preserving point identity only… |
+| [`clone_metadata_object`](clone_metadata_object.md) | Clone one metadata object with EDT's native paste semantics. Call once without confirm to preview, then repeat the same newName and transfer selection with c… |
 | [`create_launch_config`](create_launch_config.md) | Configure an EDT runtime client for launching a 1C application. Parameters and examples: get_tool_guide('create_launch_config'). |
+| [`sort_metadata`](sort_metadata.md) | Reorder metadata by Name, explicit order or one sibling move. |
 | [`create_metadata`](create_metadata.md) | Add a new metadata object or member to a configuration. Parameters and examples: get_tool_guide('create_metadata'). |
 | [`dcs`](dcs.md) | Read, author, and losslessly XML-round-trip 1C DCS schemas, settings variants, form conditional appearance, and form dynamic lists. Call action='get' first;… |
 | [`delete_launch_config`](delete_launch_config.md) | Remove an unused EDT runtime or attach launch configuration. Two-phase: call once WITHOUT confirm to preview, then again with confirm=true to apply. Paramete… |
@@ -60,10 +63,11 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 | [`get_symbol_info`](get_symbol_info.md) | Inspect the type and documentation of a BSL symbol at its source location. Parameters and examples: get_tool_guide('get_symbol_info'). |
 | [`get_write_review_status`](get_write_review_status.md) | Get a BSL write review by reviewId or a durable operation receipt by requestId. Only the human can apply a review in EDT. Parameters and examples: get_tool_g… |
 | [`go_to_definition`](go_to_definition.md) | Locate the source definition of a BSL symbol or metadata object. Parameters and examples: get_tool_guide('go_to_definition'). |
+| [`open_editor`](open_editor.md) | Open an EDT editor for metadata, a managed form, or BSL source. Requires Allow UI navigation in MCP Server preferences (off by default). Parameters and examp… |
 | [`open_in_editor`](open_in_editor.md) | Open or activate a BSL module in EDT, optionally at a method or line/column. Preserves unsaved edits. Parameters and examples: get_tool_guide('open_in_editor'). |
 | [`read_method_source`](read_method_source.md) | Inspect the source of one BSL procedure or function. Parameters and examples: get_tool_guide('read_method_source'). |
-| [`validate_query`](validate_query.md) | Check a 1C query for syntax and metadata-reference errors. Parameters and examples: get_tool_guide('validate_query'). |
-| [`write_module_source`](write_module_source.md) | Create or edit BSL source in a metadata module. When reviewId is returned, poll get_write_review_status; only human approval in EDT applies the change. Param… |
+| [`validate_query`](validate_query.md) | Check a 1C query or stored BSL query literals for syntax and metadata-reference errors. Parameters and examples: get_tool_guide('validate_query'). |
+| [`write_module_source`](write_module_source.md) | Create or edit BSL source in a metadata module. Parameters and examples: get_tool_guide('write_module_source'). |
 
 ## Debug
 
@@ -164,6 +168,7 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 | [`get_project_errors`](get_project_errors.md) | Find detailed validation errors and warnings in an EDT project. Parameters and examples: get_tool_guide('get_project_errors'). |
 | [`import_configuration_from_xml`](import_configuration_from_xml.md) | Create an EDT project from exported 1C configuration XML files. Use platformVersion for the new project's runtime, derived from the dump by default (xmlVersi… |
 | [`import_project_from_file`](import_project_from_file.md) | Create a NEW EDT project from a 1C binary file: .cf (configuration), .cfe (extension; baseProjectName required) or .epf/.erf (external data processor/report)… |
+| [`infobase_extensions`](infobase_extensions.md) | List installed infobase extensions and install, update or uninstall .cfe files. DESTRUCTIVE: call once WITHOUT confirm to preview a write, then with confirm=… |
 | [`infobase_sessions`](infobase_sessions.md) | List or terminate sessions on a running standalone-server infobase. DESTRUCTIVE for terminate: pass confirm=true; bulk termination skips Designer, while its… |
 | [`list_git_branches`](list_git_branches.md) | Inspect available Git branches and their EDT infobase bindings. Parameters and examples: get_tool_guide('list_git_branches'). |
 | [`project_checks`](project_checks.md) | List or change EDT validation checks; switch, create, copy or delete check-settings profiles. Writes ask for consent; profile deletion is destructive. Parame… |

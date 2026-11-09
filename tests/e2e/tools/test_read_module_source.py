@@ -238,3 +238,10 @@ def test_rejects_unknown_source_view_with_an_actionable_error():
     error = assert_error(result, "unsupported view")
     assert_error_quality(error, names=["live", "view"], suggests=["disk", "document"])
     assert_no_diff()
+
+
+@e2e_test(tool="read_module_source", kind="read")
+def test_windowed_formatter_contract():
+    from read_host_contracts import contract_read_module_source
+    contract_read_module_source(call, "WINDOWED")
+    assert_no_diff("pinned formatter reads must not change fixture files")

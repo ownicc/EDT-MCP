@@ -118,6 +118,14 @@ public class Messages extends NLS {
     public static String BslReview_Expired; // NOSONAR Eclipse NLS field
     public static String BslReview_Cancelled; // NOSONAR Eclipse NLS field
     public static String BslReview_Failed; // NOSONAR Eclipse NLS field
+    public static String McpStatus_HttpRunning; // NOSONAR Eclipse NLS field
+    public static String McpStatus_HttpStopped; // NOSONAR Eclipse NLS field
+    public static String McpStatus_StdioReady; // NOSONAR Eclipse NLS field
+    public static String McpStatus_StdioUnavailable; // NOSONAR Eclipse NLS field
+
+    public static String McpStatus_Title; // NOSONAR Eclipse NLS field
+    public static String McpStatus_Executing; // NOSONAR Eclipse NLS field
+    public static String McpStatus_Tooltip; // NOSONAR Eclipse NLS field
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);

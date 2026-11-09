@@ -566,6 +566,123 @@ def _is_transient_building(result):
     return bool(_BUILDING_REFUSAL_RE.search(result.error_text()))
 
 
+_OUTPUT_SCHEMAS = None
+
+
+def _output_schemas(refresh=False):
+    """Cache each advertised tool's contract, including explicit schema-free entries."""
+    global _OUTPUT_SCHEMAS
+    if refresh:
+        _OUTPUT_SCHEMAS = None
+    if _OUTPUT_SCHEMAS is None:
+        schemas, params, cursors = {}, {}, set()
+        while True:
+            raw = _post("tools/list", params)
+            page = raw.get("result", {})
+            if "error" in raw or not isinstance(page.get("tools"), list):
+                raise AssertionError("tools/list: cannot load outputSchema contracts: %r" % raw)
+            for tool in page["tools"]:
+                schemas[tool["name"]] = tool.get("outputSchema")
+            cursor = page.get("nextCursor")
+            if not cursor:
+                break
+            if cursor in cursors:
+                raise AssertionError("tools/list: repeated nextCursor %r" % cursor)
+            cursors.add(cursor)
+            params = {"cursor": cursor}
+        _OUTPUT_SCHEMAS = schemas
+    return _OUTPUT_SCHEMAS
+
+
+def validate_output_schema(value, schema, tool, path="$"):
+    """Validate the server's JSON Schema subset using only the standard library.
+
+    Annotation keywords do not constrain instances. Unknown validation keywords fail
+    closed so a new server schema feature cannot silently weaken this check.
+    """
+    def fail(rule, detail):
+        raise AssertionError("%s structuredContent %s: %s: %s" % (tool, path, rule, detail))
+
+    if isinstance(schema, bool):
+        if not schema:
+            fail("false schema", "no value is allowed")
+        return
+    supported = {"type", "properties", "items", "required", "enum", "additionalProperties",
+                 "oneOf", "anyOf", "description", "title", "$schema", "$id", "$comment",
+                 "default", "examples"}
+    for keyword in schema:
+        if keyword not in supported:
+            fail("unsupported schema keyword", keyword)
+    types = schema.get("type")
+    if types is not None:
+        types = types if isinstance(types, list) else [types]
+        matches = {"object": isinstance(value, dict), "array": isinstance(value, list),
+                   "string": isinstance(value, str), "boolean": isinstance(value, bool),
+                   "null": value is None,
+                   "integer": type(value) in (int, float) and value % 1 == 0,
+                   "number": type(value) in (int, float)}
+        if any(t not in matches for t in types):
+            fail("type", "unsupported type %r" % types)
+        if not any(matches[t] for t in types):
+            fail("type", "expected %r, got %s" % (types, type(value).__name__))
+    if "enum" in schema:
+        # Python equates True with 1, unlike JSON Schema. Compare JSON values recursively.
+        def equal(a, b):
+            if isinstance(a, bool) or isinstance(b, bool):
+                return type(a) is type(b) and a == b
+            if isinstance(a, list) and isinstance(b, list):
+                return len(a) == len(b) and all(equal(x, y) for x, y in zip(a, b))
+            if isinstance(a, dict) and isinstance(b, dict):
+                return a.keys() == b.keys() and all(equal(a[k], b[k]) for k in a)
+            return a == b
+        if not any(equal(value, candidate) for candidate in schema["enum"]):
+            fail("enum", "%r is not one of %r" % (value, schema["enum"]))
+    for keyword in ("oneOf", "anyOf"):
+        if keyword in schema:
+            count, errors = 0, []
+            for alternative in schema[keyword]:
+                try:
+                    validate_output_schema(value, alternative, tool, path)
+                    count += 1
+                except AssertionError as error:
+                    errors.append(str(error))
+            if (keyword == "oneOf" and count != 1) or (keyword == "anyOf" and count == 0):
+                fail(keyword, "%d matching alternatives; %s" % (count, "; ".join(errors)))
+    if isinstance(value, dict):
+        for name in schema.get("required", []):
+            if name not in value:
+                fail("required", "missing property %r" % name)
+        properties = schema.get("properties", {})
+        for name, member in value.items():
+            member_path = path + "[" + json.dumps(name, ensure_ascii=True) + "]"
+            if name in properties:
+                validate_output_schema(member, properties[name], tool, member_path)
+            elif "additionalProperties" in schema:
+                if schema["additionalProperties"] is False:
+                    raise AssertionError("%s structuredContent %s: additionalProperties: unexpected property"
+                                         % (tool, member_path))
+                validate_output_schema(member, schema["additionalProperties"], tool, member_path)
+    if isinstance(value, list) and "items" in schema:
+        for index, member in enumerate(value):
+            validate_output_schema(member, schema["items"], tool, "%s[%d]" % (path, index))
+
+
+def _validate_tool_output(tool, result):
+    if result.is_error or result.rpc_error or "structuredContent" not in result.result:
+        return
+    if isinstance(result.structured, dict) and result.structured.get("success") is False:
+        return
+    schemas = _output_schemas()
+    if tool not in schemas:
+        schemas = _output_schemas(refresh=True)
+    if tool not in schemas:
+        raise AssertionError("%s structuredContent $: outputSchema discovery: tool is not advertised "
+                             "by tools/list; enable its toolset before calling it" % tool)
+    schema = schemas[tool]
+    if schema is not None:
+        validate_output_schema(result.structured, schema, tool)
+
+
 def call(tool, arguments):
     """Send tools/call and return a Result.
 
@@ -575,6 +692,7 @@ def call(tool, arguments):
     until it clears stabilizes the slower matrix legs without masking a real success/error
     (which returns unchanged on the next attempt). Bounded by BUILDING_RETRY_TIMEOUT; on
     expiry the building refusal is returned so the test fails loudly rather than hanging."""
+    global _OUTPUT_SCHEMAS
     deadline = time.time() + BUILDING_RETRY_TIMEOUT
     attempt = 0
     # Record the attempt BEFORE issuing it, once for the whole retry loop. If the request dies
@@ -585,6 +703,8 @@ def call(tool, arguments):
     # Prove the body can be built before counting the attempt. If this raises, nothing left this
     # process, so no outcome exists for anyone to read back.
     json.dumps({"name": tool, "arguments": arguments})
+    if tool == "enable_toolset":
+        _OUTPUT_SCHEMAS = None
     _record_attempt(tool, arguments)
     while True:
         try:
@@ -608,6 +728,7 @@ def call(tool, arguments):
             _BUILDING_REFUSALS_SEEN.append(result.error_text())
         if not building or time.time() >= deadline:
             _record_outcome(tool, arguments, result.is_error, result.structured)
+            _validate_tool_output(tool, result)
             return result
         attempt += 1
         time.sleep(min(2 * attempt, 10))
@@ -737,8 +858,12 @@ def _confirmed(args):
 # the Java side and is missing here fails the suite. Hand-maintained membership silently rots -
 # apply_quick_fix landed on master mutating the model, and this set did not know about it.
 MODEL_MUTATION_TOOLS = frozenset({
-    "create_metadata", "modify_metadata", "write_module_source",
+    # A conflict-dialog Import press can rewrite project sources through EDT.
+    "edt_dialog",
+    "sort_metadata", "create_metadata", "modify_metadata", "write_module_source",
     "apply_quick_fix", "build_external_objects",
+    # The preview never writes; a confirmed clone writes only after validation and the hash check.
+    "clone_metadata_object",
     # dcs authors schemas / settings / dynamic lists. It belongs here rather than in
     # DEEP_MUTATION_TOOLS because an ordinary refusal does not move the model: the writer validates
     # the request before the first eSet. The exception is a post-commit force-export scheduling
@@ -768,12 +893,15 @@ NON_FIXTURE_MODEL_MUTATION_TOOLS = frozenset({
 
 # Action-based writers share one exemption table. All other actions stay conservative.
 READ_ONLY_MODEL_ACTIONS = {
+    "edt_dialog": frozenset({"list"}),
     "dcs": frozenset({"get", "options"}),
     "business_process_route_map": frozenset({"get"}),
 }
 
 
 def _is_read_only_model_action(tool, args):
+    if tool == "sort_metadata":
+        return isinstance(args, dict) and args.get("mode") == "list"
     return (isinstance(args, dict) and isinstance(args.get("action"), str)
             and args["action"] in READ_ONLY_MODEL_ACTIONS.get(tool, ()))
 
@@ -1310,7 +1438,10 @@ def initialize(capabilities=None):
     """MCP lifecycle handshake: initialize -> capture session id -> notifications/initialized.
 
     Per the 2025-06-18 / 2025-11-25 spec the client MUST send initialize first and
-    then the initialized notification before normal operations. Done once at startup."""
+    then the initialized notification before normal operations. Reset cached contracts
+    for the new session's capabilities and visible tools."""
+    global _OUTPUT_SCHEMAS
+    _OUTPUT_SCHEMAS = None
     result = _post("initialize", {
         "protocolVersion": PROTOCOL_VERSION,
         "capabilities": capabilities or {},
@@ -1575,16 +1706,17 @@ def wait_for_project_ready(timeout=None, failure_details=None, progress=None, ig
     return False
 
 
-def wait_for_named_projects_ready(names, timeout=180, ctx=""):
+def wait_for_named_projects_ready(names, timeout=180, ctx="", *, invoke=None):
     """Poll list_projects(format=json) until every project in `names` reads 'ready'.
 
     Returns the last {name: state} map so the caller asserts on it (and on what else it holds).
     Unlike wait_for_project_ready this reads the JSON contract and requires every named project
     to exist and read 'ready', regardless of its EDT flag, nature, or open state.
+    An optional invoke uses the same readiness contract over a different transport.
     """
     deadline = time.time() + timeout
     while True:
-        listed = call("list_projects", {"format": "json"})
+        listed = (invoke or call)("list_projects", {"format": "json"})
         assert_ok(listed, "list_projects while waiting for %s" % (ctx or sorted(names)))
         states = {row["name"]: row["state"] for row in listed.structured["projects"]}
         if all(states.get(name) == "ready" for name in names) or time.time() > deadline:
@@ -1820,6 +1952,49 @@ def diff():
 def read_disk(relpath):
     with open(os.path.join(PROJECT_DIR, relpath), encoding="utf-8") as f:
         return f.read()
+
+
+def metadata_collection_state(project_name, fqn):
+    """Read one actual model EList and its optional V8 code style autosort policy."""
+    result = call("sort_metadata", {"projectName": project_name, "fqn": fqn, "mode": "list"})
+    assert_ok(result, "read current model collection order: %s" % fqn)
+    body = result.structured or {}
+    rows = body.get("collections", [])
+    if body.get("mode") != "list" or len(rows) != 1 or not isinstance(rows[0].get("order"), list):
+        _fail("expected one read-only model order for %s, got %r" % (fqn, body))
+    if "autosort" in rows[0]:
+        assert_autosort_notice(rows[0], message=body.get("message", ""))
+    return rows[0]
+
+
+def assert_autosort_notice(payload, governs=None, message=None):
+    """Validate the shared user-owned autosort notice; presence is the capability signal."""
+    block = payload.get("autosort")
+    fields = {"plugin", "governs", "setting", "order", "effect", "userAction"}
+    if not isinstance(block, dict) or set(block) != fields:
+        _fail("expected a complete autosort notice, got %r" % block)
+    assert block["plugin"] == "1C:Code style V8 (com.e1c.v8codestyle.autosort)", block
+    if governs is not None:
+        assert block["governs"] == governs, block
+    assert block["setting"] in ("all top-level lists", "all subordinate lists", "this list"), block
+    assert block["order"] in ("ascending, natural", "ascending, plain", "descending, natural", "descending, plain"), block
+    action = block["userAction"]
+    assert action.startswith("Autosort (1C:Code style V8) keeps this list in alphabetical order. "), block
+    assert "ask the user to turn it off for this list in Project > Properties > V8 > Metadata objects sort > Auto sort" in action, block
+    assert action.endswith("do not change this setting yourself."), block
+    assert ".prefs" not in str(block) and "topObjects" not in str(block) and "subordinateObjects" not in str(block), block
+    text = payload.get("message", "") if message is None else message
+    assert action in text and block["effect"] in text, (block, text)
+    return block
+
+
+def autosort_descending(state):
+    return "autosort" in state and state["autosort"]["order"].startswith("descending,")
+
+
+def metadata_collection_order(project_name, fqn):
+    """Preserve stored order; get_metadata_objects is a presentation listing."""
+    return metadata_collection_state(project_name, fqn)["order"]
 
 
 # ── Markdown table parsing (this project's OWN presentation contract) ──────────
@@ -2820,6 +2995,20 @@ def buffered_form_render_at_startup():
 # ──────────────────────────────────────────────────────────────────────────────
 # Assertions
 # ──────────────────────────────────────────────────────────────────────────────
+def snapshot_application_bindings(project):
+    """Observe default and RuntimeClient IDs for infobase refusal/validation checks."""
+    applications = call("get_applications", {"projectName": project})
+    assert_ok(applications, "snapshot application default")
+    configurations = call("list_configurations", {"projectName": project, "type": "client"})
+    assert_ok(configurations, "snapshot RuntimeClient bindings")
+    assert isinstance(applications.structured, dict), applications.structured
+    assert isinstance(configurations.structured, dict), configurations.structured
+    configs = configurations.structured["configurations"]
+    assert isinstance(configs, list), configs
+    return (applications.structured.get("defaultApplicationId"),
+            sorted((entry["name"], entry.get("applicationId")) for entry in configs))
+
+
 def assert_ok(result, ctx=""):
     if result.is_error:
         _fail("expected success but tool returned isError [%s]: %s" % (ctx, result.error_text()[:300]))
@@ -3080,10 +3269,11 @@ def poll_disk_contains(rel_path, substr, timeout=10, ctx=""):
     return poll_disk_contains_all(rel_path, [substr], timeout=timeout, ctx=ctx)
 
 
-def poll_disk_contains_all(rel_path, substrs, timeout=10, ctx="", fixture_rel=None):
+def poll_disk_contains_all(rel_path, substrs, timeout=10, ctx="", fixture_rel=None, *, check=None):
     """Poll until ONE read of a named fixture file contains every substring in substrs, and return
     that read. Polling each needle separately proves each was present at SOME moment, not that one
-    snapshot of the file holds them all.
+    snapshot of the file holds them all. An optional check(text) must also accept that same read;
+    use it for structural comparisons that cannot be expressed as substring checks.
 
     rel_path is relative to the BASE project by default, or to the fixture path `fixture_rel` names
     (TESTS_PROJECT_REL for the extension, say) - one poll for every fixture, not a copy per root.
@@ -3100,7 +3290,7 @@ def poll_disk_contains_all(rel_path, substrs, timeout=10, ctx="", fixture_rel=No
         try:
             with open(full, encoding="utf-8", errors="replace") as f:
                 last = f.read()
-            if all(s in last for s in substrs):
+            if all(s in last for s in substrs) and (check is None or check(last)):
                 return last
         except FileNotFoundError:
             last = "(file does not exist yet)"
@@ -3108,6 +3298,8 @@ def poll_disk_contains_all(rel_path, substrs, timeout=10, ctx="", fixture_rel=No
             last = "(file could not be read yet: %s)" % e
         time.sleep(0.5)
     missing = [s for s in substrs if s not in last]
+    if check is not None and not missing:
+        _fail("expected %s to pass its content check [%s]; it holds:\n%s" % (shown, ctx, last[:700]))
     _fail("expected %s to contain %r [%s]; it holds:\n%s"
           % (shown, missing[0] if len(missing) == 1 else missing, ctx, last[:700]))
 
@@ -3420,8 +3612,11 @@ def wait_until_no_running_launch(config_name=None, timeout=60):
 REGISTRY = []
 
 
-def e2e_test(tool, kind="read", last=False):
+def e2e_test(tool, kind="read", last=False, first=False):
     """Register a test function. kind: 'read' | 'write' | 'action'.
+
+    first=True runs before ordinary tests within the selected shard. Use it only for a test
+    whose exact pin needs an EDT that no earlier test has changed.
 
     last=True defers the test to the END of the run. Use it only when the SUBJECT of the test
     is the run itself rather than one tool's behaviour - the EDT-log ratchet, which can only
@@ -3431,6 +3626,6 @@ def e2e_test(tool, kind="read", last=False):
     """
     def deco(fn):
         REGISTRY.append({"func": fn, "tool": tool, "kind": kind, "name": fn.__name__,
-                         "last": last})
+                         "last": last, "first": first})
         return fn
     return deco

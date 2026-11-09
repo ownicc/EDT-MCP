@@ -109,4 +109,22 @@ public class ConsentSettingsServiceTest
         finally { field.set(null, saved); }
     }
 
+    @Test
+    public void headlessWritesSkipUiReviewWithoutChangingWindowedPreference()
+    {
+        String previous = System.getProperty("eclipse.application");
+        try
+        {
+            System.setProperty("eclipse.application", com.ditrix.edt.mcp.server.HostKind.APPLICATION_ID);
+            assertFalse(ConsentSettingsService.getInstance().isBslWriteReviewEnabled());
+            System.setProperty("eclipse.application", "org.eclipse.ui.ide.workbench");
+            assertTrue(ConsentSettingsService.getInstance().isBslWriteReviewEnabled());
+        }
+        finally
+        {
+            if (previous == null) System.clearProperty("eclipse.application");
+            else System.setProperty("eclipse.application", previous);
+        }
+    }
+
 }
