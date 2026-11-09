@@ -1,0 +1,18 @@
+# BSL MCP workflow improvements
+
+The user requested Beads epic `edt-0ks` on a new Worktrunk branch. Implement its four independent deliverables in the existing Eclipse/EDT plugin, preserving human-only BSL review acceptance. Existing method-targeted edits and Current/Proposed module comparisons remain the basis; no new diff engine or batch-edit API.
+
+## Contracts
+
+1. `read_module_source(view=disk|document)` keeps `disk` as default. Document view reads an already connected file buffer or already instantiated editor across all workbench windows, without opening, saving or modifying anything. No document means an actionable refusal; no silent disk fallback. Snapshot text and dirty state together on the UI thread with bounded waiting. Return `view`, `dirty` when observable, and `documentHash` for document view; omit the disk `contentHash` there to prevent round-tripping a document token into a disk write. Preserve ranges, limits and disk tokens. A missing workbench must not prevent ordinary disk reads.
+2. `cancel_write_review(reviewId)` atomically withdraws only an awaiting review, returns its updated JSON snapshot, releases its module/payload, and updates the existing UI. Repeating cancellation returns the terminal snapshot. Applying or other terminal reviews are reported truthfully, never relabelled cancelled. Unknown IDs refuse. A review ID is the existing capability; no new ownership/authentication layer. The tool never applies or saves source and is excluded from read-only presets like other UI-state mutations.
+3. `open_in_editor` accepts exactly one of `modulePath` or the existing `objectName + moduleType + formName/commandName` addressing convention. Reuse `WriteModuleSourceTool.resolveModuleTarget` through a shared utility if needed; preserve validation and path confinement. This opens BSL text only. Existing document-based navigation and time bounds remain.
+4. Optional `requestId` on `write_module_source` supports matching replay and conflicting-argument refusal, including completed writes and restart recovery. Limit persistence to small operation receipts, not source payloads or a general operations framework. Persist admission before executing; capture review IDs and terminal snapshots. A recovered interrupted receipt is an explicit unknown outcome and never automatically re-executes. Bound retention and document its guarantees; request IDs are unique within the workspace store and must never be recycled. Preserve legacy calls and human-only acceptance. Read/status tools expose recovery information without accepting a write.
+
+## Alternatives and decisions
+
+Explicit source selection avoids changing existing disk-read semantics; implicit preference for dirty buffers would invalidate the existing write token contract. Review cancellation reuses the registry instead of treating a proposal as a background job. Editor object addressing reuses the existing resolver instead of introducing a second metadata resolver. A narrow write receipt store provides replay; importing Effector's operation framework would exceed the current requirement. These are implementation choices made under the user's instruction to execute the epic.
+
+## Verification and boundaries
+
+JUnit RED/GREEN checks for each behavior, real workbench checks under Xvfb for buffer/editor/UI behavior, canonical Maven/Tycho build and agent validator, generated guides/golden, available live MCP/e2e and conformance checks. Record unavailable environments explicitly. Never automate the user's desktop. Work locally on `feat/effector-mcp-workflow`, merge checked changes locally to master per project instructions, no push or PR.
