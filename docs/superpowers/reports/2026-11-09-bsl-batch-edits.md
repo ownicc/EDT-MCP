@@ -18,10 +18,20 @@ Every entry is validated against the original text; ranges are composed backward
 | Live generated docs/golden | 105 tool docs generated; four golden checks passed, two unrelated environment skips. |
 | Fresh independent whole-branch review | No actionable correctness findings; reviewer changed no files. |
 | Full canonical unit run | 12119 tests; one schema-compactor contract failure, zero errors, eight skipped. The one failure was fixed by keeping the edits cross-field description; targeted risk/writer checks passed. Final integration checks below follow. |
-| Final canonical packaging and agent validator | Pending. |
-| Final ZIP live checks and MCP conformance | Pending. |
+| Final canonical packaging and agent validator | BUILD SUCCESS with --skip-tests after the separate regression run; validator passed: 13 skills, 105 tools plus one proxy. |
+| Final ZIP live checks and MCP conformance | Exact bundle 1.0.0.202611092019: two direct batch checks passed; separate pending-review check passed; all fixtures clean. Official protocol baseline passed, no new failures. |
 
 The live direct-write checks assert all three resulting method bodies on disk, retained untouched layout, same-receipt replay with an old hash, changed-entry conflict, and unchanged source after a bad later entry, duplicate/non-object member or stale hash. Pending-review checks use the production tool, registry and actual EDT compare editor; they do not apply through MCP. Existing review/commit tests cover human acceptance and guarded commit; the new batch uses that unchanged commit path.
+
+## Schema correction and concurrent integration
+
+The full unit run found `InputSchemaCompactorRiskTest.everyRiskBearingParameterSurvivesCompaction`: the typed edits item schema made its parent description eligible for stripping. That lost its cross-field constraints on the wire. The fix adds only `edits` to the existing writer KEEP set, with a reason; no compactor algorithm change or test exemption. A fresh follow-up review found no actionable concern in this fix. The risk/writer rerun passed 184 tests.
+
+Concurrent master changes through `28372306` added diff search and compact markers. They merged without conflicts in `c7d6d81a`. The merged tree passed **340 regression tests, zero failures/errors, one headless workbench skip**, covering writer/batch, receipts/reviews/commit, compaction/schema consumers and the incoming diff models. The unchanged unrelated comparison/infobase cleanup tests were not run a second time; the report keeps the full run's original red result explicit. Final canonical packaging therefore used `--skip-tests` after that separate regression run. Later master advancement to `ea879318` contains report-only changes.
+
+The exact JAR extracted from the final ZIP was frozen before deployment and its SHA-256 matched the deployed JAR. Both direct and review-enabled final launches used that artifact. A real review for three replacements opened, replay kept its ID, a competing valid proposal refused, and cancellation left disk unchanged. No Apply endpoint was added. The pending scenario separately executes the review-mode case skipped by the direct-write family.
+
+Logs: `/tmp/edt-batch-compactor-green.log`, `/tmp/edt-batch-merged-regression.log`, `/tmp/edt-batch-final-package.log`, `/tmp/edt-batch-final-direct.log`, `/tmp/edt-batch-final-review.log`, `/tmp/edt-batch-conformance.log`. Initial full unit log: `/tmp/edt-batch-canonical.log`.
 
 ## Limits and choices
 

@@ -6059,6 +6059,7 @@
           "type": "string"
         },
         "edits": {
+          "description": "Replace 1 to 50 distinct methods in one module/review. Each entry: methodName and source (one complete method). Requires expectedHash; implies mode=replaceMethods. Do not mix with top-level source, methodName, oldSource, expectedSource or overwrite. Combined source limit: 500000 characters.",
           "items": {
             "additionalProperties": false,
             "properties": {

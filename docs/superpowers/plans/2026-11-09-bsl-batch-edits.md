@@ -27,5 +27,7 @@ Files: WriteModuleSourceTool.java; new WriteModuleSourceBatchTest.java; write_mo
 - [x] Add failing tests for three replacements (including Cyrillic, different lengths and preserved BOM/CRLF), invalid late entry/duplicate/malformed/limits/conflicting selectors/stale hash and receipt conflict/replay. Run RED.
 - [x] Implement strict edits parsing, conditional source requirement, original-span batch composition, normalization, late CAS and digest integration. Verify focused GREEN with existing writer/review regressions.
 - [x] Add live batch success+replay, all-or-nothing refusal and stale-hash e2e; exercise one combined pending proposal and cancellation/acceptance using existing registry/workbench fixtures.
-- [ ] Update guide/README and generate actual docs/golden. Canonical build, agent validator, isolated live writer e2e and conformance; inspect known baseline limits without expanding scope.
-- [ ] Fresh whole-branch review, record results, update Beads and integrate locally into master after verification.
+- [x] Update guide/README and generate actual docs/golden. Canonical build, agent validator, isolated live writer e2e and conformance; inspect known baseline limits without expanding scope.
+- [x] Fresh whole-branch review, record results, update Beads and integrate locally into master after verification.
+
+Verification detail: the full unit run exposed one compaction-description issue; fixed with existing KEEP policy and verified by risk/writer checks. Merged-tree regressions340/0fail/0error/1skip; canonical final packaging used --skip-tests. Exact ZIP live direct2/2 and review1/1; conformance baseline and agent validator passed. See the report for full run attribution and known e2e environment limits.
