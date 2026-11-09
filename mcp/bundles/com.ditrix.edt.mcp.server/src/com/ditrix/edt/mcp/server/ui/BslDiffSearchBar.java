@@ -140,8 +140,9 @@ final class BslDiffSearchBar
         if (key == SWT.ESC && row.getVisible()) { close(); return true; }
         if (key == SWT.F3 || ((key == SWT.CR || key == SWT.KEYPAD_CR) && query.isFocusControl()))
         {
+            boolean opensAtFirst = !row.getVisible() && current < 0 && (state & SWT.SHIFT) == 0;
             if (!row.getVisible()) open();
-            navigate((state & SWT.SHIFT) != 0);
+            if (!opensAtFirst) navigate((state & SWT.SHIFT) != 0);
             return true;
         }
         return false;

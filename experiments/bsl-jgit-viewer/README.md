@@ -70,3 +70,16 @@ Run the quality probe with `GTK_THEME=Adwaita:dark` as well: selecting Light mus
 still give a white source background, independently of GTK system colours.
 The [quality report](../../docs/superpowers/reports/2026-11-09-bsl-diff-quality.md)
 records verification and installation in the user's existing Kasl workspace.
+
+## Inline search
+
+Find/Ctrl+F opens a shared search bar, defaulting to both snapshots. Select Old,
+New or Both, optionally match case, then use Enter/F3 and Shift+Enter/Shift+F3;
+Esc closes the bar. Results include unchanged source, skip alignment padding and
+retain the selected method pair. The same controls work in the read-only method
+tab. A side label and counter identify the current result.
+
+The user's Linux launch environment is `GTK_THEME=Adwaita:light` and
+`__EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/10_nvidia.json`.
+The viewer runner defaults to these values and respects explicit environment
+overrides for theme regression checks.

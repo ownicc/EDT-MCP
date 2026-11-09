@@ -20,12 +20,12 @@ Files: create `ui/BslDiffSearch.java` and `ui/BslDiffSearchBar.java`, modify
 `ui/BslStructuralCompare.java`, `ui/BslDiffOverview.java`, UI messages;
 test `ui/BslDiffSearchTest.java` under the existing test source root.
 
-- [ ] Write failing tests for literal Cyrillic/case, side scopes, physical
+- [x] Write failing tests for literal Cyrillic/case, side scopes, physical
   coordinates with padding, wrap/backwards and empty/no results.
-- [ ] Implement immutable matches and shared bar using Document search adapter.
-- [ ] Wire original-to-display line mapping, selected-range highlight and shared
+- [x] Implement immutable matches and shared bar using Document search adapter.
+- [x] Wire original-to-display line mapping, selected-range highlight and shared
   scrolling; Ctrl+F/F3/Esc for source controls and search bar.
-- [ ] Run focused tests and actual SWT probe of scope/navigation, unchanged
+- [x] Run focused tests and actual SWT probe of scope/navigation, unchanged
   selected method, read-only method tab and large-font gutter; inspect capture.
 - [ ] Commit and merge locally to master; update Beads and report evidence.
 
