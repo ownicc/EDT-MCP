@@ -42,7 +42,7 @@
 
 ### Task 3: Review, integration and Kasl demonstration
 
-- [ ] Run full Maven verify once for shared model/UI behavior; review branch with fresh reviewer, resolve actionable defects.
-- [ ] Merge locally master; freeze tested p2 repository. Exit existing EDT cleanly; install verified artifact and relaunch existing Kasl with requested environment.
-- [ ] Create pending review containing several moved methods plus ordinary edits and added/deleted methods; show panel C and correct detached tab. Do not Apply. Record artifact hash and source unchanged proof.
-- [ ] Update report and beads with actual verification and installation result.
+- [x] Run full Maven verify once for shared model/UI behavior; review branch with fresh reviewer, resolve actionable defects.
+- [x] Merge locally master; freeze tested p2 repository. Exit existing EDT cleanly; install verified artifact and relaunch existing Kasl with requested environment.
+- [x] Create pending review containing several moved methods plus ordinary edits and added/deleted methods; show panel C and correct detached tab. Do not Apply. Record artifact hash and source unchanged proof.
+- [x] Update report and beads with actual verification and installation result.
