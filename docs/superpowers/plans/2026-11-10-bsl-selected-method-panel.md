@@ -27,18 +27,18 @@
 **Files:** `MethodAwareBslDiff.java`, `MethodAwareBslDiffTest.java` in existing UI source/test packages.
 **Interfaces:** Add `MethodKind { CHANGED, MOVED, MOVED_CHANGED, ADDED, REMOVED }`, `MethodChange(String key, List<Span> left, List<Span> right, MethodKind kind)`, `Comparison.methods()` and `Plan.methods()`.
 
-- [ ] Write tests asserting five kinds, unchanged omission, exact fragments, formatting-only inclusion, malformed/duplicate exclusion; watch RED.
-- [ ] Build metadata from existing Part maps/moved set with shared source Documents; preserve existing Move result and guards.
-- [ ] Run focused Tycho verification (MethodAwareBslDiffTest, BslMethodCompareInputTest, BslDiffThemeTest, BslDiffSearchTest); expect zero failures; commit.
+- [x] Write tests asserting five kinds, unchanged omission, exact fragments, formatting-only inclusion, malformed/duplicate exclusion; watch RED.
+- [x] Build metadata from existing Part maps/moved set with shared source Documents; preserve existing Move result and guards.
+- [x] Run focused Tycho verification (MethodAwareBslDiffTest, BslMethodCompareInputTest, BslDiffThemeTest, BslDiffSearchTest); expect zero failures; commit.
 
 ### Task 2: Selection, row C and detached endpoints
 
 **Files:** `BslDiffOverview.java`, `BslStructuralCompare.java`, `BslMethodCompareInput.java`, `Messages.java`, both message bundles, `BslMethodCompareInputTest.java`, `experiments/bsl-jgit-viewer/QualityProbe.java`.
 **Interfaces:** Overview `show(Result,List<Move>,List<MethodChange>)`, `selectedMethod()`, `onMethodSelection(Consumer<MethodChange>)`; input ctor consumes MethodChange. Empty fragment uses text empty, coordinates 0/0; user labels show absent/—.
 
-- [ ] Write empty-side input tests and native probe assertions for regular edits, added/deleted selection, padding, search preservation, panel contents and long name; watch RED.
-- [ ] Select by original source coordinates. Retain separate hunk navigation and guard programmatic carets. Implement separate method row with role, name, kind, ranges, Compare action; hide it in method tabs.
-- [ ] Run focused tests and isolated native probe; expect all assertions pass; commit.
+- [x] Write empty-side input tests and native probe assertions for regular edits, added/deleted selection, padding, search preservation, panel contents and long name; watch RED.
+- [x] Select by original source coordinates. Retain separate hunk navigation and guard programmatic carets. Implement separate method row with role, name, kind, ranges, Compare action; hide it in method tabs.
+- [x] Run focused tests and isolated native probe; expect all assertions pass; commit.
 
 ### Task 3: Review, integration and Kasl demonstration
 

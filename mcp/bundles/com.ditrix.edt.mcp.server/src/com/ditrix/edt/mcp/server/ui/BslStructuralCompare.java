@@ -131,8 +131,6 @@ final class BslStructuralCompare
         compareMethod = new Button(methodPanel, SWT.PUSH);
         compareMethod.setText(Messages.BslDiff_CompareMethod);
         compareMethod.setEnabled(false);
-        methodPanel.setBackground(color(new RGB(244, 247, 250)));
-        for (var child : methodPanel.getChildren()) child.setBackground(methodPanel.getBackground());
         SashForm columns = new SashForm(root, SWT.HORIZONTAL);
         columns.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         Injector injector = bslInjector();

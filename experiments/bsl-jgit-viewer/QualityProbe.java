@@ -67,6 +67,11 @@ public class QualityProbe extends ViewerProbe
             {
                 require(((Button)field(viewer,"compareMethod")).getParent()!=((Label)field(viewer,"summary")).getParent(),
                     "Selected method and its action need their own row below the global toolbar");
+                Label selectedName=(Label)field(viewer,"selectedMethod");
+                double foreground=luminance(selectedName.getForeground().getRGB());
+                double background=luminance(selectedName.getBackground().getRGB());
+                require((Math.max(foreground,background)+0.05)/(Math.min(foreground,background)+0.05)>=4.5,
+                    "Selected method panel text must remain readable in the host GTK theme");
                 set(viewer,"movePairs",result.moves());
                 set(viewer,"methodChanges",result.methods());
                 call(field(viewer,"left"),"markMoves",result.leftMoves());
@@ -261,6 +266,13 @@ public class QualityProbe extends ViewerProbe
     private static String method(String name,String value)
     {
         return "Функция "+name+"() Экспорт\nВозврат "+value+";\nКонецФункции\n\n";
+    }
+
+    private static double luminance(org.eclipse.swt.graphics.RGB color)
+    {
+        double[] channels={color.red/255.0,color.green/255.0,color.blue/255.0};
+        for(int i=0;i<channels.length;i++)channels[i]=channels[i]<=0.04045?channels[i]/12.92:Math.pow((channels[i]+0.055)/1.055,2.4);
+        return channels[0]*0.2126+channels[1]*0.7152+channels[2]*0.0722;
     }
 
     static Object lineBackground(StyledText text,int row)throws Exception
