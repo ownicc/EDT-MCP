@@ -91,11 +91,12 @@ final class MethodAwareBslDiff
             rm.add(proposed);
             moves.add(new Move((String)move.get("key"), spans(a, List.of(old)), spans(b, List.of(proposed))));
         }
-        List<Row> rows = align(a, b);
+        List<Span> leftMoves = spans(a, lm), rightMoves = spans(b, rm);
+        List<Row> rows = align(a, b, plan, leftMoves, rightMoves);
         checkpoint();
         boolean changed = !lhs.isEmpty() || !rhs.isEmpty() || !lm.isEmpty();
         return new Comparison(new Result(malformed ? "Text" : "BSL", changed ? "changed" : "unchanged",
-            rows, lhs, rhs), spans(a, lm), spans(b, rm), plan.fallback, !a.equals(b), List.copyOf(moves));
+            rows, lhs, rhs), leftMoves, rightMoves, plan.fallback, !a.equals(b), List.copyOf(moves));
     }
 
     private void checkpoint()
@@ -408,10 +409,44 @@ final class MethodAwareBslDiff
 
     List<Row> align(String a, String b)
     {
+        return align(a, b, null, List.of(), List.of());
+    }
+
+    private int[] owners(Plan plan, String source, boolean left)
+    {
+        int[] owners = new int[StructuralBslDiff.lines(source).size()];
+        if (plan == null) return owners;
+        Document document = new Document(source);
+        try
+        {
+            for (int i = 1; i < plan.pairs.size(); i++)
+            {
+                List<Token> tokens = left ? plan.pairs.get(i).left : plan.pairs.get(i).right;
+                if (tokens.isEmpty()) continue;
+                Token first = tokens.get(0), last = tokens.get(tokens.size() - 1);
+                int begin = document.getLineOfOffset(first.start);
+                int end = document.getLineOfOffset(last.start + last.length - 1);
+                for (int line = begin; line <= end; line++) owners[line] = i;
+            }
+        }
+        catch (BadLocationException e) { throw new IllegalArgumentException("Invalid method line", e); }
+        return owners;
+    }
+
+    private List<Row> align(String a, String b, Plan plan, List<Span> leftMoves, List<Span> rightMoves)
+    {
         TextLines left = new TextLines(a), right = new TextLines(b);
+        int[] lhsOwners = owners(plan, a, true), rhsOwners = owners(plan, b, false);
+        Set<Integer> lm = new HashSet<>(), rm = new HashSet<>();
+        for (Span span : leftMoves) lm.add(span.line());
+        for (Span span : rightMoves) rm.add(span.line());
         SequenceComparator<TextLines> comparator = new SequenceComparator<>() {
             @Override public boolean equals(TextLines x, int i, TextLines y, int j)
-            { checkpoint(); return x.lines.get(i).equals(y.lines.get(j)); }
+            {
+                checkpoint();
+                return !lm.contains(i) && !rm.contains(j) && lhsOwners[i] == rhsOwners[j]
+                    && x.lines.get(i).equals(y.lines.get(j));
+            }
             @Override public int hash(TextLines x, int i) { checkpoint(); return x.lines.get(i).hashCode(); }
         };
         List<Row> rows = new ArrayList<>();
@@ -421,7 +456,13 @@ final class MethodAwareBslDiff
             checkpoint();
             while (x < edit.getBeginA() && y < edit.getBeginB()) rows.add(new Row(x++, y++));
             while (x < edit.getEndA() || y < edit.getEndB())
-                rows.add(new Row(x < edit.getEndA() ? x++ : null, y < edit.getEndB() ? y++ : null));
+            {
+                if (x >= edit.getEndA()) rows.add(new Row(null, y++));
+                else if (y >= edit.getEndB() || lm.contains(x)) rows.add(new Row(x++, null));
+                else if (rm.contains(y)) rows.add(new Row(null, y++));
+                else if (lhsOwners[x] != rhsOwners[y]) rows.add(new Row(x++, null));
+                else rows.add(new Row(x++, y++));
+            }
         }
         while (x < left.size() || y < right.size())
         { checkpoint(); rows.add(new Row(x < left.size() ? x++ : null, y < right.size() ? y++ : null)); }

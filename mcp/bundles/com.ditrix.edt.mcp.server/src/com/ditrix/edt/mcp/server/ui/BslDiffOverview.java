@@ -42,6 +42,8 @@ final class BslDiffOverview
     private final List<Change> changes = new ArrayList<>();
     private final List<Hit> leftHits = new ArrayList<>(), rightHits = new ArrayList<>();
     private Change selected;
+    private final Map<String, MethodAwareBslDiff.Move> moveByLabel = new HashMap<>();
+    private java.util.function.Consumer<MethodAwareBslDiff.Move> moveSelection = move -> { };
     private int dragOffset = -1;
     private boolean syncing;
 
@@ -130,7 +132,11 @@ final class BslDiffOverview
             text.addListener(SWT.MouseDown, event -> {
                 if (event.button != 1) return;
                 for (Hit hit : lhs ? leftHits : rightHits)
-                    if (hit.area.contains(event.x, event.y)) { jump(hit.change.peer); event.doit = false; break; }
+                    if (hit.area.contains(event.x, event.y)) {
+                        Change peer = changes.stream().filter(c -> c.kind == 4 && c.id.equals(hit.change.id)
+                            && c.left != hit.change.left).findFirst().orElse(hit.change);
+                        select(peer); event.doit = false; break;
+                    }
             });
         }
     }
@@ -139,6 +145,8 @@ final class BslDiffOverview
     {
         changes.clear();
         selected = null;
+        moveByLabel.clear();
+        moveSelection.accept(null);
         Map<Integer, Integer> a = new HashMap<>(), b = new HashMap<>();
         for (int i = 0; i < result.rows().size(); i++)
         {
@@ -155,6 +163,7 @@ final class BslDiffOverview
             if (move.left().isEmpty() || move.right().isEmpty()) continue;
             int x = move.left().get(0).line(), y = move.right().get(0).line();
             String label = "M" + id++; //$NON-NLS-1$
+            moveByLabel.put(label, move);
             changes.add(new Change(a.get(x), a.get(move.left().get(move.left().size() - 1).line()) + 1,
                 4, label, true, b.get(y), x, y));
             changes.add(new Change(b.get(y), b.get(move.right().get(move.right().size() - 1).line()) + 1,
@@ -193,7 +202,24 @@ final class BslDiffOverview
     private void select(Change change)
     {
         selected = change;
+        moveSelection.accept(selectedMove());
         jump(change.start);
+    }
+
+    void onMoveSelection(java.util.function.Consumer<MethodAwareBslDiff.Move> listener)
+    {
+        moveSelection = listener;
+        listener.accept(selectedMove());
+    }
+
+    MethodAwareBslDiff.Move selectedMove()
+    {
+        if (selected == null) return null;
+        if (!selected.id.isEmpty()) return moveByLabel.get(selected.id);
+        for (Change change : changes)
+            if (change.kind == 4 && change.start <= selected.start && selected.start < change.end)
+                return moveByLabel.get(change.id);
+        return null;
     }
 
     private void jump(int row)

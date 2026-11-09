@@ -21,6 +21,8 @@ public class Messages extends NLS {
     public static String BslDiff_FormattingOnly;
     public static String BslDiff_Previous;
     public static String BslDiff_Next;
+    public static String BslDiff_CompareMethod;
+    public static String BslDiff_MethodTitle;
     public static String BslDiff_Unavailable;
     public static String BslDiff_NoStructuralChanges;
     public static String BslDiff_Structural;

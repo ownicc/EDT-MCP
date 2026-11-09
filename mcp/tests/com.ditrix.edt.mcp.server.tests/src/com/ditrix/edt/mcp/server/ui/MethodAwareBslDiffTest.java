@@ -208,4 +208,22 @@ public class MethodAwareBslDiffTest
         assertTrue(result.moves().get(0).key().endsWith(":второй"));
     }
 
+    @Test public void movedMethodEndpointsOccupyDistinctDisplayPositions() throws Exception
+    {
+        String a = method("Переносимый", "#Если Клиент Тогда\nВозврат 11;\n#Иначе\nВозврат 20;\n#КонецЕсли");
+        String b = method("Стабильный", "Возврат 30;");
+        var result = compare(a+b,b+a);
+        var move=result.moves().get(0);
+        int x=-1,y=-1;
+        for(int i=0;i<result.diff().rows().size();i++)
+        {
+            var row=result.diff().rows().get(i);
+            if(java.util.Objects.equals(row.left(),move.left().get(0).line()))x=i;
+            if(java.util.Objects.equals(row.right(),move.right().get(0).line()))y=i;
+        }
+        assertTrue(x>=0&&y>=0);assertNotEquals(x,y);
+        int stableLine=a.split("\n",-1).length-1;
+        assertTrue(result.diff().rows().contains(new StructuralBslDiff.Row(stableLine,0)));
+    }
+
 }

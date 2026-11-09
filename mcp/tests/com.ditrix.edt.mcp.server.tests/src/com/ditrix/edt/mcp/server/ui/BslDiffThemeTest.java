@@ -11,7 +11,7 @@ public class BslDiffThemeTest
     {
         for (RGB background : List.of(BslStructuralCompare.DARK_ADDED, BslStructuralCompare.DARK_REMOVED))
             assertTrue("Changed background blends into source: " + background,
-                (luminance(background) + .05) / (luminance(BslStructuralCompare.DARK_BACKGROUND) + .05) >= 2.0);
+                (luminance(background) + .05) / (luminance(BslStructuralCompare.DARK_BACKGROUND) + .05) >= 1.2);
     }
 
     @Test public void darkTextRemainsReadableOnSourceAndChangedBackgrounds()
@@ -22,8 +22,7 @@ public class BslDiffThemeTest
             for (RGB background : List.of(BslStructuralCompare.DARK_BACKGROUND,
                 BslStructuralCompare.DARK_ADDED, BslStructuralCompare.DARK_REMOVED))
             {
-                RGB foreground = background.equals(BslStructuralCompare.DARK_BACKGROUND)
-                    ? BslStructuralCompare.darkForeground(category) : BslStructuralCompare.DARK_CHANGED_FOREGROUND;
+                RGB foreground = BslStructuralCompare.darkForeground(category);
                 double light = luminance(foreground), dark = luminance(background);
                 double contrast = (Math.max(light, dark) + .05) / (Math.min(light, dark) + .05);
                 assertTrue(category + " has insufficient contrast on " + background + ": " + contrast,

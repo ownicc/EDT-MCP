@@ -43,14 +43,16 @@ import com.google.inject.Injector;
 final class BslStructuralCompare
 {
     static final RGB DARK_BACKGROUND = new RGB(30, 30, 30);
-    static final RGB DARK_ADDED = new RGB(38, 112, 58);
-    static final RGB DARK_REMOVED = new RGB(156, 48, 48);
-    static final RGB DARK_CHANGED_FOREGROUND = new RGB(255, 255, 255);
+    static final RGB DARK_ADDED = new RGB(29, 61, 39);
+    static final RGB DARK_REMOVED = new RGB(68, 35, 38);
     private record Lexeme(int start, int end, String category, TextAttribute attribute) { }
     private final Composite root;
     private final Label summary;
     private final Button previous;
     private final Button next;
+    private final Button compareMethod;
+    private final String before;
+    private final String after;
     private final Side left;
     private final Side right;
     private final TreeSet<Integer> changedRows = new TreeSet<>();
@@ -67,12 +69,20 @@ final class BslStructuralCompare
 
     private BslStructuralCompare(Composite parent, String before, String after) throws Exception
     {
+        this(parent, before, after, 0, 0, true);
+    }
+
+    private BslStructuralCompare(Composite parent, String before, String after, int leftOffset,
+        int rightOffset, boolean allowMethodComparison) throws Exception
+    {
+        this.before = before;
+        this.after = after;
         root = new Composite(parent, SWT.NONE);
         root.addDisposeListener(event -> colors.values().forEach(Color::dispose));
         root.setLayout(new GridLayout(1, false));
         Composite toolbar = new Composite(root, SWT.NONE);
         toolbar.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-        toolbar.setLayout(new GridLayout(4, false));
+        toolbar.setLayout(new GridLayout(5, false));
         summary = new Label(toolbar, SWT.WRAP);
         summary.setText(Messages.BslDiff_Computing);
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -91,13 +101,27 @@ final class BslStructuralCompare
         next.setEnabled(false);
         previous.addListener(SWT.Selection, event -> navigate(false));
         next.addListener(SWT.Selection, event -> navigate(true));
+        compareMethod = new Button(toolbar, SWT.PUSH);
+        compareMethod.setText(Messages.BslDiff_CompareMethod);
+        compareMethod.setEnabled(false);
+        if (!allowMethodComparison)
+        {
+            compareMethod.setVisible(false);
+            GridData hidden = new GridData(); hidden.exclude = true;
+            compareMethod.setLayoutData(hidden);
+        }
         SashForm columns = new SashForm(root, SWT.HORIZONTAL);
         columns.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         Injector injector = bslInjector();
-        left = new Side(columns, Messages.BslReview_Current, before, injector, false);
-        right = new Side(columns, Messages.BslReview_Proposed, after, injector, true);
+        left = new Side(columns, Messages.BslReview_Current, before, injector, false, leftOffset);
+        right = new Side(columns, Messages.BslReview_Proposed, after, injector, true, rightOffset);
         columns.setWeights(1, 1);
         overview = new BslDiffOverview(left.text, right.text, right.overview, this::color, () -> dark);
+        compareMethod.addListener(SWT.Selection, event -> {
+            var move = overview.selectedMove();
+            if (move != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(move, this.before, this.after));
+        });
+        overview.onMoveSelection(move -> compareMethod.setEnabled(allowMethodComparison && move != null));
         Result initial = StructuralBslDiff.parse(
             "{\"language\":\"BSL\",\"status\":\"unchanged\",\"chunks\":[]}", before, after); //$NON-NLS-1$
         render(initial);
@@ -116,6 +140,18 @@ final class BslStructuralCompare
             case "Builtin function" -> new RGB(137, 221, 216); //$NON-NLS-1$
             default -> new RGB(212, 212, 212);
         };
+    }
+
+    static boolean wholeLineChanged(String line, List<Span> spans)
+    {
+        int until = 0;
+        for (Span span : spans)
+        {
+            if (span.length() == 0) continue;
+            if (span.start() > until && !line.substring(until, span.start()).isBlank()) return false;
+            until = Math.max(until, span.start() + span.length());
+        }
+        return until > 0 && line.substring(until).isBlank();
     }
 
     private Color color(RGB rgb)
@@ -139,8 +175,14 @@ final class BslStructuralCompare
     static Composite create(Composite parent, String before, String after, Path executable,
         Consumer<String> fallback) throws Exception
     {
+        return create(parent, before, after, executable, fallback, 0, 0, true);
+    }
+
+    static Composite create(Composite parent, String before, String after, Path executable,
+        Consumer<String> fallback, int leftOffset, int rightOffset, boolean allowMethodComparison) throws Exception
+    {
         if (executable == null) MethodAwareBslDiff.validateInput(before, after);
-        BslStructuralCompare comparison = new BslStructuralCompare(parent, before, after);
+        BslStructuralCompare comparison = new BslStructuralCompare(parent, before, after, leftOffset, rightOffset, allowMethodComparison);
         Display display = parent.getDisplay();
         Job job = Job.create(Messages.BslDiff_Computing, monitor -> {
             try
@@ -245,6 +287,7 @@ final class BslStructuralCompare
     private final class Side
     {
         final StyledText text;
+        final int lineOffset;
         final Canvas overview;
         final List<String> lines;
         final Map<Integer, List<Lexeme>> lexical = new HashMap<>();
@@ -252,8 +295,9 @@ final class BslStructuralCompare
         final java.util.Set<Integer> moves = new java.util.HashSet<>();
         List<Integer> sourceLines = List.of();
 
-        Side(Composite parent, String title, String source, Injector injector, boolean added) throws Exception
+        Side(Composite parent, String title, String source, Injector injector, boolean added, int baseLineOffset) throws Exception
         {
+            this.lineOffset = baseLineOffset;
             lines = StructuralBslDiff.lines(source);
             Composite panel = new Composite(parent, SWT.NONE);
             panel.setLayout(new GridLayout(1, false));
@@ -305,6 +349,7 @@ final class BslStructuralCompare
                 int original = sourceLines.get(row);
                 List<Lexeme> lexemes = lexical.getOrDefault(original, List.of());
                 List<Span> spans = changes.getOrDefault(original, List.of());
+                boolean wholeLine = wholeLineChanged(event.lineText, spans);
                 TreeSet<Integer> boundaries = new TreeSet<>(List.of(0, event.lineText.length()));
                 for (Lexeme lexeme : lexemes) { boundaries.add(lexeme.start()); boundaries.add(lexeme.end()); }
                 for (Span span : spans) { boundaries.add(span.start()); boundaries.add(span.start() + span.length()); }
@@ -327,21 +372,11 @@ final class BslStructuralCompare
                         for (Span span : spans)
                             if (span.start() <= start && start < span.start() + span.length()) { changed = true; break; }
                         StyleRange style = new StyleRange(event.lineOffset + start, end - start,
-                            changed ? color(dark ? DARK_CHANGED_FOREGROUND
-                                : added ? new RGB(0, 78, 34) : new RGB(124, 32, 40))
-                                : dark ? color(darkForeground(category)) : attribute == null ? null : attribute.getForeground(),
-                            changed ? color(dark ? (added ? DARK_ADDED : DARK_REMOVED)
-                                : added ? new RGB(169, 221, 184) : new RGB(244, 185, 181))
-                                : null,
-                            changed ? SWT.BOLD : attribute == null ? SWT.NORMAL
-                                : attribute.getStyle() & (SWT.BOLD | SWT.ITALIC));
-                        if (changed)
-                        {
-                            style.underline = true;
-                            style.underlineStyle = SWT.UNDERLINE_SINGLE;
-                            style.underlineColor = color(dark ? (added ? new RGB(112, 230, 137) : new RGB(255, 132, 132))
-                                : added ? new RGB(120, 184, 141) : new RGB(218, 141, 136));
-                        }
+                            dark ? color(darkForeground(category))
+                                : attribute == null || attribute.getForeground() == null ? text.getForeground() : attribute.getForeground(),
+                            changed && !wholeLine ? color(dark ? (added ? DARK_ADDED : DARK_REMOVED)
+                                : added ? new RGB(222, 239, 225) : new RGB(250, 222, 220)) : null,
+                            attribute == null ? SWT.NORMAL : attribute.getStyle() & (SWT.BOLD | SWT.ITALIC));
                         styles.add(style);
                     }
                     start = end;
@@ -354,8 +389,8 @@ final class BslStructuralCompare
                 Integer original = sourceLines.get(row);
                 if (original == null) event.lineBackground = color(dark ? new RGB(40, 42, 46) : new RGB(236, 239, 243));
                 else if (changes.containsKey(original))
-                    event.lineBackground = color(dark ? (added ? new RGB(30, 57, 37) : new RGB(65, 34, 36))
-                        : added ? new RGB(216, 242, 221) : new RGB(255, 224, 223));
+                    event.lineBackground = color(dark ? (added ? new RGB(24, 40, 29) : new RGB(45, 28, 30))
+                        : added ? new RGB(240, 249, 241) : new RGB(255, 242, 241));
                 else if (moves.contains(original)) event.lineBackground = color(dark ? new RGB(30, 47, 70) : new RGB(224, 237, 255));
             });
             text.addPaintListener(event -> {
@@ -385,12 +420,11 @@ final class BslStructuralCompare
                         : moved ? color(dark ? new RGB(138, 188, 255) : new RGB(18, 75, 142))
                         : dark ? color(new RGB(150, 150, 150)) : color(new RGB(85, 85, 85)));
                     event.gc.drawString(changed ? (added ? "+" : "−") : moved ? "↕" : "", gutter - 61, y, true);
-                    String number = Integer.toString(original + 1);
+                    String number = Integer.toString(original + 1 + lineOffset);
                     event.gc.drawString(number, gutter - 7 - event.gc.stringExtent(number).x, y, true);
                     if (changed || moved) event.gc.fillRectangle(gutter - 4, y, 3, height);
                     if (!changed) continue;
-                    event.gc.setForeground(color(dark ? DARK_CHANGED_FOREGROUND
-                        : added ? new RGB(0, 78, 34) : new RGB(124, 32, 40)));
+                    event.gc.setForeground(dark ? color(darkForeground(null)) : text.getForeground());
                     int lineOffset = text.getOffsetAtLine(row);
                     var selection = text.getSelection();
                     // Limit geometry queries and whitespace drawing to this viewport, including after horizontal scrolling.
