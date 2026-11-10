@@ -1045,7 +1045,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private NewLinesResult computeNewLines(WriteRequest req, IFile file, boolean fileExists,
         List<String> originalLines) throws Exception
     {
-        String currentText = (MODE_SEARCH_REPLACE.equals(req.mode)
+        String currentText = fileExists && (MODE_SEARCH_REPLACE.equals(req.mode)
             || (MODE_REPLACE.equals(req.mode) && req.expectedSource != null
                 && (req.expectedHash == null || req.expectedHash.isEmpty())))
             ? BslModuleUtils.readFileText(file).replace("\r\n", "\n") : null;

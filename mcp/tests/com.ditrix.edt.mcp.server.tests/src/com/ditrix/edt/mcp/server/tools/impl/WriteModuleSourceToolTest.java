@@ -1536,6 +1536,37 @@ public class WriteModuleSourceToolTest
     }
 
     @Test
+    public void testCreatingModuleWithExpectedSourceDoesNotReadMissingFile() throws Exception
+    {
+        IFile file = Mockito.mock(IFile.class);
+        Mockito.when(file.getContents()).thenAnswer(call -> {
+            throw new AssertionError("Creating a module must not read its missing file");
+        });
+        String source = "Procedure NewMethod()\nEndProcedure";
+        var request = WriteModuleSourceTool.WriteRequest.from(Map.of(
+            "mode", "replace", "source", source, "expectedSource", "", "overwrite", "true"));
+        var compute = WriteModuleSourceTool.class.getDeclaredMethod("computeNewLines",
+            WriteModuleSourceTool.WriteRequest.class, IFile.class, boolean.class, List.class);
+        compute.setAccessible(true);
+        Object result;
+        try
+        {
+            result = compute.invoke(new WriteModuleSourceTool(), request, file, false, List.of());
+        }
+        catch (java.lang.reflect.InvocationTargetException e)
+        {
+            throw new AssertionError("Preparing a new module must succeed without reading it", e.getCause());
+        }
+        var error = result.getClass().getDeclaredField("error");
+        error.setAccessible(true);
+        assertNull(error.get(result));
+        var lines = result.getClass().getDeclaredField("newLines");
+        lines.setAccessible(true);
+        assertEquals(List.of("Procedure NewMethod()", "EndProcedure"), lines.get(result));
+        Mockito.verify(file, Mockito.never()).getContents();
+    }
+
+    @Test
     public void testReplacePreconditionExpectedSourceMatchIgnoresCrlf()
     {
         // CRLF vs LF alone is not a spurious mismatch — both are \n-normalized.
