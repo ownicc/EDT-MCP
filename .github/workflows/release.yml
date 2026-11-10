@@ -84,9 +84,15 @@ jobs:
       - name: Build proxy
         env:
           MAVEN_OPTS: -Xmx2g
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          mvn -f proxy/pom.xml clean verify --batch-mode --no-transfer-progress
-          cp proxy/target/edt-mcp-proxy-*.jar "edt-mcp-proxy-v${{ steps.version.outputs.version }}.jar"
+          set -euo pipefail
+          mvn -f proxy/pom.xml "-Drevision=$RELEASE_VERSION" clean verify --batch-mode --no-transfer-progress
+          PROXY_JAR="proxy/target/edt-mcp-proxy-${RELEASE_VERSION}.jar"
+          PROXY_VERSION=$(java -jar "$PROXY_JAR" --version)
+          echo "$PROXY_VERSION"
+          test "$PROXY_VERSION" = "edt-mcp-proxy $RELEASE_VERSION"
+          cp "$PROXY_JAR" "edt-mcp-proxy-v${RELEASE_VERSION}.jar"
 
       - name: Package archive
         run: |

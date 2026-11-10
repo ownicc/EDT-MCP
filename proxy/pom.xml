@@ -5,13 +5,14 @@
 
   <groupId>com.ditrix.edt.mcp</groupId>
   <artifactId>edt-mcp-proxy</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>${revision}</version>
   <packaging>jar</packaging>
 
   <name>EDT MCP Proxy</name>
   <description>Standalone MCP proxy that routes requests to running EDT-MCP instances by project name (issue #253).</description>
 
   <properties>
+    <revision>0.1.0-SNAPSHOT</revision>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>17</maven.compiler.release>
   </properties>

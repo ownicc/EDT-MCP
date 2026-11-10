@@ -12,13 +12,10 @@ package com.ditrix.edt.mcp.proxy;
  * ({@code CliCommands}).
  *
  * <p>Read from the running jar's manifest {@code Implementation-Version} entry, same as any
- * other {@code Package#getImplementationVersion()} lookup. Today's {@code proxy/pom.xml} does
- * not populate that entry (no {@code addDefaultImplementationEntries} / explicit manifest
- * entry is configured), so {@link #FALLBACK_VERSION} is what {@code --version} currently
- * reports even from the packaged shaded jar; wiring the manifest entry is a build-config change
- * outside this class's scope. Either way, the lookup degrades to {@link #FALLBACK_VERSION}
- * whenever the entry is absent - including when running from a test/IDE classpath with no jar
- * at all.
+ * other {@code Package#getImplementationVersion()} lookup. Maven writes the project version
+ * into the packaged jar; release builds supply it through {@code -Drevision=X.Y.Z}.
+ * The lookup falls back to {@link #FALLBACK_VERSION} when the entry is absent, including
+ * when running from a test/IDE classpath with no jar.
  */
 public final class ProxyVersion
 {

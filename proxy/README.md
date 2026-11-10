@@ -29,6 +29,10 @@ mvn -f proxy/pom.xml clean verify
 
 This produces a self-contained fat jar `proxy/target/edt-mcp-proxy-0.1.0-SNAPSHOT.jar`.
 
+Release builds pass `-Drevision=X.Y.Z` to Maven so the jar name, manifest and
+`--version` report the release version. The release workflow checks the packaged
+CLI version before publishing the jar.
+
 Run:
 
 ```bash
