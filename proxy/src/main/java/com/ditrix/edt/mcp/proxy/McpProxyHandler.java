@@ -554,7 +554,15 @@ public final class McpProxyHandler implements HttpHandler
         catch (IOException e)
         {
             registry.refresh();
-            String message = deadBackendMessage(backend.getPort());
+            String message = isToolCall ? unknownToolOutcomeMessage(backend.getPort())
+                : deadBackendMessage(backend.getPort());
+            if (exchange.getResponseCode() != -1)
+            {
+                // A streamed response has already started. Close it rather than append a second
+                // HTTP/JSON-RPC response to a possibly partial result.
+                LOG.warning(message);
+                return;
+            }
             String body = isToolCall
                 ? RouterTools.toolCallError(message, requestId, allowStructuredContent)
                 : buildJsonRpcError(ERROR_BACKEND_UNREACHABLE, message, requestId);
@@ -563,6 +571,12 @@ public final class McpProxyHandler implements HttpHandler
         catch (InterruptedException e)
         {
             Thread.currentThread().interrupt();
+            if (isToolCall)
+            {
+                sendMcpResponse(exchange, 200, RouterTools.toolCallError(
+                    unknownToolOutcomeMessage(backend.getPort()), requestId, allowStructuredContent), null);
+                return;
+            }
             sendPlain(exchange, 500,
                 buildJsonRpcError(ERROR_INTERNAL, "Interrupted while forwarding to a backend", requestId)); //$NON-NLS-1$
         }
@@ -991,6 +1005,13 @@ public final class McpProxyHandler implements HttpHandler
     private static String deadBackendMessage(int port)
     {
         return "Backend at :" + port + " stopped responding; refreshed registry; retry."; //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    private static String unknownToolOutcomeMessage(int port)
+    {
+        return "Backend at :" + port + " stopped responding. The call outcome is unknown: " //$NON-NLS-1$ //$NON-NLS-2$
+            + "it may already have completed. Check the actual state before repeating a " //$NON-NLS-1$
+            + "state-changing call; do not retry it automatically."; //$NON-NLS-1$
     }
 
     /** The proxy's own version; see {@link ProxyVersion} for how it is resolved. */

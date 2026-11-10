@@ -298,7 +298,7 @@ public final class Backend
             }
             HttpResponse<InputStream> response = client.send(
                 newPostRequest(rawBody, session, requestTimeoutSeconds, accept),
-                HttpResponse.BodyHandlers.ofInputStream());
+                ResponseBodyTimeout.handler(requestTimeoutSeconds));
             if (attempt == 0 && isStaleSession(response, session))
             {
                 closeQuietly(response.body());
@@ -331,7 +331,7 @@ public final class Backend
         params.add("arguments", arguments); //$NON-NLS-1$
         HttpResponse<InputStream> response = client.send(newPostRequest(
             buildJsonRpcRequest("tools/call", params), session, HANDSHAKE_TIMEOUT_SECONDS), //$NON-NLS-1$
-            HttpResponse.BodyHandlers.ofInputStream());
+            ResponseBodyTimeout.handler(HANDSHAKE_TIMEOUT_SECONDS));
         if (isStaleSession(response, session))
         {
             closeQuietly(response.body());

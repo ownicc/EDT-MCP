@@ -2,15 +2,24 @@
 
 ## Architecture
 
-The testing infrastructure consists of a build step plus two test layers:
+The plugin has three verification layers: build/unit tests, live tool E2E, and
+[MCP protocol conformance](conformance/README.md). The standalone proxy has its
+own build and integration tests, described below.
 
 ### 0. Build
 
-**Requirements:** JDK 17 is mandatory. The project targets `JavaSE-17`, and the Tycho 4.0.5 / Eclipse Compiler (ECJ 3.36) build fails on newer JDKs (e.g. JDK 25 fails with `Cannot invoke "java.nio.file.FileSystem.getPath(...)" because "this.fs" is null`). Make sure `JAVA_HOME` points to a JDK 17 before building.
+**Requirements:** run the plugin build on **JDK 25**, using the Maven version pinned
+in [setup-maven](../.github/actions/setup-maven/action.yml) (currently **3.9.16**).
+Tycho 5.0.4 reads the EDT 2026.2 platform's Java 25 classes and runs its bundles
+during tests. The plugin's emitted bytecode and `Bundle-RequiredExecutionEnvironment`
+remain Java 17; that does not make JDK 17 sufficient to run this build. Maven 3.10
+is not supported by the current Tycho resolver.
 
 The plugin must be built with the official build script `source/compile.sh`. It runs the Tycho build (`mvn clean verify`, which also executes the unit tests) and packages the p2 update site into a versioned zip:
 ```bash
-bash source/compile.sh --java-home /usr/lib/jvm/java-17-openjdk-amd64   # adjust JDK 17 path
+bash source/compile.sh \
+  --java-home /path/to/jdk-25 \
+  --maven-home /path/to/apache-maven-3.9.16
 ```
 Outputs:
 - update-site zip: `source/dist/MCP-EDT.v<version>.zip`
@@ -18,7 +27,8 @@ Outputs:
 
 To run only the unit tests (without packaging the archive) you can invoke Maven directly:
 ```bash
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64   # adjust to your JDK 17 path
+export JAVA_HOME=/path/to/jdk-25
+export PATH="$JAVA_HOME/bin:/path/to/apache-maven-3.9.16/bin:$PATH"
 cd mcp
 mvn clean verify
 ```
@@ -50,9 +60,9 @@ These tests send real HTTP requests to a running MCP server and validate every t
 - A running EDT instance with the MCP plugin installed
 - The `TestConfiguration` project loaded in EDT
 
-**Prerequisite — install the plugin in EDT manually.** Build it first (see
-**0. Build**). There is currently no automated/headless installation, so the
-plugin must be installed by hand before running E2E:
+**Local EDT setup.** Build the plugin first (see **0. Build**) and use a writable
+development copy of EDT 2026.2, rather than modifying the system installation.
+Installing through the UI is one local option:
 
 1. In EDT: **Help → Install New Software… → Add… → Archive…**, select
    `source/dist/MCP-EDT.v<version>.zip` (or **Local…** → the `repository` folder),
@@ -62,11 +72,12 @@ plugin must be installed by hand before running E2E:
 3. Make sure the MCP server is listening on port 8765 (the plugin starts it
    automatically inside the EDT workbench).
 
-> Why manual: the system EDT install lives under a read-only path (e.g.
-> `/opt/...`), so a headless `p2 director` install needs elevated rights, and the
-> MCP server only starts inside the full EDT workbench (it is skipped in the
-> headless `1cedtcli` runtime). Until a dedicated EDT runner/Docker image exists
-> (see "Future: Full CI Pipeline"), install the plugin through the EDT UI.
+CI automates this setup: it installs Eclipse and EDT through `p2 director`, installs
+the built plugin into a writable runner directory, starts the headless host under
+Xvfb with `EDT_MCP_AUTO_START=true`, and imports fixtures using
+`EDT_MCP_IMPORT_PROJECTS`. See the runnable phases in
+[e2e-tests.yml](../.github/workflows/e2e-tests.yml). No system-wide installation,
+Docker image, or self-hosted runner is required.
 
 **Running locally:**
 ```bash
@@ -136,7 +147,7 @@ be switched by the test; each wire check requires an EDT restart.
 
 ## Test Configuration
 
-The `TestConfiguration/` directory contains a minimal 1C:Enterprise configuration for testing:
+The `tests/TestConfiguration/` directory contains a minimal 1C:Enterprise configuration for testing:
 
 - **Catalog.Catalog** — with ItemForm
 - **CommonModule.OK** — empty, valid module
@@ -151,17 +162,31 @@ The `TestConfiguration/` directory contains a minimal 1C:Enterprise configuratio
 ### build.yml (automatic)
 Runs unit tests on every push/PR to master. Test results are published to PR checks.
 
-### e2e-tests.yml (manual)
-Triggered via `workflow_dispatch`. Requires a running MCP server (self-hosted runner or tunnel).
+### e2e-2026.2.yml (automatic and manual)
+[e2e-2026.2.yml](../.github/workflows/e2e-2026.2.yml) runs on pushes/PRs to master
+and `workflow_dispatch`. It calls the reusable
+[e2e-tests.yml](../.github/workflows/e2e-tests.yml): build the plugin, install and
+boot EDT 2026.2 on stock GitHub-hosted runners, import the fixture projects, then
+run the suite in isolated shards. Live-infobase tests are skipped in cloud CI;
+they require the licensed 1C platform and remain part of the local test loop.
 
-### Future: Full CI Pipeline
-For fully automated E2E on GitHub Actions, the plan is:
-1. Build the plugin via `source/compile.sh` (Tycho)
-2. Install EDT headless (if a headless runner/Docker image becomes available)
-3. Import TestConfiguration
-4. Start MCP server
-5. Run E2E tests
-6. Publish results
+### conformance-2026.2.yml
+The separate [conformance gate](conformance/README.md) checks the MCP wire protocol
+against the official suite, using the committed expected-failure baseline.
+
+## Standalone proxy
+
+The proxy is independent of the Eclipse/Tycho plugin build. With JDK 17 or newer
+and Maven on PATH, run:
+
+```bash
+mvn -f proxy/pom.xml clean verify
+```
+
+This runs unit tests and real-HTTP integration tests against in-process fake
+backends; no running EDT or 1C platform is needed. CI runs it on JDK 17 through
+[proxy.yml](../.github/workflows/proxy.yml). See [proxy/README.md](../proxy/README.md)
+for routing and configuration.
 
 ## Project Structure
 
@@ -178,13 +203,16 @@ EDT-MCP/
 │   │       └── src/                            # JUnit tests
 │   └── pom.xml                                 # Root (includes tests module)
 ├── tests/
+│   ├── TestConfiguration/                      # Test 1C configuration
 │   └── e2e/
 │       ├── harness.py                          # HTTP/SSE client + git-fixture + asserts
 │       ├── run_all.py                          # Serial E2E runner (--filter, --junit-xml)
 │       └── tools/test_<tool>.py                # One black-box test file per tool
-├── TestConfiguration/                          # Test 1C configuration
-│   └── src/
+├── proxy/                                     # Standalone proxy and HTTP integration tests
 └── .github/workflows/
     ├── build.yml                               # CI with unit tests
-    └── e2e-tests.yml                           # E2E test workflow
+    ├── e2e-2026.2.yml                          # Automatic/manual E2E entry point
+    ├── e2e-tests.yml                           # Reusable headless E2E workflow
+    ├── conformance-2026.2.yml                  # Protocol conformance entry point
+    └── proxy.yml                              # Standalone proxy build and tests
 ```

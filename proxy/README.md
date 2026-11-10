@@ -89,7 +89,7 @@ java -jar edt-mcp-proxy.jar --help | --version
 | `--port N`       | `EDT_MCP_PROXY_PORT`    | `port`           | `8764`      | Port the proxy listens on                  |
 | `--scan FROM-TO` | `EDT_MCP_PROXY_SCAN`    | `scan`           | `8765-8774` | Backend port scan range (inclusive)        |
 | `--refresh N`    | `EDT_MCP_PROXY_REFRESH` | `refresh`        | `20`        | Periodic registry refresh interval, seconds |
-| `--timeout N`    | `EDT_MCP_PROXY_TIMEOUT` | `timeout`        | `300`       | Timeout per forwarded call, seconds        |
+| `--timeout N`    | `EDT_MCP_PROXY_TIMEOUT` | `timeout`        | `300`       | Timeout per forwarded HTTP exchange, including headers and response-body reads, seconds |
 | `--bind HOST`    | `EDT_MCP_PROXY_HOST`    | `bind`           | *(unset)*   | Bind `HOST` instead of loopback only (e.g. `0.0.0.0`) - see [Security](#security) |
 
 Precedence: **CLI flags &gt; environment variables &gt; config file &gt; defaults.**
@@ -254,9 +254,12 @@ As soon as an EDT instance comes up in the scan range it is picked up by the per
 refresh, by an explicit `router_refresh`, or by the on-miss rescan triggered by the
 next project-scoped call.
 
-If a backend dies mid-call, the proxy refreshes the registry and returns an error of
-the form `backend at :<port> stopped responding; refreshed registry; retry` — simply
-retry the call.
+If a backend stops responding before a tool response arrives, the proxy refreshes
+the registry and reports that the call outcome is **unknown**: the operation may
+already have completed. Check the actual state before repeating a state-changing
+call; do not retry it automatically. A failure during a streamed response closes
+that response; an incomplete response also does not prove the operation failed.
+Read-only discovery such as `tools/list` can be retried.
 
 ## Autostart
 

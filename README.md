@@ -1275,7 +1275,7 @@ The plugin is a Maven/Tycho project under [mcp/](mcp/). CI builds it via [.githu
 ### Prerequisites
 
 - JDK 25 (e.g. Temurin) - Tycho 5 needs JDK 21+ to run and reads the platform's Java 25 class files; the plugin itself is still compiled to Java 17
-- Apache Maven 3.9+ (no `mvnw` wrapper is committed — install Maven manually or via a package manager: `winget`, Homebrew, `apt`, SDKMAN, etc.)
+- Apache Maven matching the [CI pin](.github/actions/setup-maven/action.yml), currently 3.9.16. Maven 3.10 is incompatible with the current Tycho resolver. No `mvnw` wrapper is committed.
 - `bash` (Git Bash on Windows works) and either `zip` or the `jar` binary that ships with the JDK
 - Network access to `https://edt.1c.ru/`, `https://download.eclipse.org/` and Maven Central — Tycho downloads the EDT p2 repository and Eclipse SDK on the first run (hundreds of MB, cached afterwards under `~/.m2/`)
 
