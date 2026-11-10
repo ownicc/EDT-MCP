@@ -32,6 +32,9 @@ public class PreferenceInitializerTest
             assertTrue(store.isDefault(PreferenceConstants.PREF_HTTP_ENABLED));
             assertTrue(store.getDefaultBoolean(PreferenceConstants.PREF_HTTP_ENABLED));
             assertTrue(store.getBoolean(PreferenceConstants.PREF_HTTP_ENABLED));
+            assertFalse(store.getDefaultBoolean("bslMethodDiffEnabled"));
+            assertTrue("The new diff must have an initialized preference",
+                store.contains("bslMethodDiffEnabled"));
         }
         finally { plugin.set(null, previous); }
     }

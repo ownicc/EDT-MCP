@@ -18,6 +18,7 @@ import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
 import org.eclipse.compare.structuremergeviewer.Differencer;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
@@ -28,6 +29,8 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
+import com.ditrix.edt.mcp.server.Activator;
+import com.ditrix.edt.mcp.server.preferences.PreferenceConstants;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews.Snapshot;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews.State;
 import com.ditrix.edt.mcp.server.utils.PreparedBslWrite;
@@ -141,10 +144,16 @@ public final class BslWriteReviewInput extends CompareEditorInput
         return root;
     }
 
+    static boolean useMethodAwareDiff(IPreferenceStore store)
+    {
+        return "jgit".equals(System.getProperty(MethodAwareBslDiff.ENGINE_PROPERTY)) //$NON-NLS-1$
+            || store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED);
+    }
+
     private Control createComparison(Composite parent)
     {
         String executable = System.getProperty(StructuralBslDiff.EXECUTABLE_PROPERTY, ""); //$NON-NLS-1$
-        boolean methods = "jgit".equals(System.getProperty(MethodAwareBslDiff.ENGINE_PROPERTY)); //$NON-NLS-1$
+        boolean methods = useMethodAwareDiff(Activator.getDefault().getPreferenceStore());
         if (!methods && executable.isBlank()) return super.createContents(parent);
         Composite area = new Composite(parent, SWT.NONE);
         area.setLayout(new GridLayout(1, false));

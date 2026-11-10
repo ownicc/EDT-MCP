@@ -6,6 +6,7 @@ import org.eclipse.compare.IEditableContent;
 import org.eclipse.compare.IStreamContentAccessor;
 import org.eclipse.compare.ITypedElement;
 import org.eclipse.compare.structuremergeviewer.DiffNode;
+import org.eclipse.jface.preference.PreferenceStore;
 import org.junit.After;
 import org.junit.Test;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
@@ -21,6 +22,30 @@ public class BslWriteReviewInputTest
     }
 
     @After public void cleanup() { BslWriteReviews.shutdownShared(); }
+
+    @Test
+    public void methodDiffCanBeSwitchedWithoutChangingTheLauncher()
+    {
+        String previous = System.getProperty(MethodAwareBslDiff.ENGINE_PROPERTY);
+        try
+        {
+            System.clearProperty(MethodAwareBslDiff.ENGINE_PROPERTY);
+            var store = new PreferenceStore();
+            store.setDefault("bslMethodDiffEnabled", false);
+            assertFalse(BslWriteReviewInput.useMethodAwareDiff(store));
+            store.setValue("bslMethodDiffEnabled", true);
+            assertTrue(BslWriteReviewInput.useMethodAwareDiff(store));
+            store.setToDefault("bslMethodDiffEnabled");
+            assertFalse(BslWriteReviewInput.useMethodAwareDiff(store));
+            System.setProperty(MethodAwareBslDiff.ENGINE_PROPERTY, "jgit");
+            assertTrue(BslWriteReviewInput.useMethodAwareDiff(store));
+        }
+        finally
+        {
+            if (previous == null) System.clearProperty(MethodAwareBslDiff.ENGINE_PROPERTY);
+            else System.setProperty(MethodAwareBslDiff.ENGINE_PROPERTY, previous);
+        }
+    }
 
     @Test
     public void comparisonNeverEnablesEitherEditableSide() throws Exception

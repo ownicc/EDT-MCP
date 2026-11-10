@@ -72,6 +72,7 @@ public class GeneralTab
     private Combo tagStyleCombo;
     private Combo consentLevelCombo;
     private Button bslWriteReviewCheck;
+    private Button bslMethodDiffCheck;
     private Combo updateCheckCombo;
     private Label statusLabel;
     private Label endpointLabel;
@@ -368,6 +369,14 @@ public class GeneralTab
         GridData reviewData = new GridData(SWT.FILL, SWT.CENTER, true, false);
         reviewData.horizontalSpan = 3;
         bslWriteReviewCheck.setLayoutData(reviewData);
+
+        bslMethodDiffCheck = new Button(composite, SWT.CHECK);
+        bslMethodDiffCheck.setText(Messages.GeneralTab_BslMethodDiff);
+        bslMethodDiffCheck.setToolTipText(Messages.GeneralTab_BslMethodDiff_Tooltip);
+        bslMethodDiffCheck.setSelection(store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+        GridData diffData = new GridData(SWT.FILL, SWT.CENTER, true, false);
+        diffData.horizontalSpan = 3;
+        bslMethodDiffCheck.setLayoutData(diffData);
 
         // The PII redaction master toggle lives on the dedicated Privacy tab
         // (see PrivacyTab); it is not duplicated here.
@@ -787,6 +796,7 @@ public class GeneralTab
     private void savePreferences()
     {
         ConsentSettingsService.getInstance().setBslWriteReviewEnabled(bslWriteReviewCheck.getSelection());
+        store.setValue(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED, bslMethodDiffCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_HTTP_ENABLED, httpEnabledCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_PORT, portSpinner.getSelection());
         store.setValue(PreferenceConstants.PREF_AUTO_START, autoStartCheck.getSelection());
@@ -832,6 +842,7 @@ public class GeneralTab
     public void performDefaults()
     {
         bslWriteReviewCheck.setSelection(true);
+        bslMethodDiffCheck.setSelection(store.getDefaultBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
         httpEnabledCheck.setSelection(PreferenceConstants.DEFAULT_HTTP_ENABLED);
         updateHttpVisibility();
         portSpinner.setSelection(PreferenceConstants.DEFAULT_PORT);

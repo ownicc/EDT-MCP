@@ -154,6 +154,7 @@ Go to **Window → Preferences → MCP Server**. The settings page has General, 
 - **Enable MCP over HTTP**: On by default. The **MCP over HTTP** group contains the port (default: 8765), auto-start, remote access, auth token, HTTP status, Start/Stop/Restart, endpoint and **Copy URL**. Clearing the checkbox hides these controls; Apply stops HTTP. Enabling it and applying starts HTTP only when auto-start is selected; otherwise use Start. No EDT restart is needed. IPC remains independent.
 - **Check descriptions folder**: Optional override for the check descriptions that ship with the plugin. Leave it empty to use the bundled ones; point it at a folder to replace or translate individual checks (a file found there wins, per check)
 - **Review BSL changes before applying**: Enabled by default in windowed EDT. Changing `write_module_source` calls open a nonmodal read-only diff with Apply/Reject buttons. Pending proposals keep their own decisions; `cancel_write_review` withdraws an awaiting proposal. The headless host writes without an SWT review.
+- **Use the new BSL diff viewer**: Off by default. Enable it in this tab for method-aware comparisons with move markers, search and separate method comparisons. Apply/OK affects newly opened MCP reviews without restarting EDT; clear it to return to the standard viewer.
 - **Batch method replacements**: `write_module_source(edits=[{methodName, source}, ...], expectedHash=...)` replaces up to 50 methods of one module with one review. Send only changed methods; any invalid entry rejects the whole batch.
 - **Auto-start** (HTTP group): Start HTTP on EDT launch when HTTP is enabled. `EDT_MCP_AUTO_START=true` overrides both saved switches for CI; a launch with `-Dedt.mcp.stdioOnly=true` still suppresses HTTP auto-start without changing preferences.
 - **Plain text mode (Cursor compatibility)**: Applies to every transport and stays visible when HTTP is off. Returns results as plain text instead of embedded resources (for AI clients that don't support MCP resources)
@@ -165,7 +166,7 @@ Go to **Window → Preferences → MCP Server**. The settings page has General, 
 
 ![MCP Server General tab](img/Settings.png)
 
-For isolated viewer validation, `-Dedt.mcp.bslDiff=jgit` enables the experimental method-aware EDT/JGit comparison with exact-fragment highlighting and move markers. The native Difftastic prototype remains available. See [viewer validation](experiments/bsl-jgit-viewer/README.md) for limits and the reproducible isolated test setup.
+The legacy launch option `-Dedt.mcp.bslDiff=jgit` forces the method-aware viewer even when the checkbox is off; remove it to control the viewer through settings. The native Difftastic prototype remains available. See [viewer validation](experiments/bsl-jgit-viewer/README.md) for limits and the reproducible isolated test setup.
 
 #### Tools Tab
 

@@ -95,6 +95,28 @@ public class GeneralTabTest
     }
 
     @Test
+    public void methodDiffIsManualOptInSavedByApplyAndClearedByDefaults() throws Exception
+    {
+        Button checkbox = field("bslMethodDiffCheck", Button.class);
+        assertFalse(checkbox.getSelection());
+        checkbox.setSelection(true);
+        assertFalse("Unsaved changes must not affect reviews",
+            store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+        applyPage();
+        assertTrue(store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+        tab.dispose();
+        tab.getControl().dispose();
+        tab = new GeneralTab(shell);
+        assertTrue(field("bslMethodDiffCheck", Button.class).getSelection());
+        tab.performDefaults();
+        assertFalse(field("bslMethodDiffCheck", Button.class).getSelection());
+        assertTrue("Defaults must wait for Apply",
+            store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+        applyPage();
+        assertFalse(store.getBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+    }
+
+    @Test
     public void checkboxHidesHttpChildrenAndImmediatelyChangesCopyLabel() throws Exception
     {
         Group group = field("httpGroup", Group.class);
