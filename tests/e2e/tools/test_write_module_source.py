@@ -1733,3 +1733,229 @@ def test_bsl_preview_request_id_refusal_does_not_reserve_receipt():
     assert status.structured == ordinary.structured, (status.structured, ordinary.structured)
     assert _preview_disk_digest() == before
     assert_no_diff("preview requestId refusal and safe ordinary refusal leave source clean")
+
+
+# Method-scoped optimistic guards: unrelated methods may advance before
+# preparation; a submitted proposal still owns the entire observed snapshot.
+_METHOD_HASH_A = "// A documentation\n&AtServer\nProcedure A() Export\n\tValue = 1;\nEndProcedure"
+_METHOD_HASH_B = "// B documentation\nProcedure B() Export\n\tValue = 10;\nEndProcedure"
+_METHOD_HASH_SEED = _METHOD_HASH_A + "\n\n" + _METHOD_HASH_B + "\n"
+_METHOD_HASH_REPLACEMENT = _METHOD_HASH_A.replace("Value = 1;", "Value = 42;")
+
+
+def _method_hash_read(method="A", project=PROJECT, module=MODULE):
+    result = call("read_method_source", {"projectName": project, "modulePath": module,
+                  "methodName": method})
+    assert_ok(result, "read method-scoped revision")
+    method_match = re.search(r'(?m)^methodHash:\s*"?([0-9a-f]{16})"?', result.text or "")
+    module_match = _HASH_RE.search(result.text or "")
+    assert method_match and module_match, result.text
+    return method_match.group(1), module_match.group(1), result.text
+
+
+def _method_hash_disk_bytes():
+    with open(os.path.join(PROJECT_DIR, "src", MODULE), "rb") as stream:
+        return stream.read()
+
+
+def _method_hash_replacement_params(token, **extra):
+    return dict({"projectName": PROJECT, "modulePath": MODULE, "mode": "replaceMethod",
+                 "methodName": "A", "source": _METHOD_HASH_REPLACEMENT,
+                 "expectedMethodHash": token}, **extra)
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_method_hash_preserves_concurrent_other_method_and_rejects_stale_module_hash():
+    _seed_targeted(_METHOD_HASH_SEED)
+    method_hash, stale_module_hash, method_before = _method_hash_read()
+    before = _method_hash_disk_bytes()
+    changed_b = call("write_module_source", {
+        "projectName": PROJECT, "modulePath": MODULE, "mode": "replaceMethod",
+        "methodName": "B", "expectedHash": stale_module_hash,
+        "source": _METHOD_HASH_B.replace("Value = 10;", "Value = 20;"),
+    })
+    assert_ok(changed_b, "advance unrelated method B through an ordinary guarded write")
+    current_bytes = before.replace(b"Value = 10;", b"Value = 20;")
+    assert _method_hash_disk_bytes() == current_bytes, "B edit changed bytes outside B"
+    same_method_hash, current_module_hash, method_after = _method_hash_read()
+    assert same_method_hash == method_hash and current_module_hash != stale_module_hash
+    assert_contains(method_after, "&AtServer\nProcedure A() Export", "method read includes owned directive")
+    assert_contains(method_before, "// A documentation", "method read includes owned documentation")
+
+    cases = [
+        {"expectedHash": stale_module_hash},
+        {"expectedHash": stale_module_hash, "expectedMethodHash": method_hash},
+        {"expectedHash": current_module_hash, "expectedMethodHash": "0000000000000000"},
+    ]
+    for guards in cases:
+        params = {"projectName": PROJECT, "modulePath": MODULE, "mode": "replaceMethod",
+                  "methodName": "A", "source": _METHOD_HASH_REPLACEMENT, **guards}
+        refused = call("write_module_source", params)
+        assert _method_hash_disk_bytes() == current_bytes, "failed combined guards changed disk"
+        error = assert_error(refused, "each supplied hash must match")
+        invalid = "expectedMethodHash" if guards.get("expectedHash") == current_module_hash else "expectedHash"
+        next_read = "read_module_source" if invalid == "expectedHash" else "read_method_source"
+        assert_error_quality(error, names=[invalid], suggests=[next_read])
+
+    params = _method_hash_replacement_params(method_hash)
+    preview = call("write_module_source", dict(params, preview=True))
+    assert _method_hash_disk_bytes() == current_bytes, "method-only preview changed raw disk bytes"
+    assert_ok(preview, "unchanged A token accepts a newer B snapshot")
+    data = preview.structured
+    assert data["preview"] is True and data["applied"] is False and data["mutationCommitted"] is False, data
+    assert data["wouldChange"] is True and data["contentHash"] == current_module_hash, data
+    assert "reviewId" not in data and "requestId" not in data, data
+    assert_contains(data["diff"], "+\tValue = 42;", "preview contains the proposed A body")
+    assert_contains(data["diff"], "-\tValue = 1;", "preview replaces the original A body")
+    written = call("write_module_source", params)
+    assert _method_hash_disk_bytes() == current_bytes.replace(b"Value = 1;", b"Value = 42;"), \
+        "method-only write lost B or changed untouched encoding/lines"
+    assert_ok(written, "apply A against its unchanged method hash")
+    assert_diff_contains("Value = 42;", "A replacement landed on disk")
+    readback = _read_module_text()
+    assert_contains(readback, "Value = 42;", "model sees A replacement")
+    assert_contains(readback, "Value = 20;", "model preserves latest B")
+    assert_not_contains(readback, "Value = 10;", "stale B was not restored")
+    new_method_hash, _, _ = _method_hash_read()
+    assert new_method_hash != method_hash, "changed A must receive a new token"
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_method_hash_rejects_changed_body_documentation_and_directive():
+    for old, new in (("Value = 1;", "Value = 2;"),
+                     ("A documentation", "A changed documentation"),
+                     ("&AtServer", "&AtClient")):
+        _seed_targeted(_METHOD_HASH_SEED)
+        token, module_hash, _ = _method_hash_read()
+        changed = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                       "mode": "searchReplace", "oldSource": old, "source": new,
+                       "expectedHash": module_hash})
+        assert_ok(changed, "advance A's replaceable span")
+        before = _method_hash_disk_bytes()
+        refused = call("write_module_source", _method_hash_replacement_params(token))
+        assert _method_hash_disk_bytes() == before, "stale A token changed saved source"
+        error = assert_error(refused, "A's body, documentation and directive are guarded")
+        assert_error_quality(error, names=["expectedMethodHash"], suggests=["read_method_source"])
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_method_hash_rejects_deleted_ambiguous_and_incomplete_method():
+    changed_sources = [
+        _METHOD_HASH_B + "\n",
+        _METHOD_HASH_SEED + "\n" + _METHOD_HASH_A + "\n",
+        _METHOD_HASH_SEED.replace("EndProcedure", "", 1),
+    ]
+    for source in changed_sources:
+        _seed_targeted(_METHOD_HASH_SEED)
+        token, module_hash, _ = _method_hash_read()
+        changed = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                       "mode": "replace", "source": source, "expectedHash": module_hash,
+                       "skipSyntaxCheck": True})
+        assert_ok(changed, "prepare a deleted, duplicate or incomplete target through public writer")
+        _assert_module_disk_text(source, "the unaddressable fixture really reached disk")
+        before = _method_hash_disk_bytes()
+        refused = call("write_module_source", _method_hash_replacement_params(token))
+        assert _method_hash_disk_bytes() == before, "unaddressable target token wrote source"
+        error = assert_error(refused, "unaddressable A cannot authorize method replacement")
+        assert_error_quality(error, names=["A"], suggests=["read_method_source", "get_module_structure"])
+        read = call("read_method_source", {"projectName": PROJECT, "modulePath": MODULE, "methodName": "A"})
+        assert "methodHash:" not in (read.text or ""), "reader emitted a writable token for an unaddressable span"
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_method_hash_blank_and_unsupported_modes_refuse_without_write():
+    before = _method_hash_disk_bytes()
+    for token in ("", " "):
+        result = call("write_module_source", _method_hash_replacement_params(token))
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "blank method token")
+        assert_error_quality(error, names=["expectedMethodHash"], suggests=["read_method_source"])
+    for mode in ("replace", "append", "searchReplace", "insertBefore", "insertAfter"):
+        result = call("write_module_source", {
+            "projectName": PROJECT, "modulePath": MODULE, "mode": mode, "methodName": "A",
+            "source": _METHOD_HASH_REPLACEMENT, "oldSource": "Value = 1;",
+            "expectedHash": "0123456789abcdef", "expectedMethodHash": "0123456789abcdef",
+        })
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "method token cannot authorize " + mode)
+        assert_error_quality(error, names=["expectedMethodHash"], suggests=["replaceMethod"])
+    batch = call("write_module_source", {
+        "projectName": PROJECT, "modulePath": MODULE,
+        "edits": [{"methodName": "A", "source": _METHOD_HASH_REPLACEMENT}],
+        "expectedHash": "0123456789abcdef", "expectedMethodHash": "0123456789abcdef",
+    })
+    assert _method_hash_disk_bytes() == before
+    error = assert_error(batch, "batch retains its whole-module guard")
+    assert_error_quality(error, names=["expectedMethodHash"], suggests=["replaceMethod"])
+    assert_no_diff("invalid method-hash combinations leave the fixture clean")
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_method_hash_request_id_replays_once_and_binds_method_token():
+    _seed_targeted(_METHOD_HASH_SEED)
+    token, _, _ = _method_hash_read()
+    before = _method_hash_disk_bytes()
+    request_id = "e2e-method-hash-%d" % time.time_ns()
+    params = _method_hash_replacement_params(token, requestId=request_id)
+    applied = call("write_module_source", params)
+    expected = before.replace(b"Value = 1;", b"Value = 42;")
+    assert _method_hash_disk_bytes() == expected, "receipt-bearing method write did not persist exactly A"
+    assert_ok(applied, "method-only request receipt")
+    assert applied.structured["mutationCommitted"] is True, applied.structured
+    assert applied.structured["requestId"] == request_id, applied.structured
+    replay = call("write_module_source", params)
+    assert _method_hash_disk_bytes() == expected, "receipt replay rewrote source"
+    assert_ok(replay, "same requestId replays despite its now-stale A token")
+    assert replay.structured == applied.structured, (replay.structured, applied.structured)
+    conflict = call("write_module_source", dict(params, expectedMethodHash="0000000000000000"))
+    assert _method_hash_disk_bytes() == expected, "changed method-token receipt conflict wrote source"
+    error = assert_error(conflict, "request digest binds expectedMethodHash")
+    assert conflict.structured["code"] == "requestIdConflict", conflict.structured
+    assert_error_quality(error, names=[request_id], suggests=["original arguments"])
+    assert_diff_contains("Value = 42;", "the original operation remains committed once")
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_method_hash_preview_existing_method_never_opens_review():
+    token, module_hash, _ = _method_hash_read("TwoPlusTwoIsFour", TESTS_PROJECT, _PREVIEW_MODULE)
+    before = _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL)
+    result = call("write_module_source", {"projectName": TESTS_PROJECT, "modulePath": _PREVIEW_MODULE,
+                  "mode": "replaceMethod", "methodName": "TwoPlusTwoIsFour", "expectedMethodHash": token,
+                  "source": "Процедура TwoPlusTwoIsFour() Экспорт\n\t// E2E_Method_Hash_Preview\nКонецПроцедуры",
+                  "preview": True})
+    assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
+    assert_ok(result, "method-only detached preview works with either review preference")
+    data = result.structured
+    assert data["preview"] is True and data["mutationCommitted"] is False and data["applied"] is False, data
+    assert data["contentHash"] == module_hash and data["wouldChange"] is True, data
+    assert "reviewId" not in data and "requestId" not in data, data
+    assert_contains(data["diff"], "+\t// E2E_Method_Hash_Preview", "method-only preview shows actual edit")
+    same, same_module_hash, _ = _method_hash_read("TwoPlusTwoIsFour", TESTS_PROJECT, _PREVIEW_MODULE)
+    assert (same, same_module_hash) == (token, module_hash)
+    assert_no_diff("method-only preview does not change saved source")
+
+
+@e2e_test(tool="write_module_source", kind="action")
+def test_method_hash_review_pending_can_be_cancelled_without_writes():
+    if os.environ.get("EDT_MCP_BSL_REVIEW_E2E") != "1":
+        from harness import E2ESkip
+        raise E2ESkip("requires isolated stand with BSL review enabled and EDT_MCP_BSL_REVIEW_E2E=1")
+    token, _, _ = _method_hash_read("TwoPlusTwoIsFour", TESTS_PROJECT, _PREVIEW_MODULE)
+    before = _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL)
+    result = call("write_module_source", {"projectName": TESTS_PROJECT, "modulePath": _PREVIEW_MODULE,
+                  "mode": "replaceMethod", "methodName": "TwoPlusTwoIsFour", "expectedMethodHash": token,
+                  "source": "Процедура TwoPlusTwoIsFour() Экспорт\n\t// E2E_Method_Hash_Pending\nКонецПроцедуры"})
+    assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
+    assert_ok(result, "method-only write submits a human review")
+    assert result.structured["status"] == "awaitingApproval", result.structured
+    review_id = result.structured["reviewId"]
+    try:
+        status = call("get_write_review_status", {"reviewId": review_id})
+        assert_ok(status, "pending method-only review is observable")
+        assert status.structured["status"] == "awaitingApproval", status.structured
+    finally:
+        cancelled = call("cancel_write_review", {"reviewId": review_id})
+        assert_ok(cancelled, "withdraw test proposal without applying it")
+        assert cancelled.structured["status"] == "cancelled", cancelled.structured
+    assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
+    assert_no_diff("pending/cancelled method-only review never writes source")

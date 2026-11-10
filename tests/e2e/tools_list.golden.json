@@ -6947,7 +6947,10 @@
           "type": "array"
         },
         "expectedHash": {
-          "description": "Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for every method-targeted mode, including edits.",
+          "description": "Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for method-targeted modes and edits unless replaceMethod uses expectedMethodHash.",
+          "type": "string"
+        },
+        "expectedMethodHash": {
           "type": "string"
         },
         "expectedSource": {

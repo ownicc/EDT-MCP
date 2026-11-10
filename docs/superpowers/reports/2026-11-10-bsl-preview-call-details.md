@@ -40,8 +40,8 @@ companion plugin. No reference implementation was copied.
 - Clean complete Maven/Tycho verify on JDK25: **13,247 tests, 0 failures,
   0 errors, 21 skips; BUILD SUCCESS** (9m58s).
 - Independent review found a no-op test wording mismatch, corrected before live
-  verification; no outstanding actionable source findings. The remaining BOM
-  uncertainty was resolved by the live checks below.
+  verification; no outstanding actionable source findings. The supplemental
+  BOM-specific evidence was later invalidated as explained below.
 - Both generated tool pages came from the live server. The complete 108-tool
   golden exactly matches the regenerated live catalogue; only the two intended
   schemas changed. Golden checks: four passed, two environment skips. The
@@ -64,10 +64,17 @@ metadata differs between the earlier frozen artifact and the final build.
 The 31 cases include detached previews, syntax/stale-hash refusals, receipt
 non-admission, exact argument/range data, explicit-false legacy output parity
 and ordinary-write baselines. Additional probes passed in all four configurations:
-BOM module callers/callees with unchanged bytes, a real unsaved editor preserved
+module callers/callees with unchanged bytes, a real unsaved editor preserved
 through a refused preview, unchanged immediate before/after preferences and zero
 new review records/UI inputs. Opening an editor itself legitimately updates
 Comfort's recent-position preference; that is separate from the preview call.
+
+Verification correction during `edt-ahm`: the supplemental script added a BOM
+and then called `reset_model`, whose fixture reset removed that BOM before the
+read. The four runs therefore demonstrate baseline caller/callee reads and
+unchanged bytes, **not BOM-source coverage**. All four earlier BOM-specific
+claims are withdrawn. The independent no-write and dirty-buffer assertions
+remain valid; the old call-detail BOM scenarios were not rerun.
 
 Comfort main, early and checks bundles and Effector 1.1.8 were actually ACTIVE,
 not merely present. On the final stand both EDT-MCP port 18765 and Effector port

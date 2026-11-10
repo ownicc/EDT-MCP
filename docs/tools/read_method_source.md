@@ -10,11 +10,11 @@ Inspect the source of one BSL procedure or function. Parameters and examples: ge
 | methodName | yes | string | Procedure/function name (case-insensitive) |
 
 ## Guide
-Reads ONE procedure or function out of a BSL module by name - so you get the 40 lines you care about instead of a 60,000-line file. The body comes back with its doc-comment and a metadata header you can feed straight back into an edit.
+Reads ONE procedure or function out of a BSL module by name - so you get the 40 lines you care about instead of a 60,000-line file. The body comes back with its contiguous doc-comments and ampersand directives, plus a metadata header you can feed straight back into an edit.
 
 ## When to use
 - You know the method name and just want to read its implementation.
-- You are about to edit a method and need its current body plus the `contentHash` for a safe write.
+- You are about to edit a method and need its current body plus the `methodHash` for a safe `replaceMethod` write.
 - Cheaper, more focused alternative to reading the whole module.
 
 ## Parameter details
@@ -23,11 +23,14 @@ Reads ONE procedure or function out of a BSL module by name - so you get the 40 
 - `methodName` (required) - the procedure/function name, **case-insensitive**.
 
 ## What you get
-Markdown with a YAML front-matter block (projectName, module, `contentHash`, method, type, export flag, startLine/endLine, totalLines, and region) followed by the source in a ```bsl``` fence. If the method participates in extension interception, that is noted below the code.
+Markdown with a YAML front-matter block (projectName, module, `contentHash`, `methodHash` when the target is safely addressable, method, type, export flag, startLine/endLine, totalLines, and region) followed by the source in a ```bsl``` fence. Both hashes and the displayed source come from the same saved-file read. If the method participates in extension interception, that is noted below the code.
 
 ## Notes & gotchas
 - **Method not found?** It returns the list of available method names in that module - copy the exact one and retry. (Name matching ignores ru/en keyword dialect.)
 - The `contentHash` is a whole-MODULE revision token, not a per-method one. Pass it as `expectedHash` to `write_module_source` for an optimistic-lock safe edit; the same token is produced by `read_module_source`, so the two agree.
+- For `write_module_source` with `mode="replaceMethod"`, pass `methodHash` as `expectedMethodHash` to guard just this method. An unrelated method edit does not invalidate this token. The token covers the exact replacement span: contiguous doc-comments and ampersand directives, declaration, body, and terminator. Changes anywhere in that span invalidate it.
+- Method hashing joins the span's saved lines with LF and adds no trailing newline. UTF-8 BOM and CRLF/LF differences do not change the token; surrounding blank separators and regions are outside its scope. The code fence adds a display newline before its closing fence.
+- Missing, ambiguous, incomplete, or scanner-unaddressable targets receive no `methodHash`. A legacy read can still display a fragment when it cannot safely identify a replacement target. If reading the saved file fails, or its declaration cannot be located by the text scanner, a known native method can still be displayed from the model; neither revision token is returned for that model-only source.
 - To list the methods in a module first, use `get_module_structure`; to read the entire module, use `read_module_source`.
 
 ---

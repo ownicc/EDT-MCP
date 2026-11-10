@@ -200,7 +200,8 @@ public final class BslWriteReviewCommit
         return locked == null ? null : failure(locked);
     }
 
-    static Outcome writeIfUnchanged(PreparedBslWrite write, IFile target, boolean dirty, BooleanSupplier enterMutation)
+    /** Caller holds the target's scheduling rule and has completed the write admission checks. */
+    public static Outcome writeIfUnchanged(PreparedBslWrite write, IFile target, boolean dirty, BooleanSupplier enterMutation)
     {
         boolean entered = false;
         try

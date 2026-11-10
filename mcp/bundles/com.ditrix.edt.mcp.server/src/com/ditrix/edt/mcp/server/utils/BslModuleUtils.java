@@ -595,6 +595,49 @@ public final class BslModuleUtils
         }
     }
 
+    /** Saved text owned by one replaceMethod target, without an added trailing newline. */
+    public record ReplacementMethodSnapshot(MethodSpan span, String text)
+    {
+        /** @return the optimistic-lock token for this exact replacement fragment */
+        public String methodHash()
+        {
+            return ContentHash.of(text);
+        }
+    }
+
+    /**
+     * Captures the same complete, unambiguous whole-line target that replaceMethod can address.
+     * Documentation and ampersand directives belong to the fragment; surrounding separators do
+     * not. Line separators are normalized to LF and no trailing separator is added.
+     *
+     * @param moduleLines saved module lines without line separators
+     * @param methodName case-insensitive target name
+     * @return immutable span/text snapshot, or {@code null} when the scanner cannot safely target it
+     */
+    public static ReplacementMethodSnapshot replacementMethodSnapshot(List<String> moduleLines,
+        String methodName)
+    {
+        if (moduleLines == null || methodName == null || unaddressable(moduleLines) != null
+            || secondDeclarationOnLine(moduleLines) >= 0)
+        {
+            return null;
+        }
+        MethodSpan target = null;
+        for (MethodSpan span : findMethodSpansViaText(moduleLines))
+        {
+            if (span.name.equalsIgnoreCase(methodName))
+            {
+                if (target != null || !span.complete)
+                {
+                    return null;
+                }
+                target = span;
+            }
+        }
+        return target == null ? null : new ReplacementMethodSnapshot(target,
+            String.join("\n", moduleLines.subList(target.startLine, target.endLine + 1))); //$NON-NLS-1$
+    }
+
     /**
      * Inserts a complete method with exactly one blank line at each occupied junction.
      * Only surrounding blank lines are normalized; method bodies and preambles stay intact.

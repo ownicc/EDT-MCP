@@ -22,7 +22,8 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 | expectedSource | — | string | Lost-update guard for mode=replace: the module content you last read; mismatch rejects. |
 | overwrite | — | boolean | Force mode=replace over an existing module without an expectedSource check (default false). |
 | requestId | — | string | Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write. |
-| expectedHash | — | string | Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for every method-targeted mode, including edits. |
+| expectedHash | — | string | Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for method-targeted modes and edits unless replaceMethod uses expectedMethodHash. |
+| expectedMethodHash | — | string | For replaceMethod only: methodHash from read_method_source, including documentation/directives. Allows unrelated module changes before preparation. If expectedHash is also supplied, both must match. |
 
 ## Guide
 Writes BSL source to a single 1C metadata object module (a `.bsl` file under `src/`). Six edit modes, a mandatory BSL syntax check, and lost-update guards.
@@ -109,7 +110,8 @@ Passing both is rejected; passing neither is rejected. `moduleType` is meaningfu
 | `expectedSource` | mode=replace | lost-update guard. |
 | `overwrite` | mode=replace | force without expectedSource. |
 | `requestId` | optional | workspace-unique operation ID; JSON receipt replay and recovery, seven-day retention; never reuse. |
-| `expectedHash` | any mode | cheap lost-update guard; REQUIRED for all method-targeted modes. |
+| `expectedHash` | any mode | whole-module guard; REQUIRED for method-targeted modes unless replaceMethod uses expectedMethodHash. |
+| `expectedMethodHash` | replaceMethod only | methodHash from read_method_source; guards the exact replaced method span. Not for edits or insert modes. |
 
 ## moduleType to path
 
@@ -126,14 +128,39 @@ Passing both is rejected; passing neither is rejected. `moduleType` is meaningfu
 
 Both insert modes ensure exactly one blank line between the inserted method and each neighbour, including comments and preprocessor boundaries. Blank lines at the edges of `source` and at the insertion point are collapsed, with no padding at a module edge. Method bodies, attached documentation/annotations and preprocessor lines stay unchanged. `replaceMethod` does not normalize spacing.
 
-For all three method-targeted modes, `methodName` and `expectedHash` are REQUIRED. The anchor must resolve to exactly one declaration; duplicate declarations in preprocessor branches are rejected as ambiguous. For insert modes, the incoming method name must not already exist anywhere in the module, so repeating an insert is refused instead of creating a duplicate.
+For all three method-targeted modes, `methodName` is REQUIRED. Insert modes require `expectedHash`; `replaceMethod` accepts `expectedHash` or `expectedMethodHash`. The anchor must resolve to exactly one declaration; duplicate declarations in preprocessor branches are rejected as ambiguous. For insert modes, the incoming method name must not already exist anywhere in the module, so repeating an insert is refused instead of creating a duplicate.
+
+### Guarding one method
+
+Read `read_method_source` and pass its `methodHash` as `expectedMethodHash` with
+`mode:"replaceMethod"`. Omit `expectedHash` to permit unrelated module edits that
+happened before preparation. The server composes the replacement from the
+current saved module, preserving those edits. If both hashes are supplied, both
+must match; a stale or blank module hash is not ignored.
+
+The method token covers its exact replaced span, including contiguous
+documentation, ampersand directives, declaration, body and terminator. LF/CRLF
+and UTF-8 BOM do not change it. Changes to the target, its removal, an ambiguous
+name or an unaddressable declaration refuse the write. This guards text, not
+logical dependencies on other methods or surrounding preprocessor context; use
+the whole-module hash when those changes must also invalidate the edit.
+
+Preview and real writes use the same method guard. After preparation, the
+existing full-module byte snapshot guard still rejects ANY intervening edit,
+including a neighboring method change. Dirty-buffer, vendor-support, method
+kind/name and human-review checks remain. The token never permits writing over
+unsaved editor changes. Batch replacements and insert modes still require the
+whole-module token; they reject `expectedMethodHash`.
+
+Example: `{projectName, modulePath, mode:"replaceMethod", methodName:"Target",
+source:"<one complete replacement method>", expectedMethodHash:"<methodHash>"}`.
 
 The method parser recognizes `Procedure`/`Function` and `Процедура`/`Функция`, with matching `EndProcedure`/`EndFunction` and `КонецПроцедуры`/`КонецФункции` terminators. A terminator must end on a keyword boundary: identifiers such as `EndProcedureResult` and `КонецПроцедурыРезультат` do not close a method, and a terminator must own its line - `EndProcedure; ModuleValue = Call();` is module-level code after the method, not a method end. An unterminated method is reported incomplete rather than borrowing the next method terminator. Some shapes cannot be addressed by a whole-line scanner at all. The module is REFUSED, naming the line and what to change, rather than edited around the shape: a declaration split across lines, or holding only the keyword with its name on the next line; a parameter list that does not close before the method ends (one WRAPPED onto continuation lines is ordinary formatting and is addressed normally); a method named after a block keyword; a terminator sharing its line with other code; a declaration written after something else on its line; a pragma sharing the declaration line; and a pragma whose arguments do not close on its own line. A whole method written on ONE line (declaration and terminator together) is refused for the same reason. The shapes this cost was measured for do not occur in real configurations: zero next-line parentheses and zero one-line methods in 1C:ERP 2.5.16.41, and zero multi-line pragmas across its 22,786 modules.
 
 ## Lost-update guards
 
 Concurrent edits between your read and write are caught by:
-- `expectedHash` (ANY mode; REQUIRED for method-targeted modes): pass the opaque `contentHash` from your last `read_module_source` / `read_method_source`. If the module changed, the write is rejected. Cheapest (a fixed-size token, not the whole file). Omit it when creating a new module, because there is no existing content to match.
+- `expectedHash` (ANY mode; REQUIRED for method-targeted modes except a `replaceMethod` guarded by `expectedMethodHash`): pass the opaque `contentHash` from your last `read_module_source` / `read_method_source`. If the module changed, the write is rejected. Omit it when creating a new module, because there is no existing content to match.
 - `expectedSource` (mode=replace): pass the exact content you last read. Mismatch is rejected.
 - `overwrite=true` (mode=replace): force the overwrite with no content check.
 A bare `replace` over an existing module with none of these is rejected and steers you toward expectedSource / overwrite / searchReplace. A matching `expectedHash` already satisfies the replace precondition. All comparisons are `\n`-normalized, so a CRLF/LF-only difference is not a spurious mismatch.

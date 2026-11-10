@@ -13,7 +13,6 @@ import java.util.regex.Matcher;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.swt.widgets.Display;
 
 import com._1c.g5.v8.dt.bsl.model.Function;
 import com._1c.g5.v8.dt.bsl.model.Method;
@@ -162,84 +161,22 @@ public class ReadMethodSourceTool implements IMcpTool
         Method method = BslModuleUtils.findMethod(module, methodName);
         if (method == null)
         {
-            // Method not found - list all available methods
-            return BslModuleUtils.buildMethodNotFoundResponse(module, modulePath, methodName);
+            // The saved file may be newer than the native model.
+            return null;
         }
 
-        // Get line range from EMF node
-        int startLine = BslModuleUtils.getStartLine(method);
-        int endLine = BslModuleUtils.getEndLine(method);
-
-        // Read file to get actual source lines (getText() may include preceding doc-comments)
         IFile file = BslModuleUtils.resolveModuleFile(project, modulePath);
-        List<String> allLines;
         try
         {
-            allLines = BslModuleUtils.readFileLines(file);
+            return readMethodFromFile(file, projectName, modulePath, methodName, method, module);
         }
         catch (Exception e)
         {
             Activator.logWarning("readMethodViaEmf: failed to read file, using getText(): " + e.getMessage()); //$NON-NLS-1$
-            // Fallback: use getText() from EMF node (may include doc-comment)
-            return readMethodFromEmfText(method, projectName, modulePath, startLine, endLine);
+            // Model-only source cannot authorize a saved-file write: no revision tokens.
+            return readMethodFromEmfText(method, projectName, modulePath,
+                BslModuleUtils.getStartLine(method), BslModuleUtils.getEndLine(method));
         }
-
-        // Include doc-comment block preceding the method keyword
-        int docStartLine = findDocCommentStart(allLines, startLine);
-
-        // Clamp range to file boundaries
-        int from = Math.max(1, docStartLine);
-        int to = Math.min(allLines.size(), endLine);
-
-        // Build signature info
-        String typeStr = method instanceof Function ? TYPE_FUNCTION : TYPE_PROCEDURE; //$NON-NLS-1$ //$NON-NLS-2$
-
-        // Find containing region
-        String region = BslModuleUtils.findRegionForLine(allLines, startLine);
-
-        // Whole-MODULE revision token (not just this method) so the caller can round-trip
-        // it into write_module_source's expectedHash. Same canonical text read_module_source
-        // hashes (readFileText, \n-normalized) so the tokens agree across both read tools.
-        // Best-effort: a re-read failure just omits the field rather than failing the read.
-        String contentHash = computeModuleHash(file);
-
-        FrontMatter fm = FrontMatter.create()
-            .put(McpKeys.PROJECT_NAME, projectName)
-            .put(KEY_MODULE, modulePath);
-        if (contentHash != null)
-        {
-            fm.put("contentHash", contentHash); //$NON-NLS-1$
-        }
-        fm.put(KEY_METHOD, method.getName())
-            .put("type", typeStr) //$NON-NLS-1$
-            .put(KEY_EXPORT, method.isExport())
-            .put(KEY_START_LINE, from)
-            .put(KEY_END_LINE, to)
-            .put("totalLines", allLines.size()); //$NON-NLS-1$
-
-        if (region != null)
-        {
-            fm.put("region", region); //$NON-NLS-1$
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(BSL_FENCE_OPEN);
-        for (int i = from - 1; i < to; i++)
-        {
-            sb.append(allLines.get(i)).append('\n');
-        }
-        sb.append(FENCE_CLOSE);
-
-        // Extension interception: if this is a core method intercepted by an extension
-        // (or an extension method that intercepts a core one), note it below the code.
-        // Best-effort — only the EMF path has the resolved Method model.
-        String interception = InterceptionUtils.methodFooter(module, method);
-        if (interception != null)
-        {
-            sb.append(interception);
-        }
-
-        return fm.wrapContent(sb.toString());
     }
 
     /**
@@ -262,22 +199,47 @@ public class ReadMethodSourceTool implements IMcpTool
                 return ToolResult.error("File not found: src/" + modulePath).toJson(); //$NON-NLS-1$
             }
 
-            List<String> allLines = BslModuleUtils.readFileLines(file);
+            return readMethodFromFile(file, projectName, modulePath, methodName, null, null);
+        }
+        catch (Exception e)
+        {
+            return ToolResult.error("reading file: " + e.getMessage()).toJson(); //$NON-NLS-1$
+        }
+    }
 
-            // Locate the method via the shared text-scan fallback.
-            BslModuleUtils.TextMethod tm = BslModuleUtils.findMethodViaText(allLines, methodName);
-            if (!tm.found)
+    // ========== Helper methods ==========
+
+    /**
+     * Reads and formats one saved snapshot for both native-model and text-only callers.
+     * Model metadata is best-effort; token-bearing source boundaries always come from saved text.
+     */
+    String readMethodFromFile(IFile file, String projectName, String modulePath, String methodName,
+        Method modelMethod, Module modelModule) throws Exception
+    {
+        String moduleText = BslModuleUtils.readFileText(file);
+        List<String> allLines = moduleText.lines().toList();
+        BslModuleUtils.ReplacementMethodSnapshot snapshot =
+            BslModuleUtils.replacementMethodSnapshot(allLines, methodName);
+
+        // Keep the useful legacy read of an incomplete/ambiguous target, but never mint a
+        // method token for a fragment that method-targeted writes would refuse.
+        BslModuleUtils.TextMethod tm = BslModuleUtils.findMethodViaText(allLines, methodName);
+        if (!tm.found)
+        {
+            if (modelMethod != null)
             {
-                return BslModuleUtils.buildTextMethodNotFoundResponse(methodName, modulePath, tm.allMethodNames);
+                return readMethodFromEmfText(modelMethod, projectName, modulePath,
+                    BslModuleUtils.getStartLine(modelMethod), BslModuleUtils.getEndLine(modelMethod));
             }
-
-            int methodStart = tm.startLine;
-            int methodEnd = tm.endLine;
-            String typeStr = tm.isFunction ? TYPE_FUNCTION : TYPE_PROCEDURE; //$NON-NLS-1$ //$NON-NLS-2$
-
-            // Detect export flag
-            boolean isExport = false;
-            for (int i = methodStart; i <= methodEnd; i++)
+            return BslModuleUtils.buildTextMethodNotFoundResponse(methodName, modulePath, tm.allMethodNames);
+        }
+        int from = snapshot == null ? tm.startLine : snapshot.span().startLine;
+        int to = snapshot == null ? tm.endLine : snapshot.span().endLine;
+        boolean isFunction = snapshot == null ? tm.isFunction : snapshot.span().isFunction;
+        boolean isExport = modelMethod != null && modelMethod.isExport();
+        if (modelMethod == null)
+        {
+            for (int i = from; i <= to; i++)
             {
                 Matcher startMatcher = BslModuleUtils.METHOD_START_PATTERN.matcher(allLines.get(i));
                 if (startMatcher.find())
@@ -292,77 +254,44 @@ public class ReadMethodSourceTool implements IMcpTool
                     break;
                 }
             }
-
-            // Find containing region
-            String region = BslModuleUtils.findRegionForLine(allLines, methodStart + 1);
-
-            // Whole-MODULE revision token (see readMethodViaEmf) for the expectedHash
-            // round-trip; same canonical text read_module_source hashes.
-            String contentHash = computeModuleHash(file);
-
-            FrontMatter fm = FrontMatter.create()
-                .put(McpKeys.PROJECT_NAME, projectName)
-                .put(KEY_MODULE, modulePath);
-            if (contentHash != null)
-            {
-                fm.put("contentHash", contentHash); //$NON-NLS-1$
-            }
-            fm.put(KEY_METHOD, methodName)
-                .put("type", typeStr) //$NON-NLS-1$
-                .put(KEY_EXPORT, isExport)
-                .put(KEY_START_LINE, methodStart + 1)
-                .put(KEY_END_LINE, methodEnd + 1)
-                .put("totalLines", allLines.size()); //$NON-NLS-1$
-
-            if (region != null)
-            {
-                fm.put("region", region); //$NON-NLS-1$
-            }
-
-            StringBuilder sb = new StringBuilder();
-            sb.append(BSL_FENCE_OPEN);
-            for (int i = methodStart; i <= methodEnd; i++)
-            {
-                sb.append(allLines.get(i)).append('\n');
-            }
-            sb.append(FENCE_CLOSE);
-
-            return fm.wrapContent(sb.toString());
         }
-        catch (Exception e)
+
+        FrontMatter fm = FrontMatter.create()
+            .put(McpKeys.PROJECT_NAME, projectName)
+            .put(KEY_MODULE, modulePath)
+            .put("contentHash", ContentHash.of(moduleText)); //$NON-NLS-1$
+        if (snapshot != null)
         {
-            return ToolResult.error("reading file: " + e.getMessage()).toJson(); //$NON-NLS-1$
+            fm.put("methodHash", snapshot.methodHash()); //$NON-NLS-1$
         }
-    }
-
-    // ========== Helper methods ==========
-
-    /**
-     * Computes the WHOLE-module optimistic-lock token for the {@code expectedHash}
-     * round-trip into write_module_source. Reads the same canonical text
-     * read_module_source hashes ({@code readFileText}, {@code \n}-normalized) so a method
-     * read and a module read of the same file yield the same token. Best-effort: a read
-     * failure returns {@code null} so the field is simply omitted rather than failing the
-     * method read.
-     *
-     * @param file the module file
-     * @return the token, or {@code null} when the file could not be read
-     */
-    private String computeModuleHash(IFile file)
-    {
-        try
+        fm.put(KEY_METHOD, tm.matchedName)
+            .put("type", isFunction ? TYPE_FUNCTION : TYPE_PROCEDURE) //$NON-NLS-1$
+            .put(KEY_EXPORT, isExport)
+            .put(KEY_START_LINE, from + 1)
+            .put(KEY_END_LINE, to + 1)
+            .put("totalLines", allLines.size()); //$NON-NLS-1$
+        String region = BslModuleUtils.findRegionForLine(allLines, from + 1);
+        if (region != null)
         {
-            return ContentHash.of(BslModuleUtils.readFileText(file).replace("\r\n", "\n")); //$NON-NLS-1$ //$NON-NLS-2$
+            fm.put("region", region); //$NON-NLS-1$
         }
-        catch (Exception e)
+
+        String source = snapshot == null ? String.join("\n", allLines.subList(from, to + 1)) //$NON-NLS-1$
+            : snapshot.text();
+        StringBuilder sb = new StringBuilder(BSL_FENCE_OPEN).append(source).append('\n').append(FENCE_CLOSE);
+        if (modelModule != null && modelMethod != null)
         {
-            Activator.logWarning("read_method_source: contentHash unavailable: " + e.getMessage()); //$NON-NLS-1$
-            return null;
+            String interception = InterceptionUtils.methodFooter(modelModule, modelMethod);
+            if (interception != null)
+            {
+                sb.append(interception);
+            }
         }
+        return fm.wrapContent(sb.toString());
     }
 
     /**
-     * Fallback: format method source from EMF getText() when file reading fails.
+     * Fallback: format native method source when saved text cannot be read or located.
      * Note: getText() may include doc-comments, so line numbers may be inaccurate.
      */
     private String readMethodFromEmfText(Method method, String projectName, String modulePath,
@@ -393,20 +322,5 @@ public class ReadMethodSourceTool implements IMcpTool
         }
 
         return fm.wrapContent(sb.toString());
-    }
-
-    /**
-     * Scans backwards from the method keyword line to find the start of a doc-comment block.
-     * BSL doc-comments are consecutive lines starting with //.
-     *
-     * @param allLines all file lines (0-indexed list)
-     * @param methodKeywordLine 1-based line number of the method keyword (Функция/Процедура)
-     * @return 1-based line number where the doc-comment starts, or methodKeywordLine if no doc-comment
-     */
-    private int findDocCommentStart(List<String> allLines, int methodKeywordLine)
-    {
-        // Delegate to the shared ADJACENCY-policy helper (stop at first blank or
-        // non-comment line) so all read-tools share one boundary rule.
-        return BslModuleUtils.findDocCommentStartLine(allLines, methodKeywordLine);
     }
 }

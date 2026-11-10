@@ -82,7 +82,7 @@
         "methodName": "Add"
       },
       "response": {
-        "text": "---\nprojectName: TestConfiguration\nmodule: CommonModules/Calc/Module.bsl\ncontentHash: 86546d2111e587d6\nmethod: Add\ntype: Function\nexport: true\nstartLine: 1\nendLine: 3\ntotalLines: 7\n---\n```bsl\nФункция Add(A, B) Экспорт\n\tВозврат A + B;\nКонецФункции\n```\n",
+        "text": "---\nprojectName: TestConfiguration\nmodule: CommonModules/Calc/Module.bsl\ncontentHash: 86546d2111e587d6\nmethodHash: fecd6b38e251ebad\nmethod: Add\ntype: Function\nexport: true\nstartLine: 1\nendLine: 3\ntotalLines: 7\n---\n```bsl\nФункция Add(A, B) Экспорт\n\tВозврат A + B;\nКонецФункции\n```\n",
         "structuredContent": null,
         "isError": false
       }
@@ -219,7 +219,7 @@
         "methodName": "Маркер"
       },
       "response": {
-        "text": "---\nprojectName: TestConfiguration\nmodule: CommonModules/Вычисление/Module.bsl\ncontentHash: 05ca289d439e57ad\nmethod: Маркер\ntype: Function\nexport: true\nstartLine: 1\nendLine: 3\ntotalLines: 3\n---\n```bsl\nФункция Маркер() Экспорт\n\tВозврат 1;\nКонецФункции\n```\n",
+        "text": "---\nprojectName: TestConfiguration\nmodule: CommonModules/Вычисление/Module.bsl\ncontentHash: 05ca289d439e57ad\nmethodHash: bbdfbdc264b64548\nmethod: Маркер\ntype: Function\nexport: true\nstartLine: 1\nendLine: 3\ntotalLines: 3\n---\n```bsl\nФункция Маркер() Экспорт\n\tВозврат 1;\nКонецФункции\n```\n",
         "structuredContent": null,
         "isError": false
       }

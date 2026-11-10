@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.BooleanSupplier;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -46,6 +47,8 @@ import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.AdoptedModuleState;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
 import com.ditrix.edt.mcp.server.utils.PreparedBslWrite;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviews.Outcome;
+import com.ditrix.edt.mcp.server.utils.BslWriteReviews.State;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviewCommit;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews;
 import com.ditrix.edt.mcp.server.utils.BslWriteRequests;
@@ -160,7 +163,8 @@ public class WriteModuleSourceTool implements IMcpTool
             .stringProperty("requestId", "Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write.")
             .stringProperty("expectedHash", //$NON-NLS-1$
                 "Lost-update guard: the hash from the read that produced your edit. The write is " //$NON-NLS-1$
-                + "rejected if the module changed since; required for every method-targeted mode, including edits.") //$NON-NLS-1$
+                + "rejected if the module changed since; required for method-targeted modes and edits unless replaceMethod uses expectedMethodHash.") //$NON-NLS-1$
+            .stringProperty("expectedMethodHash", "For replaceMethod only: methodHash from read_method_source, including documentation/directives. Allows unrelated module changes before preparation. If expectedHash is also supplied, both must match.")
             .build();
         JsonObject document = JsonParser.parseString(schema).getAsJsonObject();
         document.add("oneOf", JsonParser.parseString(GsonProvider.toJson(List.of(
@@ -278,7 +282,7 @@ public class WriteModuleSourceTool implements IMcpTool
                     ". Only 'replace' mode can create new files.").toJson(); //$NON-NLS-1$
             }
 
-            if (reviewEnabled || (req.preview && HostKind.current() != HostKind.HEADLESS))
+            if (reviewEnabled || ((req.preview || req.expectedMethodHash != null) && HostKind.current() != HostKind.HEADLESS))
             {
                 if (!project.isOpen()) return ToolResult.error(req.preview
                     ? "Open the project in EDT before previewing a BSL write."
@@ -302,7 +306,9 @@ public class WriteModuleSourceTool implements IMcpTool
                 return locked;
             }
 
-            if (req.preview) return previewResult(prepareReviewedWrite(req, file));
+            if (req.preview) return previewResult(prepareWrite(req, file, 0L));
+            if (!reviewEnabled && req.expectedMethodHash != null)
+                return writeMethodGuarded(req, file, mutationEntered, mutationCommitted);
             return reviewEnabled ? reviewWrite(req, file)
                 : writeModule(req, file, fileExists, root.scope(), mutationEntered, mutationCommitted);
         }
@@ -395,6 +401,7 @@ public class WriteModuleSourceTool implements IMcpTool
         final String expectedSource;
         final boolean overwrite;
         final String expectedHash;
+        final String expectedMethodHash;
         List<MethodReplacement> edits;
         final String editsError;
         String requestId;
@@ -427,6 +434,7 @@ public class WriteModuleSourceTool implements IMcpTool
             this.expectedSource = JsonUtils.extractStringArgument(params, "expectedSource"); //$NON-NLS-1$
             this.overwrite = JsonUtils.extractBooleanArgument(params, "overwrite", false); //$NON-NLS-1$
             this.expectedHash = JsonUtils.extractStringArgument(params, "expectedHash"); //$NON-NLS-1$
+            this.expectedMethodHash = JsonUtils.extractStringArgument(params, "expectedMethodHash");
         }
 
         static WriteRequest from(Map<String, String> params)
@@ -577,6 +585,18 @@ public class WriteModuleSourceTool implements IMcpTool
         String current = base.replace("\r\n", "\n");
         String error = evaluateExpectedHash(current, req.expectedHash, exists);
         if (error != null) return new ContentPreparation(error, null, null, null);
+        if (req.expectedMethodHash != null)
+        {
+            var method = BslModuleUtils.replacementMethodSnapshot(splitSourceLines(base), req.methodName);
+            if (method == null) return new ContentPreparation(ToolResult.error(
+                "expectedMethodHash requires one complete, unambiguous addressable method '" + req.methodName
+                    + "'. Read it again with read_method_source or get_module_structure; use searchReplace for unsupported declarations.")
+                .put("code", "methodHashUnavailable").toJson(), null, null, null);
+            if (!ContentHash.matches(method.text(), req.expectedMethodHash))
+                return new ContentPreparation(ToolResult.error(
+                    "expectedMethodHash mismatch: the method, its documentation or directives changed. Read it again with read_method_source before replacing it.")
+                    .put("code", "methodHashMismatch").toJson(), null, null, null);
+        }
         NewLinesResult computed = computeNewLines(req, exists, splitSourceLines(base), current);
         if (computed.error != null) return new ContentPreparation(computed.error, null, null, null);
         error = req.skipSyntaxCheck ? null : runSyntaxCheck(computed.newLines);
@@ -588,7 +608,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private String reviewWrite(WriteRequest req, IFile file) throws Exception
     {
         String digest = requestDigest(req);
-        PreparedBslWrite write = prepareReviewedWrite(req, file);
+        PreparedBslWrite write = prepareWrite(req, file, BslWriteReviews.shared().projectToken(req.projectName));
         if (write.baseExists() && write.baseHash().equals(PreparedBslWrite.sha256(write.outputBytes())))
             return ToolResult.success().put("status", "noChange").put("applied", false)
                 .put("mutationCommitted", false).put(PROJECT_NAME, write.projectName())
@@ -624,12 +644,12 @@ public class WriteModuleSourceTool implements IMcpTool
         arguments.put("overwrite", req.overwrite);
         // Leave legacy digests byte-for-byte compatible with already retained receipts.
         if (req.edits != null) arguments.put("edits", req.edits);
+        if (req.expectedMethodHash != null) arguments.put("expectedMethodHash", req.expectedMethodHash);
         return PreparedBslWrite.sha256(GsonProvider.toJson(arguments).getBytes(StandardCharsets.UTF_8));
     }
 
-    private PreparedBslWrite prepareReviewedWrite(WriteRequest req, IFile file) throws Exception
+    private PreparedBslWrite prepareWrite(WriteRequest req, IFile file, long token) throws Exception
     {
-        long token = req.preview ? 0L : BslWriteReviews.shared().projectToken(req.projectName);
         boolean exists = file.exists();
         byte[] raw = exists ? BslWriteReviewCommit.readBytes(file) : new byte[0];
         boolean bom = raw.length >= 3 && raw[0] == UTF8_BOM[0]
@@ -646,6 +666,35 @@ public class WriteModuleSourceTool implements IMcpTool
             PreparedBslWrite.sha256(raw), base, proposed, content.outputBytes(),
             splitSourceLines(base).size(), content.lines().size(), req.mode, req.skipSyntaxCheck,
             content.normalizedCharacters());
+    }
+
+    /** Method-scoped admission still commits against the complete freshly prepared byte snapshot. */
+    private String writeMethodGuarded(WriteRequest req, IFile file, AtomicBoolean mutationEntered,
+        AtomicBoolean mutationCommitted) throws Exception
+    {
+        PreparedBslWrite write = prepareWrite(req, file, 0L);
+        BooleanSupplier enter = () -> { mutationEntered.set(true); return true; };
+        Outcome outcome;
+        if (HostKind.current() == HostKind.HEADLESS)
+        {
+            Outcome[] result = new Outcome[1];
+            file.getWorkspace().run(monitor -> {
+                result[0] = BslWriteReviewCommit.writeIfUnchanged(write, file, false, enter);
+                if (Boolean.TRUE.equals(result[0].mutationCommitted())) mutationCommitted.set(true);
+            }, file.getProject(), IWorkspace.AVOID_UPDATE, null);
+            outcome = result[0];
+            if (outcome.status() == State.APPLIED) return finishReviewedWrite(write);
+        }
+        else
+        {
+            outcome = BslWriteReviewCommit.commit(write, enter, this::finishReviewedWrite);
+            if (Boolean.TRUE.equals(outcome.mutationCommitted())) mutationCommitted.set(true);
+        }
+        if (outcome.errorJson() != null) return outcome.errorJson();
+        if (outcome.resultMarkdown() != null) return outcome.resultMarkdown();
+        return ToolResult.error("Method replacement was not applied (" + outcome.status().name().toLowerCase(java.util.Locale.ROOT)
+            + "). Read the module again before submitting another write.")
+            .put("mutationCommitted", Boolean.TRUE.equals(outcome.mutationCommitted())).toJson();
     }
 
     static String previewResult(PreparedBslWrite write)
@@ -732,6 +781,15 @@ public class WriteModuleSourceTool implements IMcpTool
         {
             return err;
         }
+        if (req.expectedMethodHash != null)
+        {
+            if (!MODE_REPLACE_METHOD.equals(req.mode) || req.edits != null)
+                return ToolResult.error("expectedMethodHash is supported only with mode=replaceMethod and one methodName; batches and other modes require expectedHash.").toJson();
+            if (req.expectedMethodHash.isBlank())
+                return ToolResult.error("expectedMethodHash must not be blank. Read methodHash with read_method_source.").toJson();
+            if (params.containsKey("expectedHash") && (req.expectedHash == null || req.expectedHash.isBlank()))
+                return ToolResult.error("expectedHash must not be blank when supplied with expectedMethodHash. Read contentHash with read_module_source or omit expectedHash to use only the method guard.").toJson();
+        }
         if (req.editsError != null) return req.editsError;
         if (MODE_REPLACE_METHODS.equals(req.mode))
         {
@@ -774,7 +832,8 @@ public class WriteModuleSourceTool implements IMcpTool
             {
                 return ToolResult.error("methodName is required for mode=" + req.mode).toJson(); //$NON-NLS-1$
             }
-            if (req.expectedHash == null || req.expectedHash.trim().isEmpty())
+            if ((req.expectedHash == null || req.expectedHash.trim().isEmpty())
+                && !(MODE_REPLACE_METHOD.equals(req.mode) && req.expectedMethodHash != null))
             {
                 return ToolResult.error("expectedHash is required for mode=" + req.mode + //$NON-NLS-1$
                     ". Read the module with read_module_source or read_method_source and pass " + //$NON-NLS-1$

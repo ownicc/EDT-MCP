@@ -67,6 +67,9 @@ committed, 7 lines):
     7: КонецПроцедуры
 """
 
+import hashlib
+import re
+
 from harness import (
     call,
     assert_ok,
@@ -77,6 +80,7 @@ from harness import (
     assert_no_diff,
     e2e_test,
     PROJECT,
+    TESTS_PROJECT, TESTS_PROJECT_REL, read_fixture_file, read_disk, settle_or_fail,
 )
 
 # The committed code fixture: CommonModule.Calc -> src/CommonModules/Calc/Module.bsl.
@@ -372,3 +376,61 @@ def test_windowed_formatter_contract():
     from read_host_contracts import contract_read_method_source
     contract_read_method_source(call, "WINDOWED")
     assert_no_diff("pinned formatter reads must not change fixture files")
+
+
+@e2e_test(tool="read_method_source", kind="read")
+def test_method_hash_matches_exact_returned_preamble_and_module_revision():
+    module = "CommonModules/tests_SampleTests/Module.bsl"
+    before = read_fixture_file(TESTS_PROJECT_REL, "src/" + module)
+    result = call("read_method_source", {"projectName": TESTS_PROJECT, "modulePath": module,
+                  "methodName": "TwoPlusTwoIsFour"})
+    assert_ok(result, "read exact replaceable method span")
+    token = re.search(r'(?m)^methodHash:\s*"?([0-9a-f]{16})"?', result.text or "")
+    revision = re.search(r'(?m)^contentHash:\s*"?([0-9a-f]{16})"?', result.text or "")
+    block = re.search(r"```bsl\n(.*?)\n```", result.text or "", re.DOTALL)
+    assert token and revision and block, result.text
+    code = block.group(1)
+    expected = ("// Smallest possible assertion: value-equality.\n"
+                "Процедура TwoPlusTwoIsFour() Экспорт\n"
+                "\tЮТест.ОжидаетЧто(2 + 2).Равно(4);\n"
+                "КонецПроцедуры")
+    assert code == expected, "methodHash span must include adjacent documentation and only this method: %r" % code
+    # This is a contract oracle, independent of the Java helper: SHA-256 over
+    # the exact displayed LF span, with no invented terminal newline.
+    assert token.group(1) == hashlib.sha256(expected.encode("utf-8")).hexdigest()[:16], result.text
+    module_result = call("read_module_source", {"projectName": TESTS_PROJECT, "modulePath": module})
+    assert_ok(module_result, "read same saved module revision")
+    module_hash = re.search(r'(?m)^contentHash:\s*"?([0-9a-f]{16})"?', module_result.text or "")
+    assert module_hash and revision.group(1) == module_hash.group(1), (result.text, module_result.text)
+    assert read_fixture_file(TESTS_PROJECT_REL, "src/" + module) == before
+    assert_no_diff("method token reader does not change source")
+
+
+@e2e_test(tool="read_method_source", kind="read")
+def test_method_hash_is_absent_for_unknown_method_listing():
+    result = call("read_method_source", {"projectName": PROJECT, "modulePath": CALC_MODULE,
+                  "methodName": "E2E_No_Method_Hash_Target"})
+    assert_ok(result, "unknown method keeps its documented available-method listing")
+    assert_contains(result.text, "E2E_No_Method_Hash_Target", "listing names the missing target")
+    assert_contains(result.text, "Available methods", "listing gives an actionable target list")
+    assert "methodHash:" not in (result.text or ""), result.text
+    assert_no_diff("missing method has no revision token and no disk effect")
+
+
+@e2e_test(tool="read_method_source", kind="write-metadata")
+def test_method_hash_is_absent_for_native_split_declaration_without_losing_code():
+    module = "CommonModules/OK/Module.bsl"
+    source = "Procedure\nSplitA() Export\n\tValue = 1;\nEndProcedure\n"
+    seeded = call("write_module_source", {"projectName": PROJECT, "modulePath": module,
+                  "mode": "replace", "source": source, "overwrite": True, "skipSyntaxCheck": True})
+    assert_ok(seeded, "seed valid native-readable split declaration")
+    assert read_disk("src/" + module).lstrip("\ufeff") == source, "split declaration did not reach disk"
+    settle_or_fail("native split-declaration source is ready")
+    result = call("read_method_source", {"projectName": PROJECT, "modulePath": module,
+                  "methodName": "SplitA"})
+    assert_ok(result, "native readable method remains readable without a text-replacement token")
+    block = re.search(r"```bsl\n(.*?)\n```", result.text or "", re.DOTALL)
+    assert block and block.group(1) == source[:-1], result.text
+    assert "methodHash:" not in (result.text or ""), result.text
+    assert "contentHash:" not in (result.text or ""), "native-only fallback must not advertise writable snapshot tokens"
+    assert read_disk("src/" + module).lstrip("\ufeff") == source, "native method read changed saved source"
