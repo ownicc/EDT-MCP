@@ -3218,6 +3218,9 @@
         "extApiPrefix": {
           "type": "string"
         },
+        "includeCallDetails": {
+          "type": "boolean"
+        },
         "limit": {
           "type": "integer"
         },
@@ -6997,6 +7000,9 @@
           "type": "string"
         },
         "overwrite": {
+          "type": "boolean"
+        },
+        "preview": {
           "type": "boolean"
         },
         "projectName": {

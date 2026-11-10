@@ -12,6 +12,7 @@ Trace which BSL methods call a method or are called by it; optional depth walks 
 | extApiPrefix | — | string | For direction 'outgoing': literal call-qualifier prefix (case-insensitive) that flags a target as an external service API. Default: the 1C region name 'ПрограммныйИнтерфейсСервиса'. |
 | depth | — | integer | Call-chain levels to walk, for direction 'callers' ONLY. Default 1 (single hop, unchanged output); max 5 (a larger value is clamped, a smaller than 1 becomes 1). Above 1 the result changes shape: one row per UNIQUE caller with its Level and the row it was reached Via, and 'limit' then caps the callers accepted and stops the walk there, so it cannot report a true total. |
 | limit | — | integer | Max results. Default: 100, max: 500. With depth>1 this is the cap on unique callers accepted, i.e. an execution budget, not just an output limit. |
+| includeCallDetails | — | boolean | Return JSON with exact saved-source call/argument ranges and resolved formal names. Use callers or callees with depth=1; default false. |
 
 ## Guide
 Resolves a BSL method's call graph in one direction at a time using the semantic AST (resolved feature references), not plain text. Because matching is by the resolved method (not by literal spelling), it finds calls written in either the ru or en BSL dialect - unlike literal `search_in_code`.
@@ -30,6 +31,7 @@ Resolves a BSL method's call graph in one direction at a time using the semantic
 - `direction` - `callers` (default) = who calls this method; `callees` = what this method calls; `outgoing` = aggregated distinct call targets. An unknown value returns an error.
 - `extApiPrefix` - only used by `outgoing`. A literal call-qualifier prefix, compared case-insensitively against each target's qualifier token; a match flags the row as an external service API (`ExtAPI = yes`). This is a plain text match on the call qualifier (`Module` part), NOT a resolved-module lookup. Default: the conventional 1C region name `ПрограммныйИнтерфейсСервиса`.
 - `depth` - how many call-chain levels to walk, for `direction=callers` ONLY. Default `1` = the single hop this tool has always done, with byte-for-byte the same output. Max `5`; a larger value is clamped (and the header says so), a value below 1 becomes 1. `depth>1` with `callees` or `outgoing` is an error, not a silent downgrade - see "Why depth is callers-only" below.
+- `includeCallDetails` - optional, default `false`. Use `true` with `callers` or `callees` and `depth=1` for JSON call sites, actual arguments, resolved formal names and exact source ranges. `outgoing` and requested `depth>1` are refused with a recovery hint.
 - `limit` - max rows returned; default 100, max 500 (clamped). For `outgoing` the limit clamps DISTINCT target rows. The reported total count is exact even when rows are truncated. **With `depth>1` its meaning changes**: it caps the number of UNIQUE callers ACCEPTED, and the walk stops there - so it bounds the WALK, not just the rendering. A walk cut by that budget cannot report a true total; it does not know one.
 
 ## Transitive callers (`depth` > 1)
@@ -68,17 +70,27 @@ BSL invocations are linked by name through scoping and are NOT stored as ordinar
 Each distinct pair reports the number of call sites (`Count`) and the smallest source line where it first appears (`First line`). The `ExtAPI` column is `yes` when the qualifier literally starts with `extApiPrefix` (case-insensitive); the synthetic `(local)` and `(expr)` tokens are always `-`.
 
 ## Output
-Markdown table.
+Markdown table by default; omitting `includeCallDetails` or setting it to `false` preserves the existing output.
 - Callers, `depth=1` (default): # / Module / Method / Line / Call Code.
 - Callers, `depth>1`: # / Level / Module / Method / Line / Via # / Flags (one row per unique caller) - see "Transitive callers" above.
 - Callees: # / Called Method / Line / Call Code. Long or multi-line call expressions are compacted (comment lines stripped, body collapsed to `Name(...)`).
 - Outgoing: Qualifier / Method / Count / First line / ExtAPI (one row per distinct target, first-seen order).
+
+### Detailed direct call sites
+`includeCallDetails=true` returns JSON in `structuredContent`. `callSites` has one row per invocation, with `modulePath`, invocation `range`, `caller` and `callee` identities (`methodName`, `modulePath`, native `uri`), `resolution`, `serverCall`, and `arguments`. The callee also retains the source spelling as `invokedName`. `totalCallSites` is the matching count; `truncated` means `limit` hid rows.
+
+Every range has one-based `startLine`, `startColumn`, `endLine`, `endColumn`, measured in UTF-16 code units with an exclusive end. Tabs occupy one column. Ranges cover the exact native expression, including internal whitespace/comments; source text is not reformatted. Each actual argument has a one-based `index`, resolved `formalName` or `null`, exact `text` or `null`, `range` or `null`, `omitted`, and `textTruncated`. Source text is capped at 4096 UTF-16 units across all arguments of one site, and at 100 arguments; `actualArgumentCount` and `argumentsTruncated` expose the ceiling. Truncation never shortens the reported range.
+
+`resolution=unknown` means a unique native target could not be established. Names alone do not prove target identity or formal parameters. Detailed **callers** therefore exclude unresolved/ambiguous targets; detailed **callees** retain them with explicit unknowns. Native platform signatures are used when available. `serverCall` is `none`, `context`, `noContext`, or `unknown`: classification uses EDT's native client-call semantics, semantic environments and resolved form/command pragmas, without forcing type analysis. Missing semantic evidence yields `unknown`, even when a name looks server-related.
+
+`sourceBasis=savedSemanticSnapshot` excludes unsaved editor changes. Every scanned semantic module must match its saved source exactly and have no resource parse errors; a dirty/stale mismatch is refused. Save, wait for EDT analysis, and retry. Null ranges mean the native node is unavailable. These results still cover static invocations in this project only.
 
 ## Examples
 - Callers (default): `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", methodName: "DoWork"}`.
 - Transitive impact before a signature change: `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", methodName: "DoWork", depth: 4}`.
 - Transitive on a hub method, with a wider budget: `{projectName, modulePath: "...", methodName: "DoWork", depth: 3, limit: 300}`.
 - Callees: `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", methodName: "DoWork", direction: "callees"}`.
+- Exact arguments and positions: `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", methodName: "DoWork", direction: "callees", includeCallDetails: true}`.
 - Outgoing, single method: `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", methodName: "DoWork", direction: "outgoing"}`.
 - Outgoing, whole module (methodName omitted): `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", direction: "outgoing"}`.
 - Outgoing with a custom ext-API prefix: `{projectName, modulePath: "CommonModules/MyModule/Module.bsl", direction: "outgoing", extApiPrefix: "PublicApi"}`.
@@ -87,7 +99,7 @@ Markdown table.
 - **STATIC invocations only.** A call made dynamically - `Execute`/`Eval` over a built string, a handler named by string in metadata, platform dispatch - is invisible to this tool in every direction and at every depth. `Complete: yes` therefore means "complete for what a static scan can see", NOT "nothing else calls this method". Treat the result as a lower bound on impact and check dynamic dispatch separately.
 - The search covers `<project>/src` of the ONE project named in `projectName`. A caller living in a different project (an extension over this configuration, or a configuration this one is extended by) is not searched.
 - For `callers`/`callees`, `modulePath` must point at the module that DEFINES the method; if the method is not found there the tool returns a not-found response listing the module's methods. The same applies to a scoped `outgoing` call (with `methodName`).
-- `callees` and `outgoing` list raw invocation names from the scanned body and do not resolve each target to its defining module.
+- Default `callees` and `outgoing` list raw invocation names; detailed `callees` also report native resolved target identities when available.
 - `extApiPrefix` matching is literal on the call qualifier text (e.g. `ПрограммныйИнтерфейсСервисаТовары` starts with the default prefix); it does not resolve or open the qualifying module.
 - Requires a loadable BSL AST (EMF). If the module you ASKED about cannot be loaded the call returns an error pointing at the EDT Error Log. A module met while SEARCHING is different: it is counted, the search continues, and the transitive header reports the result as not complete (a `depth=1` call has no such header and simply skips it).
 - The `outgoing` mode is a clean-room implementation inspired by the idea behind edt-bridge's `edt_outgoing_calls` tool (Apache-2.0); no source was copied.

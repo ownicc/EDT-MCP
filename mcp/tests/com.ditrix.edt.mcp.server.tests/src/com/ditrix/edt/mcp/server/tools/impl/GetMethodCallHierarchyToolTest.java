@@ -73,6 +73,49 @@ public class GetMethodCallHierarchyToolTest
     }
 
     @Test
+    public void testDetailedCompletedPayloadIsDeliveredAsJson()
+    {
+        GetMethodCallHierarchyTool tool = new GetMethodCallHierarchyTool();
+        assertEquals(ResponseType.JSON, tool.getResponseType(Map.of(),
+            "{\"success\":true,\"callSites\":[]}"));
+        assertEquals(ResponseType.MARKDOWN, tool.getResponseType(Map.of("includeCallDetails", "true"),
+            "## Call Hierarchy: legacy result\n"));
+        assertNull("legacy Markdown calls must remain valid without structuredContent", tool.getOutputSchema());
+    }
+
+    @Test
+    public void testDetailsRejectOutgoingBeforeModelAccess()
+    {
+        Map<String, String> params = new HashMap<>(Map.of(
+            "projectName", "MyProject", "modulePath", "CommonModules/Foo/Module.bsl",
+            "includeCallDetails", "true", "direction", "outgoing"));
+        String result = runWithoutLiveModel(() -> new GetMethodCallHierarchyTool().execute(params));
+        assertNotNull("unsupported detail mode must be rejected before live EDT access", result);
+        assertTrue(result, result.contains("includeCallDetails"));
+        assertTrue(result, result.contains("callers") && result.contains("callees"));
+    }
+
+    @Test
+    public void testDetailsRejectTransitiveDepthBeforeModelAccess()
+    {
+        Map<String, String> params = new HashMap<>(Map.of(
+            "projectName", "MyProject", "modulePath", "CommonModules/Foo/Module.bsl",
+            "methodName", "DoWork", "includeCallDetails", "true", "depth", "2"));
+        String result = runWithoutLiveModel(() -> new GetMethodCallHierarchyTool().execute(params));
+        assertNotNull("unsupported detail depth must be rejected before live EDT access", result);
+        assertTrue(result, result.contains("includeCallDetails"));
+        assertTrue(result, result.contains("depth=1"));
+    }
+
+    @Test
+    public void testSchemaExposesOptInCallDetails()
+    {
+        String schema = new GetMethodCallHierarchyTool().getInputSchema();
+        assertTrue("schema-driven clients must be able to request exact call-site positions",
+            schema.contains("\"includeCallDetails\""));
+    }
+
+    @Test
     public void testDescriptionNotEmpty()
     {
         String desc = new GetMethodCallHierarchyTool().getDescription();

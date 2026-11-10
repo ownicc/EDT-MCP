@@ -40,6 +40,8 @@ import com.ditrix.edt.mcp.server.preferences.ConsentSettingsService;
 import com.ditrix.edt.mcp.server.ui.BslWriteReviewUi;
 import com.ditrix.edt.mcp.server.protocol.JsonUtils;
 import com.ditrix.edt.mcp.server.protocol.ToolResult;
+import com.ditrix.edt.mcp.server.HostKind;
+import com.ditrix.edt.mcp.server.utils.compare.ComparisonTextDiff;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.AdoptedModuleState;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
@@ -143,6 +145,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 "Command name; required when moduleType=CommandModule (e.g. 'FillByTemplate').") //$NON-NLS-1$
             .booleanProperty("skipSyntaxCheck", //$NON-NLS-1$
                 "Skip the BSL syntax check (default false).") //$NON-NLS-1$
+            .booleanProperty("preview", "Validate and return a bounded diff without writing or opening review (default false). Do not combine with requestId.")
             .booleanProperty("normalizeInvalidCharacters", //$NON-NLS-1$
                 "Replace the characters the 1C standard InvalidCharacterInFile forbids in the " //$NON-NLS-1$
                 + "SOURCE you supply - en/em/figure dash, horizontal bar and typographic minus " //$NON-NLS-1$
@@ -209,6 +212,9 @@ public class WriteModuleSourceTool implements IMcpTool
         {
             return argError;
         }
+        if (req.preview && params.containsKey("requestId"))
+            return ToolResult.error("preview cannot be combined with requestId; previews do not reserve or replay write receipts.")
+                .put("code", "previewRequestIdUnsupported").put("mutationCommitted", false).toJson();
 
         // 3. Resolve the module target.
         ModuleTargetResult target = resolveModuleTarget(req.modulePath, req.objectName,
@@ -272,9 +278,11 @@ public class WriteModuleSourceTool implements IMcpTool
                     ". Only 'replace' mode can create new files.").toJson(); //$NON-NLS-1$
             }
 
-            if (reviewEnabled)
+            if (reviewEnabled || (req.preview && HostKind.current() != HostKind.HEADLESS))
             {
-                if (!project.isOpen()) return ToolResult.error("Open the project in EDT before submitting a BSL review.").toJson();
+                if (!project.isOpen()) return ToolResult.error(req.preview
+                    ? "Open the project in EDT before previewing a BSL write."
+                    : "Open the project in EDT before submitting a BSL review.").toJson();
                 String refusal = BslWriteReviewCommit.preparationRefusal(file);
                 if (refusal != null) return ToolResult.error(refusal).toJson();
             }
@@ -294,6 +302,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 return locked;
             }
 
+            if (req.preview) return previewResult(prepareReviewedWrite(req, file));
             return reviewEnabled ? reviewWrite(req, file)
                 : writeModule(req, file, fileExists, root.scope(), mutationEntered, mutationCommitted);
         }
@@ -381,6 +390,7 @@ public class WriteModuleSourceTool implements IMcpTool
         final String formName;
         final String commandName;
         final boolean skipSyntaxCheck;
+        final boolean preview;
         final boolean normalizeInvalidCharacters;
         final String expectedSource;
         final boolean overwrite;
@@ -411,6 +421,7 @@ public class WriteModuleSourceTool implements IMcpTool
             this.formName = JsonUtils.extractStringArgument(params, "formName"); //$NON-NLS-1$
             this.commandName = JsonUtils.extractStringArgument(params, "commandName"); //$NON-NLS-1$
             this.skipSyntaxCheck = JsonUtils.extractBooleanArgument(params, "skipSyntaxCheck", false); //$NON-NLS-1$
+            this.preview = JsonUtils.extractBooleanArgument(params, "preview", false);
             this.normalizeInvalidCharacters =
                 JsonUtils.extractBooleanArgument(params, "normalizeInvalidCharacters", true); //$NON-NLS-1$
             this.expectedSource = JsonUtils.extractStringArgument(params, "expectedSource"); //$NON-NLS-1$
@@ -618,7 +629,7 @@ public class WriteModuleSourceTool implements IMcpTool
 
     private PreparedBslWrite prepareReviewedWrite(WriteRequest req, IFile file) throws Exception
     {
-        long token = BslWriteReviews.shared().projectToken(req.projectName);
+        long token = req.preview ? 0L : BslWriteReviews.shared().projectToken(req.projectName);
         boolean exists = file.exists();
         byte[] raw = exists ? BslWriteReviewCommit.readBytes(file) : new byte[0];
         boolean bom = raw.length >= 3 && raw[0] == UTF8_BOM[0]
@@ -635,6 +646,19 @@ public class WriteModuleSourceTool implements IMcpTool
             PreparedBslWrite.sha256(raw), base, proposed, content.outputBytes(),
             splitSourceLines(base).size(), content.lines().size(), req.mode, req.skipSyntaxCheck,
             content.normalizedCharacters());
+    }
+
+    static String previewResult(PreparedBslWrite write)
+    {
+        return ToolResult.success().put("preview", true).put("applied", false).put("mutationCommitted", false)
+            .put("projectName", write.projectName()).put("modulePath", write.modulePath()).put("mode", write.mode())
+            .put("wouldChange", !write.baseExists() || !write.baseHash().equals(PreparedBslWrite.sha256(write.outputBytes())))
+            .put("contentHash", ContentHash.of(write.baseText())).put("proposedHash", ContentHash.of(write.proposedText()))
+            .put("syntaxChecked", !write.skipSyntaxCheck()).put("linesBefore", write.linesBefore())
+            .put("linesAfter", write.linesAfter()).put("normalizedCharacters", write.normalizedCharacters())
+            .put("diff", ComparisonTextDiff.renderPreview(write.modulePath(), write.baseText(), write.proposedText(), write.baseExists()))
+            .put("message", "Preview only. Submit again without preview to request application; all write guards and review settings are checked again.")
+            .toJson();
     }
 
     private String finishReviewedWrite(PreparedBslWrite write)

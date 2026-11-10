@@ -17,6 +17,7 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 | formName | — | string | Form name; required when moduleType=FormModule (e.g. 'ItemForm'). |
 | commandName | — | string | Command name; required when moduleType=CommandModule (e.g. 'FillByTemplate'). |
 | skipSyntaxCheck | — | boolean | Skip the BSL syntax check (default false). |
+| preview | — | boolean | Validate and return a bounded diff without writing or opening review (default false). Do not combine with requestId. |
 | normalizeInvalidCharacters | — | boolean | Replace the characters the 1C standard InvalidCharacterInFile forbids in the SOURCE you supply - en/em/figure dash, horizontal bar and typographic minus become '-', a no-break space becomes a space, a soft hyphen is dropped (default true). They are invisible in a diff and read exactly like their ASCII twins, so they otherwise land in the module as a marker. Set false to write the source byte-for-byte. |
 | expectedSource | — | string | Lost-update guard for mode=replace: the module content you last read; mismatch rejects. |
 | overwrite | — | boolean | Force mode=replace over an existing module without an expectedSource check (default false). |
@@ -25,6 +26,31 @@ Create or edit BSL source in a metadata module. When reviewId is returned, poll 
 
 ## Guide
 Writes BSL source to a single 1C metadata object module (a `.bsl` file under `src/`). Six edit modes, a mandatory BSL syntax check, and lost-update guards.
+
+## Preview without applying
+
+Set `preview:true` to prepare the same edit and return JSON without writing source,
+changing metadata, registering a review or opening an editor. This works whether
+human review is enabled or disabled. The usual target, vendor, dirty-buffer,
+expected-hash, mode and syntax checks still apply; `skipSyntaxCheck:true` is
+reported as `syntaxChecked:false`.
+
+The result includes `wouldChange` (exact output-byte or file-presence change),
+the current module's normalized `contentHash`, `proposedHash`, line counts,
+`normalizedCharacters` when normalization occurred, and a bounded `diff` with
+Current/Proposed hunk coordinates. `applied` and `mutationCommitted` are false.
+The diff is limited to 200 formatted lines and 65536 bytes; its text explicitly
+reports truncation or an input limit. A diff limit does not make `wouldChange`
+an equality claim. Byte-only changes can have equal visible text.
+
+Do not combine `preview` with `requestId`: previews neither reserve nor replay
+operation receipts and return no executable patch token. To request the actual
+write, submit the edit again without `preview`, using a fresh `requestId` if
+needed. All guards and review settings are checked again; a preview does not
+authorize a later write or guarantee that the base remains current.
+
+Example: `{projectName, modulePath, mode:"searchReplace", oldSource:"Old();",
+source:"New();", expectedHash:"<hash from a disk read>", preview:true}`.
 
 ## Human review and completion
 

@@ -60,6 +60,22 @@ public final class ComparisonTextDiff
         describe(result, from, fromLabel);
         describe(result, to, toLabel);
         result.append('\n');
+        return appendDiff(result, from, to, fromLabel, toLabel, contextLines, maxLines);
+    }
+
+    /** Reuse the same bounded formatter for a detached, non-applying BSL edit preview. */
+    public static String renderPreview(String module, String before, String after, boolean exists)
+    {
+        if (before.equals(after)) return "## BSL edit preview\n\nCurrent and proposed text are equal. "
+            + "File presence and output bytes are reported separately by wouldChange.\n\n";
+        return appendDiff(new StringBuilder("## BSL edit preview\n\n"),
+            exists ? Source.available(module, before) : Source.absent(module), Source.available(module, after),
+            "Current", "Proposed", 3, 200);
+    }
+
+    private static String appendDiff(StringBuilder result, Source from, Source to, String fromLabel, String toLabel,
+        int contextLines, int maxLines)
+    {
         if (from.problem() != null || to.problem() != null)
         {
             return result.append("Text diff unavailable; no equality or deletion is inferred.\n\n").toString();

@@ -1,5 +1,30 @@
 Writes BSL source to a single 1C metadata object module (a `.bsl` file under `src/`). Six edit modes, a mandatory BSL syntax check, and lost-update guards.
 
+## Preview without applying
+
+Set `preview:true` to prepare the same edit and return JSON without writing source,
+changing metadata, registering a review or opening an editor. This works whether
+human review is enabled or disabled. The usual target, vendor, dirty-buffer,
+expected-hash, mode and syntax checks still apply; `skipSyntaxCheck:true` is
+reported as `syntaxChecked:false`.
+
+The result includes `wouldChange` (exact output-byte or file-presence change),
+the current module's normalized `contentHash`, `proposedHash`, line counts,
+`normalizedCharacters` when normalization occurred, and a bounded `diff` with
+Current/Proposed hunk coordinates. `applied` and `mutationCommitted` are false.
+The diff is limited to 200 formatted lines and 65536 bytes; its text explicitly
+reports truncation or an input limit. A diff limit does not make `wouldChange`
+an equality claim. Byte-only changes can have equal visible text.
+
+Do not combine `preview` with `requestId`: previews neither reserve nor replay
+operation receipts and return no executable patch token. To request the actual
+write, submit the edit again without `preview`, using a fresh `requestId` if
+needed. All guards and review settings are checked again; a preview does not
+authorize a later write or guarantee that the base remains current.
+
+Example: `{projectName, modulePath, mode:"searchReplace", oldSource:"Old();",
+source:"New();", expectedHash:"<hash from a disk read>", preview:true}`.
+
 ## Human review and completion
 
 By default, a changing call opens a nonmodal read-only comparison in EDT and returns JSON with `reviewId`, `status`, `applied: false`, and the decision deadline. No source or metadata is written before the person presses **Apply** in the tab header. **Reject** or closing an awaiting tab writes nothing. Both comparison sides are read-only; saving or merge-copy shortcuts cannot accept a proposal.

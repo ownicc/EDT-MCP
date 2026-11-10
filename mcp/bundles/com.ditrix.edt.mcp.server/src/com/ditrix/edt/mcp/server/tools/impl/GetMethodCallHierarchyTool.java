@@ -45,6 +45,7 @@ import com._1c.g5.v8.dt.bsl.model.StaticFeatureAccess;
 import com.ditrix.edt.mcp.server.utils.ReadToolExecution;
 import com.ditrix.edt.mcp.server.Activator;
 import com.ditrix.edt.mcp.server.protocol.JsonSchemaBuilder;
+import com.ditrix.edt.mcp.server.protocol.GsonProvider;
 import com.ditrix.edt.mcp.server.protocol.JsonUtils;
 import com.ditrix.edt.mcp.server.protocol.McpKeys;
 import com.ditrix.edt.mcp.server.protocol.ToolResult;
@@ -52,9 +53,12 @@ import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.CallGraphTraversal;
 import com.ditrix.edt.mcp.server.utils.MarkdownUtils;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
+import com.ditrix.edt.mcp.server.utils.BslCallDetails;
 import com.ditrix.edt.mcp.server.utils.Pagination;
 import com.ditrix.edt.mcp.server.utils.ProjectContext;
 import com.ditrix.edt.mcp.server.utils.Refusals;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Tool to find method call hierarchy - who calls this method (callers)
@@ -90,6 +94,8 @@ public class GetMethodCallHierarchyTool implements IMcpTool
 
     /** Input param: how many call-chain levels to walk (1 = the single hop this tool always did). */
     static final String KEY_DEPTH = "depth"; //$NON-NLS-1$
+
+    private static final String KEY_INCLUDE_CALL_DETAILS = "includeCallDetails"; //$NON-NLS-1$
 
     /**
      * Default {@link #KEY_DEPTH}: one hop. The recursive renderer is selected only when the
@@ -202,6 +208,9 @@ public class GetMethodCallHierarchyTool implements IMcpTool
             .integerProperty(McpKeys.LIMIT,
                 "Max results. Default: 100, max: 500. With depth>1 this is the cap on unique " //$NON-NLS-1$
                 + "callers accepted, i.e. an execution budget, not just an output limit.") //$NON-NLS-1$
+            .booleanProperty(KEY_INCLUDE_CALL_DETAILS,
+                "Return JSON with exact saved-source call/argument ranges and resolved formal names. "
+                + "Use callers or callees with depth=1; default false.")
             .build();
     }
 
@@ -209,6 +218,12 @@ public class GetMethodCallHierarchyTool implements IMcpTool
     public ResponseType getResponseType()
     {
         return ResponseType.MARKDOWN;
+    }
+
+    @Override
+    public ResponseType getResponseType(Map<String, String> params, String result)
+    {
+        return result != null && result.stripLeading().startsWith("{") ? ResponseType.JSON : ResponseType.MARKDOWN;
     }
 
     @Override
@@ -286,6 +301,7 @@ public class GetMethodCallHierarchyTool implements IMcpTool
 
         // Normalize + validate direction/methodName/extApiPrefix/depth; a non-null result is an error JSON.
         RequestArgs request = new RequestArgs(direction, methodName, extApiPrefix, limit, depth);
+        request.includeCallDetails = JsonUtils.extractBooleanArgument(params, KEY_INCLUDE_CALL_DETAILS, false);
         String validationError = validateRequest(request);
         if (validationError != null)
         {
@@ -325,6 +341,13 @@ public class GetMethodCallHierarchyTool implements IMcpTool
             && !KEY_OUTGOING.equals(direction))
         {
             return ToolResult.error("direction must be 'callers', 'callees' or 'outgoing'").toJson(); //$NON-NLS-1$
+        }
+
+        if (request.includeCallDetails && (KEY_OUTGOING.equals(direction) || request.depth > DEFAULT_DEPTH))
+        {
+            return ToolResult.error("includeCallDetails supports direction 'callers' or 'callees' with depth=1 only. "
+                + "Use depth=1 and one of those directions, or omit includeCallDetails for aggregated/transitive output.")
+                .toJson();
         }
 
         if ((request.methodName == null || request.methodName.trim().isEmpty())
@@ -395,6 +418,10 @@ public class GetMethodCallHierarchyTool implements IMcpTool
      */
     private String dispatch(String projectName, String modulePath, RequestArgs request)
     {
+        if (request.includeCallDetails)
+        {
+            return findDetailedCallSites(projectName, modulePath, request);
+        }
         String dir = request.direction;
         if (KEY_OUTGOING.equals(dir))
         {
@@ -419,6 +446,7 @@ public class GetMethodCallHierarchyTool implements IMcpTool
         final String methodName;
         String extApiPrefix;
         int limit;
+        boolean includeCallDetails;
 
         /** The effective depth after clamping into {@code [DEFAULT_DEPTH, MAX_DEPTH]}. */
         int depth;
@@ -435,6 +463,90 @@ public class GetMethodCallHierarchyTool implements IMcpTool
             this.depth = depth;
             this.requestedDepth = depth;
         }
+    }
+
+    /** Saved-source details use strict semantic identities; the legacy name fallback is unchanged above. */
+    private String findDetailedCallSites(String projectName, String modulePath, RequestArgs request)
+    {
+        ProjectContext ctx = ProjectContext.of(projectName);
+        if (!ctx.exists()) return ToolResult.error(ProjectContext.notFoundMessage(projectName)).toJson();
+        IFile targetFile = BslModuleUtils.resolveModuleFile(ctx.project(), modulePath);
+        if (targetFile == null || !targetFile.exists()) return moduleLoadFailure(modulePath);
+        Module module = BslModuleUtils.loadModule(targetFile);
+        if (module == null) return moduleLoadFailure(modulePath);
+        Method target = BslModuleUtils.findMethod(module, request.methodName);
+        if (target == null) return BslModuleUtils.buildMethodNotFoundResponse(module, modulePath, request.methodName);
+        String source = readCandidateText(targetFile);
+        String problem = BslCallDetails.snapshotProblem(module, source);
+        if (problem != null) return ToolResult.error(modulePath + ": " + problem).toJson();
+        List<Map<String, Object>> sites = new ArrayList<>();
+        int total;
+        if ("callees".equals(request.direction))
+        {
+            total = detailedInvocations(target, target, modulePath, source, request, sites);
+        }
+        else
+        {
+            ResourceSet resources = module.eResource().getResourceSet();
+            if (resources == null) return ToolResult.error("BSL resource set not available").toJson();
+            List<IFile> files = new ArrayList<>();
+            IFolder src = ctx.project().getFolder("src");
+            try
+            {
+                src.accept(resource -> {
+                    if (resource instanceof IFile file && "bsl".equalsIgnoreCase(file.getFileExtension())) files.add(file);
+                    return true;
+                });
+                total = 0;
+                for (IFile file : files)
+                {
+                    String saved = readCandidateText(file);
+                    if (saved == null) return ToolResult.error("Cannot read saved source " + file.getFullPath()
+                        + ". Restore file access and retry includeCallDetails=true.").toJson();
+                    if (!saved.toLowerCase(java.util.Locale.ROOT).contains(target.getName().toLowerCase(java.util.Locale.ROOT)))
+                        continue;
+                    String path = file.getProjectRelativePath().removeFirstSegments(1).toString();
+                    Resource resource = resources.getResource(URI.createPlatformResourceURI(file.getFullPath().toString(), true), true);
+                    if (resource == null || resource.getContents().isEmpty() || !(resource.getContents().get(0) instanceof Module candidate))
+                        return moduleLoadFailure(path);
+                    problem = BslCallDetails.snapshotProblem(candidate, saved);
+                    if (problem != null) return ToolResult.error(path + ": " + problem).toJson();
+                    total += detailedInvocations(candidate, target, path, saved, request, sites);
+                }
+            }
+            catch (Exception e)
+            {
+                return ToolResult.error("Cannot inspect saved caller snapshots: " + e.getMessage()
+                    + ". Wait for EDT analysis and retry includeCallDetails=true.").toJson();
+            }
+        }
+        String envelope = ToolResult.success().put("projectName", projectName).put("modulePath", modulePath)
+            .put("methodName", target.getName()).put("direction", request.direction).put("depth", 1)
+            .put("sourceBasis", "savedSemanticSnapshot").put("positionEncoding", "utf-16")
+            .put("rangeEnd", "exclusive").put("totalCallSites", total).put("truncated", sites.size() < total)
+            .put("limitations", List.of(
+                "Static invocations in this project only; dynamic dispatch and unsaved editor changes are excluded.",
+                "Callers require a unique resolved native target; unresolved or ambiguous targets are excluded.",
+                "Unknown target/formal names, server kinds, and unavailable ranges are explicit; no type computation is forced.",
+                "Argument source is capped at 4096 UTF-16 units and 100 arguments per site; truncation is explicit."))
+            .toJson();
+        JsonObject result = JsonParser.parseString(envelope).getAsJsonObject();
+        result.add("callSites", JsonParser.parseString(GsonProvider.toJsonSerializeNulls(sites)));
+        return GsonProvider.toJsonSerializeNulls(result);
+    }
+
+    private int detailedInvocations(EObject scope, Method target, String modulePath, String source,
+        RequestArgs request, List<Map<String, Object>> sites)
+    {
+        int total = 0;
+        for (Iterator<EObject> iter = scope.eAllContents(); iter.hasNext();)
+        {
+            if (!(iter.next() instanceof Invocation invocation)) continue;
+            if (KEY_CALLERS.equals(request.direction) && !BslCallDetails.targets(invocation, target)) continue;
+            total++;
+            if (sites.size() < request.limit) sites.add(BslCallDetails.capture(invocation, modulePath, source));
+        }
+        return total;
     }
 
     /**

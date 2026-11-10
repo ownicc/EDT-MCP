@@ -22,6 +22,7 @@ Checked state and a root without its extension block are left as they are, and t
 a success that names them; the extension's own modules and base modules stay untouched.
 """
 
+import hashlib
 import os
 import re
 import shutil
@@ -1610,3 +1611,125 @@ def test_batch_review_is_one_pending_proposal_and_cancel_never_writes():
     assert_ok(status, "receipt tracks cancellation of combined proposal")
     assert status.structured["status"] == "cancelled", status.structured
     assert_no_diff("pending and cancelled batch leave every fixture clean")
+
+
+# Detached previews use an existing extension module, so they also run with the
+# normal review preference enabled. They never seed, approve or cancel a write.
+_PREVIEW_MODULE = "CommonModules/tests_SampleTests/Module.bsl"
+
+
+def _preview_disk_digest(module=MODULE, fixture_rel=PROJECT_REL):
+    path = os.path.join(REPO_ROOT, fixture_rel, "src", module)
+    with open(path, "rb") as stream:
+        return hashlib.sha256(stream.read()).hexdigest()
+
+
+def _assert_detached_preview(params, needles=(), would_change=True,
+                             project=PROJECT, module=MODULE, fixture_rel=PROJECT_REL):
+    read = call("read_module_source", {"projectName": project, "modulePath": module})
+    assert_ok(read, "read preview base")
+    match = _HASH_RE.search(read.text or "")
+    assert match, read.text
+    before = _preview_disk_digest(module, fixture_rel)
+    result = call("write_module_source", dict(params, projectName=project,
+                  modulePath=module, preview=True, expectedHash=match.group(1)))
+    # Check raw disk bytes BEFORE another MCP request can hide a delayed write.
+    assert _preview_disk_digest(module, fixture_rel) == before, "preview changed source bytes"
+    assert_ok(result, "detached preview")
+    data = result.structured
+    assert isinstance(data, dict), result.text
+    assert data["success"] is True, data
+    assert data["preview"] is True and data["applied"] is False, data
+    assert data["mutationCommitted"] is False, data
+    assert data["wouldChange"] is would_change, data
+    assert data["syntaxChecked"] is True, data
+    assert data["contentHash"] == match.group(1), data
+    assert re.fullmatch(r"[0-9a-f]{16}", data["proposedHash"]), data
+    assert (data["proposedHash"] != data["contentHash"]) is would_change, data
+    assert "reviewId" not in data and "requestId" not in data, data
+    for needle in needles:
+        assert_contains(data["diff"], needle, "preview diff shows the proposed edit")
+    after = call("read_module_source", {"projectName": project, "modulePath": module})
+    assert_ok(after, "read after preview")
+    assert after.text == read.text, "preview changed model source or revision"
+    assert_no_diff("detached preview leaves the base fixture clean")
+    return data
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_bsl_preview_append_returns_diff_without_writing_or_review():
+    _assert_detached_preview({"mode": "append", "source": "// E2E_Detached_Preview\n"},
+                             ["+// E2E_Detached_Preview"])
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_bsl_preview_identity_searchreplace_reports_no_change():
+    data = _assert_detached_preview(
+        {"mode": "searchReplace", "oldSource": "2 + 2", "source": "2 + 2"},
+        would_change=False, project=TESTS_PROJECT, module=_PREVIEW_MODULE,
+        fixture_rel=TESTS_PROJECT_REL)
+    assert_contains(data["diff"], "Current and proposed text are equal.", "no-op diff explains equality")
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_bsl_preview_searchreplace_and_method_batch_leave_extension_unchanged():
+    before = _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL)
+    cases = [
+        ({"mode": "searchReplace", "oldSource": "2 + 2", "source": "2 + 3"},
+         ["-\tЮТест.ОжидаетЧто(2 + 2).Равно(4);", "+\tЮТест.ОжидаетЧто(2 + 3).Равно(4);"]),
+        ({"mode": "replaceMethod", "methodName": "TwoPlusTwoIsFour",
+          "source": "Процедура TwoPlusTwoIsFour() Экспорт\n\t// E2E_Method_Preview\nКонецПроцедуры"},
+         ["+\t// E2E_Method_Preview"]),
+        ({"edits": [{"methodName": name,
+                     "source": "Процедура %s() Экспорт\n\t// E2E_Batch_%s\nКонецПроцедуры" % (name, name)}
+                    for name in ("TwoPlusTwoIsFour", "SubtractionWorks")]},
+         ["+\t// E2E_Batch_TwoPlusTwoIsFour", "+\t// E2E_Batch_SubtractionWorks"]),
+    ]
+    for params, needles in cases:
+        _assert_detached_preview(params, needles, project=TESTS_PROJECT,
+                                 module=_PREVIEW_MODULE, fixture_rel=TESTS_PROJECT_REL)
+        assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_bsl_preview_stale_hash_and_invalid_syntax_reject_without_writes():
+    before = _preview_disk_digest()
+    stale = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                 "preview": True, "mode": "append", "source": "// stale preview\n",
+                 "expectedHash": "stale-preview-hash"})
+    assert _preview_disk_digest() == before, "stale preview changed source bytes"
+    error = assert_error(stale, "stale preview")
+    assert_error_quality(error, names=["expectedHash"], suggests=["read_module_source"])
+    invalid = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                   "preview": True, "mode": "append", "source": "Procedure Broken(\n"})
+    assert _preview_disk_digest() == before, "invalid syntax preview changed source bytes"
+    error = assert_error(invalid, "invalid syntax preview")
+    assert_error_quality(error, names=["syntax"], suggests=["skipSyntaxCheck"])
+    assert_no_diff("rejected previews leave source clean")
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_bsl_preview_request_id_refusal_does_not_reserve_receipt():
+    request_id = "e2e-preview-no-receipt-%d" % time.time_ns()
+    before = _preview_disk_digest()
+    params = {"projectName": "E2E_Preview_Missing_Project", "modulePath": MODULE,
+              "mode": "append", "source": "// preview receipt probe\n", "requestId": request_id}
+    result = call("write_module_source", dict(params, preview=True))
+    assert _preview_disk_digest() == before, "preview with requestId changed source"
+    error = assert_error(result, "preview cannot use a requestId")
+    assert_error_quality(error, names=["preview", "requestId"])
+    assert result.structured["code"] == "previewRequestIdUnsupported", result.structured
+    assert "requestId" not in result.structured, result.structured
+    # The same ID must still accept a first ordinary request, rather than replaying
+    # the preview refusal or claiming an argument conflict. Missing project is safe
+    # with either review setting and gives an independently observable receipt.
+    ordinary = call("write_module_source", params)
+    error = assert_error(ordinary, "requestId remains available after preview refusal")
+    assert_error_quality(error, names=[params["projectName"]], suggests=["list_projects"])
+    assert ordinary.structured["requestId"] == request_id, ordinary.structured
+    assert ordinary.structured.get("code") not in ("requestIdConflict", "previewRequestIdUnsupported")
+    status = call("get_write_review_status", {"requestId": request_id})
+    assert_error(status, "ordinary refusal receipt is retrievable")
+    assert status.structured == ordinary.structured, (status.structured, ordinary.structured)
+    assert _preview_disk_digest() == before
+    assert_no_diff("preview requestId refusal and safe ordinary refusal leave source clean")

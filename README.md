@@ -156,6 +156,7 @@ Go to **Window → Preferences → MCP Server**. The settings page has General, 
 - **Review BSL changes before applying**: Enabled by default in windowed EDT. Changing `write_module_source` calls open a nonmodal read-only diff with Apply/Reject buttons. Pending proposals keep their own decisions; `cancel_write_review` withdraws an awaiting proposal. The headless host writes without an SWT review.
 - **Use the new BSL diff viewer**: Off by default. Enable it in this tab for method-aware comparisons with move markers, search and separate method comparisons. Apply/OK affects newly opened MCP reviews without restarting EDT; clear it to return to the standard viewer.
 - **Batch method replacements**: `write_module_source(edits=[{methodName, source}, ...], expectedHash=...)` replaces up to 50 methods of one module with one review. Send only changed methods; any invalid entry rejects the whole batch.
+- **Preview a BSL edit**: Add `preview=true` to `write_module_source` to check the proposed edit and read a bounded diff without writing or opening review. Omit `requestId`; submit again without `preview` for the real guarded write.
 - **Auto-start** (HTTP group): Start HTTP on EDT launch when HTTP is enabled. `EDT_MCP_AUTO_START=true` overrides both saved switches for CI; a launch with `-Dedt.mcp.stdioOnly=true` still suppresses HTTP auto-start without changing preferences.
 - **Plain text mode (Cursor compatibility)**: Applies to every transport and stays visible when HTTP is off. Returns results as plain text instead of embedded resources (for AI clients that don't support MCP resources)
 - **Enhance Navigator**: Controls this plugin’s contributions to the Navigator tree (groups and their filter). Turn it off to resolve conflicts with another plugin that patches the same panel
@@ -512,6 +513,8 @@ with `python docs/generate_tool_docs.py`.
 ### Code
 
 > BSL code: write/read methods, call hierarchy, go-to-definition, references, content assist, queries.
+
+For signature changes and argument debugging, `get_method_call_hierarchy(includeCallDetails=true)` returns direct call sites with actual argument text, resolved formal parameter names, exact saved-source ranges and the client/server call kind when known. Use `callers` or `callees` with `depth=1`; ordinary hierarchy output is unchanged.
 
 | Tool | Description |
 |------|-------------|

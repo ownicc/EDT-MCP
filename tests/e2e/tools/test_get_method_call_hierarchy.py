@@ -85,6 +85,51 @@ from harness import (
 CALC = "CommonModules/Calc/Module.bsl"
 
 
+@e2e_test(tool="get_method_call_hierarchy", kind="read")
+def test_call_details_returns_actual_arguments_and_exact_saved_source_ranges():
+    """Both directions expose the same real Test -> Add(1, 2) invocation as JSON."""
+    for direction, method in [("callers", "Add"), ("callees", "Test")]:
+        r = call("get_method_call_hierarchy", {
+            "projectName": PROJECT, "modulePath": CALC, "methodName": method,
+            "direction": direction, "includeCallDetails": True,
+        })
+        assert_ok(r, direction + " with call details")
+        data = r.structured
+        assert isinstance(data, dict), "details must use structuredContent"
+        assert data["sourceBasis"] == "savedSemanticSnapshot"
+        assert data["positionEncoding"] == "utf-16"
+        assert data["rangeEnd"] == "exclusive"
+        assert data["totalCallSites"] == 1 and data["truncated"] is False
+        site, = data["callSites"]
+        assert site["modulePath"] == CALC
+        assert site["caller"]["methodName"] == "Test"
+        assert site["callee"]["methodName"] == "Add"
+        assert site["callee"]["modulePath"] == CALC
+        assert site["resolution"] == "resolved"
+        assert site["serverCall"] == "none"
+        assert site["range"] == {"startLine": 6, "startColumn": 14, "endLine": 6, "endColumn": 23}
+        assert site["argumentsTruncated"] is False
+        assert [(arg["formalName"], arg["text"]) for arg in site["arguments"]] == [("A", "1"), ("B", "2")]
+        assert [arg["range"] for arg in site["arguments"]] == [
+            {"startLine": 6, "startColumn": 18, "endLine": 6, "endColumn": 19},
+            {"startLine": 6, "startColumn": 21, "endLine": 6, "endColumn": 22},
+        ]
+        assert all(arg["textTruncated"] is False for arg in site["arguments"])
+    assert_no_diff("call details must not touch the project on disk")
+
+
+@e2e_test(tool="get_method_call_hierarchy", kind="read")
+def test_call_details_false_preserves_legacy_markdown_bytes():
+    args = {"projectName": PROJECT, "modulePath": CALC, "methodName": "Add"}
+    legacy = call("get_method_call_hierarchy", args)
+    explicit = call("get_method_call_hierarchy", dict(args, includeCallDetails=False))
+    assert_ok(legacy, "legacy callers")
+    assert_ok(explicit, "explicitly disabled call details")
+    assert explicit.structured is None
+    assert explicit.text == legacy.text
+    assert_no_diff("legacy callers must remain read only")
+
+
 def _assert_local_add_row(text):
     """Structural invariant for the aggregated OUTGOING row of the fixture's one call
     Test -> Add(1, 2): the row must be '(local)' qualifier + Method Add + ExtAPI '-'.
