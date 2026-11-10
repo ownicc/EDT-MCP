@@ -6947,7 +6947,7 @@
           "type": "array"
         },
         "expectedHash": {
-          "description": "Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for method-targeted modes and edits unless replaceMethod uses expectedMethodHash.",
+          "description": "Lost-update guard: the hash from the read that produced your edit. The write is rejected if the module changed since; required for insertIntoRegion, method-targeted modes and edits unless replaceMethod uses expectedMethodHash.",
           "type": "string"
         },
         "expectedMethodHash": {
@@ -6973,7 +6973,8 @@
             "replaceMethod",
             "insertBefore",
             "insertAfter",
-            "replaceMethods"
+            "replaceMethods",
+            "insertIntoRegion"
           ],
           "type": "string"
         },
@@ -7009,6 +7010,10 @@
           "type": "boolean"
         },
         "projectName": {
+          "type": "string"
+        },
+        "regionName": {
+          "description": "Required only for insertIntoRegion: an existing uniquely named empty region outside methods. Requires expectedHash; incompatible with methodName and edits.",
           "type": "string"
         },
         "requestId": {

@@ -161,8 +161,9 @@ public final class InputSchemaCompactor
         // moduleType=FormModule / CommandModule, path resolution refuses the write without
         // them. Same conditional shape as mode->oldSource, one step further out.
         // edits carries batch-only guards and conflicting top-level fields not encoded in its item shape.
+        // regionName is required only for insertIntoRegion, which also requires the full module hash.
         keep.put("write_module_source", asSet("edits", "expectedHash", "mode", "oldSource", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-            "methodName", "formName", "commandName")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            "methodName", "regionName", "formName", "commandName")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         // The enum cannot express either fact: md is the default, and xml is legal only for
         // action=get + type=schema + a bare root. Without this one clause a schema-valid
         // format=xml call can select a fragment, dynamic-list type, or mutation and be refused.

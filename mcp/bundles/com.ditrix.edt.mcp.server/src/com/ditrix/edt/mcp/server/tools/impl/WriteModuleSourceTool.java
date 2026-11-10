@@ -45,6 +45,7 @@ import com.ditrix.edt.mcp.server.HostKind;
 import com.ditrix.edt.mcp.server.utils.compare.ComparisonTextDiff;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.AdoptedModuleState;
+import com.ditrix.edt.mcp.server.utils.BslEmptyRegion;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
 import com.ditrix.edt.mcp.server.utils.PreparedBslWrite;
 import com.ditrix.edt.mcp.server.utils.BslWriteReviews.Outcome;
@@ -85,6 +86,7 @@ public class WriteModuleSourceTool implements IMcpTool
     private static final String MODE_REPLACE_METHOD = "replaceMethod"; //$NON-NLS-1$
     private static final String MODE_INSERT_BEFORE = "insertBefore"; //$NON-NLS-1$
     private static final String MODE_INSERT_AFTER = "insertAfter"; //$NON-NLS-1$
+    private static final String MODE_INSERT_INTO_REGION = "insertIntoRegion";
 
     private static final String PROJECT_NAME = "projectName"; //$NON-NLS-1$
     private static final String MODULE_PATH = "modulePath"; //$NON-NLS-1$
@@ -132,16 +134,18 @@ public class WriteModuleSourceTool implements IMcpTool
             .stringProperty("source", //$NON-NLS-1$
                 "BSL source to write (required unless edits is supplied): full file for replace, new fragment for " + //$NON-NLS-1$
                 "searchReplace, text to add for append, or exactly one complete method for " + //$NON-NLS-1$
-                "a method-targeted mode. Mutually exclusive with edits.") //$NON-NLS-1$
+                "a method-targeted mode or insertIntoRegion. Mutually exclusive with edits.") //$NON-NLS-1$
             .stringProperty("oldSource", //$NON-NLS-1$
                 "Fragment to find and replace; required for searchReplace, must match exactly once.") //$NON-NLS-1$
             .enumProperty("mode", //$NON-NLS-1$
                 "Write mode (default searchReplace, or replaceMethods when edits is supplied).", //$NON-NLS-1$
                 MODE_SEARCH_REPLACE, MODE_REPLACE, MODE_APPEND,
-                MODE_REPLACE_METHOD, MODE_INSERT_BEFORE, MODE_INSERT_AFTER, MODE_REPLACE_METHODS)
+                MODE_REPLACE_METHOD, MODE_INSERT_BEFORE, MODE_INSERT_AFTER, MODE_REPLACE_METHODS,
+                MODE_INSERT_INTO_REGION)
             .objectArrayProperty("edits", "Replace 1 to 50 distinct methods in one module/review. Each entry: methodName and source (one complete method). Requires expectedHash; implies mode=replaceMethods. Do not mix with top-level source, methodName, oldSource, expectedSource or overwrite. Combined source limit: 500000 characters.")
             .stringProperty("methodName", //$NON-NLS-1$
                 "Existing anchor method; required for replaceMethod, insertBefore, and insertAfter.") //$NON-NLS-1$
+            .stringProperty("regionName", "Required only for insertIntoRegion: an existing uniquely named empty region outside methods. Requires expectedHash; incompatible with methodName and edits.")
             .stringProperty("formName", //$NON-NLS-1$
                 "Form name; required when moduleType=FormModule (e.g. 'ItemForm').") //$NON-NLS-1$
             .stringProperty("commandName", //$NON-NLS-1$
@@ -163,7 +167,7 @@ public class WriteModuleSourceTool implements IMcpTool
             .stringProperty("requestId", "Optional workspace-unique operation ID (1 to 128 characters). Replays the retained receipt; never reuse an ID for another write.")
             .stringProperty("expectedHash", //$NON-NLS-1$
                 "Lost-update guard: the hash from the read that produced your edit. The write is " //$NON-NLS-1$
-                + "rejected if the module changed since; required for method-targeted modes and edits unless replaceMethod uses expectedMethodHash.") //$NON-NLS-1$
+                + "rejected if the module changed since; required for insertIntoRegion, method-targeted modes and edits unless replaceMethod uses expectedMethodHash.") //$NON-NLS-1$
             .stringProperty("expectedMethodHash", "For replaceMethod only: methodHash from read_method_source, including documentation/directives. Allows unrelated module changes before preparation. If expectedHash is also supplied, both must match.")
             .build();
         JsonObject document = JsonParser.parseString(schema).getAsJsonObject();
@@ -282,7 +286,8 @@ public class WriteModuleSourceTool implements IMcpTool
                     ". Only 'replace' mode can create new files.").toJson(); //$NON-NLS-1$
             }
 
-            if (reviewEnabled || ((req.preview || req.expectedMethodHash != null) && HostKind.current() != HostKind.HEADLESS))
+            if (reviewEnabled || ((req.preview || req.expectedMethodHash != null
+                || MODE_INSERT_INTO_REGION.equals(req.mode)) && HostKind.current() != HostKind.HEADLESS))
             {
                 if (!project.isOpen()) return ToolResult.error(req.preview
                     ? "Open the project in EDT before previewing a BSL write."
@@ -307,8 +312,8 @@ public class WriteModuleSourceTool implements IMcpTool
             }
 
             if (req.preview) return previewResult(prepareWrite(req, file, 0L));
-            if (!reviewEnabled && req.expectedMethodHash != null)
-                return writeMethodGuarded(req, file, mutationEntered, mutationCommitted);
+            if (!reviewEnabled && (req.expectedMethodHash != null || MODE_INSERT_INTO_REGION.equals(req.mode)))
+                return writePreparedGuarded(req, file, mutationEntered, mutationCommitted);
             return reviewEnabled ? reviewWrite(req, file)
                 : writeModule(req, file, fileExists, root.scope(), mutationEntered, mutationCommitted);
         }
@@ -393,6 +398,7 @@ public class WriteModuleSourceTool implements IMcpTool
         final String oldSource;
         final String mode;
         final String methodName;
+        final String regionName;
         final String formName;
         final String commandName;
         final boolean skipSyntaxCheck;
@@ -425,6 +431,7 @@ public class WriteModuleSourceTool implements IMcpTool
             this.edits = batch.edits();
             this.editsError = batch.error();
             this.methodName = JsonUtils.extractStringArgument(params, "methodName"); //$NON-NLS-1$
+            this.regionName = JsonUtils.extractStringArgument(params, "regionName");
             this.formName = JsonUtils.extractStringArgument(params, "formName"); //$NON-NLS-1$
             this.commandName = JsonUtils.extractStringArgument(params, "commandName"); //$NON-NLS-1$
             this.skipSyntaxCheck = JsonUtils.extractBooleanArgument(params, "skipSyntaxCheck", false); //$NON-NLS-1$
@@ -645,6 +652,7 @@ public class WriteModuleSourceTool implements IMcpTool
         // Leave legacy digests byte-for-byte compatible with already retained receipts.
         if (req.edits != null) arguments.put("edits", req.edits);
         if (req.expectedMethodHash != null) arguments.put("expectedMethodHash", req.expectedMethodHash);
+        if (req.regionName != null) arguments.put("regionName", req.regionName);
         return PreparedBslWrite.sha256(GsonProvider.toJson(arguments).getBytes(StandardCharsets.UTF_8));
     }
 
@@ -668,8 +676,8 @@ public class WriteModuleSourceTool implements IMcpTool
             content.normalizedCharacters());
     }
 
-    /** Method-scoped admission still commits against the complete freshly prepared byte snapshot. */
-    private String writeMethodGuarded(WriteRequest req, IFile file, AtomicBoolean mutationEntered,
+    /** Direct prepared writes use the same complete byte snapshot guard as reviewed writes. */
+    private String writePreparedGuarded(WriteRequest req, IFile file, AtomicBoolean mutationEntered,
         AtomicBoolean mutationCommitted) throws Exception
     {
         PreparedBslWrite write = prepareWrite(req, file, 0L);
@@ -790,6 +798,18 @@ public class WriteModuleSourceTool implements IMcpTool
             if (params.containsKey("expectedHash") && (req.expectedHash == null || req.expectedHash.isBlank()))
                 return ToolResult.error("expectedHash must not be blank when supplied with expectedMethodHash. Read contentHash with read_module_source or omit expectedHash to use only the method guard.").toJson();
         }
+        if (params.containsKey("regionName") && !MODE_INSERT_INTO_REGION.equals(req.mode))
+            return ToolResult.error("regionName is supported only with mode=insertIntoRegion.").toJson();
+        if (MODE_INSERT_INTO_REGION.equals(req.mode))
+        {
+            for (String key : List.of("methodName", "edits", "oldSource", "expectedSource", "overwrite"))
+                if (params.containsKey(key))
+                    return ToolResult.error(key + " is not supported with insertIntoRegion; pass regionName and one complete method in source.").toJson();
+            if (req.regionName == null || req.regionName.isBlank())
+                return ToolResult.error("regionName is required for insertIntoRegion. Read the module with read_module_source and select an existing empty region.").toJson();
+            if (req.expectedHash == null || req.expectedHash.isBlank())
+                return ToolResult.error("expectedHash is required for insertIntoRegion. Read contentHash with read_module_source.").toJson();
+        }
         if (req.editsError != null) return req.editsError;
         if (MODE_REPLACE_METHODS.equals(req.mode))
         {
@@ -813,11 +833,12 @@ public class WriteModuleSourceTool implements IMcpTool
 
         // Validate mode
         if (!MODE_REPLACE.equals(req.mode) && !MODE_APPEND.equals(req.mode)
-            && !MODE_SEARCH_REPLACE.equals(req.mode) && !isMethodTargetedMode(req.mode))
+            && !MODE_SEARCH_REPLACE.equals(req.mode) && !isMethodTargetedMode(req.mode)
+            && !MODE_INSERT_INTO_REGION.equals(req.mode))
         {
             return ToolResult.error("invalid mode '" + req.mode + "'. " + //$NON-NLS-1$ //$NON-NLS-2$
                 "Allowed: searchReplace, replace, append, replaceMethod, insertBefore, " + //$NON-NLS-1$
-                "insertAfter").toJson(); //$NON-NLS-1$
+                "insertAfter, insertIntoRegion, replaceMethods").toJson(); //$NON-NLS-1$
         }
 
         // Validate oldSource for searchReplace mode
@@ -1102,6 +1123,7 @@ public class WriteModuleSourceTool implements IMcpTool
             case MODE_REPLACE_METHOD:
             case MODE_INSERT_BEFORE:
             case MODE_INSERT_AFTER:
+            case MODE_INSERT_INTO_REGION:
             {
                 // No BSL model here on purpose. Loading it touches EMF/Xtext, which the sibling
                 // read tools reach only through the UI thread, and this runs on the MCP dispatch
@@ -1109,7 +1131,7 @@ public class WriteModuleSourceTool implements IMcpTool
                 // dialog can hold. Nothing is lost: the span the model produced was accepted only
                 // when it matched the text span line for line, so it could not change an outcome.
                 MethodEditResult edit = applyMethodTargetedEdit(originalLines, req.mode,
-                    req.methodName, source);
+                    req.methodName, source, req.regionName);
                 return new NewLinesResult(edit.error, edit.newLines);
             }
 
@@ -1139,6 +1161,12 @@ public class WriteModuleSourceTool implements IMcpTool
      */
     static MethodEditResult applyMethodTargetedEdit(List<String> originalLines, String mode,
         String methodName, String source)
+    {
+        return applyMethodTargetedEdit(originalLines, mode, methodName, source, null);
+    }
+
+    private static MethodEditResult applyMethodTargetedEdit(List<String> originalLines, String mode,
+        String methodName, String source, String regionName)
     {
         // A declaration this line scanner cannot ADDRESS - the keyword alone on its line, or the
         // keyword and a name with the parenthesis on the next - makes every answer below unsafe
@@ -1174,19 +1202,20 @@ public class WriteModuleSourceTool implements IMcpTool
                 targets.add(span);
             }
         }
-        if (targets.isEmpty())
+        boolean intoRegion = MODE_INSERT_INTO_REGION.equals(mode);
+        if (!intoRegion && targets.isEmpty())
         {
             return methodEditError("methodName '" + methodName + //$NON-NLS-1$
                 "' was not found in the current module. Read it again with " + //$NON-NLS-1$
                 "read_module_source or read_method_source and retry."); //$NON-NLS-1$
         }
-        if (targets.size() > 1)
+        if (!intoRegion && targets.size() > 1)
         {
             return methodEditError("methodName '" + methodName + "' is ambiguous: " + //$NON-NLS-1$ //$NON-NLS-2$
                 targets.size() + " declarations exist in the current module. " + //$NON-NLS-1$
                 "Method-targeted writes do not choose between preprocessor branches."); //$NON-NLS-1$
         }
-        if (!targets.get(0).complete)
+        if (!intoRegion && !targets.get(0).complete)
         {
             return methodEditError("methodName '" + methodName + //$NON-NLS-1$
                 "' has no matching method terminator in the current module. " + //$NON-NLS-1$
@@ -1256,7 +1285,7 @@ public class WriteModuleSourceTool implements IMcpTool
             }
         }
 
-        BslModuleUtils.MethodSpan target = targets.get(0);
+        BslModuleUtils.MethodSpan target = intoRegion ? null : targets.get(0);
         if (MODE_REPLACE_METHOD.equals(mode) && incoming.isFunction != target.isFunction)
         {
             // Refused for the same reason a rename is: matching the NAME is not the whole
@@ -1280,7 +1309,15 @@ public class WriteModuleSourceTool implements IMcpTool
         }
         else
         {
-            int insertionLine = MODE_INSERT_BEFORE.equals(mode) ? target.startLine : target.endLine + 1;
+            int insertionLine;
+            if (intoRegion)
+            {
+                BslEmptyRegion.Resolution region = BslEmptyRegion.resolve(originalLines, regionName);
+                if (region.error() != null) return methodEditError(region.error());
+                insertionLine = region.insertionLine();
+            }
+            else
+                insertionLine = MODE_INSERT_BEFORE.equals(mode) ? target.startLine : target.endLine + 1;
             result = BslModuleUtils.insertMethodLines(originalLines, insertionLine, sourceLines);
         }
         return new MethodEditResult(null, result);

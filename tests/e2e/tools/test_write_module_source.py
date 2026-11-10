@@ -1959,3 +1959,199 @@ def test_method_hash_review_pending_can_be_cancelled_without_writes():
         assert cancelled.structured["status"] == "cancelled", cancelled.structured
     assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
     assert_no_diff("pending/cancelled method-only review never writes source")
+
+
+_REGION_METHOD = "// inserted documentation\n&AtServer\nProcedure RegionAdded() Export\n\tValue = 42;\nEndProcedure"
+_REGION_BEFORE = "Procedure Before() Export\nEndProcedure\n\n"
+_REGION_AFTER = "\nProcedure After() Export\nEndProcedure\n"
+_REGION_SEED = _REGION_BEFORE + "# Region Target\n// keep this comment\n// #Region Target is comment text\n\n# EndRegion // keep the end comment\n" + _REGION_AFTER
+
+
+def _region_params(token, **extra):
+    return dict({"projectName": PROJECT, "modulePath": MODULE, "mode": "insertIntoRegion",
+                 "regionName": "Target", "expectedHash": token, "source": _REGION_METHOD}, **extra)
+
+
+def _region_seed(source=_REGION_SEED, malformed=False):
+    result = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                  "mode": "replace", "source": source, "overwrite": True,
+                  "skipSyntaxCheck": malformed})
+    assert_ok(result, "seed the region fixture through the normal writer")
+    _assert_module_disk_text(source, "region fixture reached disk")
+    return _read_content_hash()
+
+
+def _assert_region_insert_bytes(before, after, closing, source):
+    delimiter = b"\r\n" if b"\r\n" in before else b"\n"
+    marker = delimiter + closing.encode("utf-8")
+    position = before.index(marker) + len(delimiter)
+    prefix, suffix = before[:position], before[position:]
+    assert after.startswith(prefix) and after.endswith(suffix), "region insertion changed existing bytes"
+    inserted = after[len(prefix):-len(suffix)]
+    expected = source.replace("\r\n", "\n").rstrip("\n").replace("\n", delimiter.decode()).encode("utf-8")
+    assert inserted.strip(b"\r\n") == expected, "insertion was not exactly the supplied method: %r" % inserted
+    assert inserted.endswith(delimiter), "region terminator must remain on a separate line"
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_empty_region_insert_supports_spaced_en_and_nested_ru_and_repeat_refuses():
+    russian_method = "// новый метод\n&НаСервере\nПроцедура НовыйМетод() Экспорт\n\tЗначение = 42;\nКонецПроцедуры"
+    russian_seed = (_REGION_BEFORE + "#Region Outer\n# Область Назначение\n// сохранить комментарий\n\n"
+                    "# КонецОбласти // конец целевой области\n#EndRegion\n" + _REGION_AFTER)
+    for seed, name, closing, source, method in (
+        (_REGION_SEED, "Target", "# EndRegion", _REGION_METHOD, "RegionAdded"),
+        (russian_seed, "Назначение", "# КонецОбласти", russian_method, "НовыйМетод"),
+    ):
+        token = _region_seed(seed)
+        before = _method_hash_disk_bytes()
+        result = call("write_module_source", _region_params(token, regionName=name, source=source))
+        after = _method_hash_disk_bytes()
+        assert_ok(result, "insert one new method into the existing empty region")
+        _assert_region_insert_bytes(before, after, closing, source)
+        assert_diff_contains("42;", "the inserted method body is saved")
+        read = call("read_method_source", {"projectName": PROJECT, "modulePath": MODULE, "methodName": method})
+        assert_ok(read, "read back the inserted method")
+        assert_contains(read.text, "42;", "inserted body is readable")
+        repeated = call("write_module_source", _region_params(_read_content_hash(), regionName=name, source=source))
+        assert _method_hash_disk_bytes() == after, "repeated insertion changed the region"
+        error = assert_error(repeated, "an occupied region cannot be filled again")
+        assert_error_quality(error, names=[method], suggests=["unique method"])
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_empty_region_preview_and_stale_whole_module_guard_preserve_disk():
+    stale = _region_seed()
+    changed = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                   "mode": "append", "source": "// newer module revision\n", "expectedHash": stale})
+    assert_ok(changed, "advance a neighboring part of the module")
+    before = _method_hash_disk_bytes()
+    for preview in (False, True):
+        result = call("write_module_source", _region_params(stale, preview=preview))
+        assert _method_hash_disk_bytes() == before, "stale region write changed source"
+        error = assert_error(result, "empty-region insertion retains the whole-module guard")
+        assert_error_quality(error, names=["expectedHash"], suggests=["read_module_source"])
+    current = _read_content_hash()
+    preview = call("write_module_source", _region_params(current, preview=True))
+    assert _method_hash_disk_bytes() == before, "region preview wrote source"
+    assert_ok(preview, "fresh empty-region preview")
+    data = preview.structured
+    assert data["preview"] is True and data["applied"] is False and data["mutationCommitted"] is False, data
+    assert data["wouldChange"] is True and data["contentHash"] == current, data
+    assert "reviewId" not in data and "requestId" not in data, data
+    assert_contains(data["diff"], "+Procedure RegionAdded() Export", "preview shows the inserted declaration")
+    assert_contains(data["diff"], "+\tValue = 42;", "preview shows the inserted body")
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_empty_region_invalid_targets_refuse_without_changing_source():
+    cases = [
+        ("#Region Other\n#EndRegion\n", ["Target"], ["read_module_source"]),
+        ("#Region Target\n#EndRegion\n#Region Target\n#EndRegion\n", ["Target"], ["uniquely named"]),
+        ("#Region Target\nValue = 5;\n#EndRegion\n", ["Target"], ["empty region"]),
+        ("#Region Target\nProcedure Existing()\nEndProcedure\n#EndRegion\n", ["Target"], ["empty region"]),
+        ("#Region Target\n#Region Inner\n#EndRegion\n#EndRegion\n", ["Target"], ["empty region"]),
+        ("#Region Target\n#If Server Then\n#EndIf\n#EndRegion\n", ["Target"], ["empty region"]),
+        ("Procedure Before()\n#Region Target\n// inside a method\n#EndRegion\nEndProcedure\n", ["Target"], ["module-level"]),
+        ("#Region Target\n// unclosed region\n", ["Target"], ["boundaries"]),
+        ("#EndRegion\n#Region Target\n#EndRegion\n", ["line 1"], ["boundaries"]),
+        ("Procedure Before()\n#Region Target\n#EndRegion\n", ["Target"], ["module-level"]),
+    ]
+    for source, names, suggestions in cases:
+        token = _region_seed(source, malformed=True)
+        before = _method_hash_disk_bytes()
+        result = call("write_module_source", _region_params(token))
+        assert _method_hash_disk_bytes() == before, "rejected region target changed disk"
+        error = assert_error(result, "missing/ambiguous/occupied/nested/conditional/invalid region")
+        assert_error_quality(error, names=names, suggests=suggestions)
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_empty_region_payload_and_modulewide_duplicate_guards_refuse():
+    token = _region_seed()
+    before = _method_hash_disk_bytes()
+    for source in ("// no method\n", _REGION_METHOD + "\nProcedure Other()\nEndProcedure",
+                   "Value = 1;\n" + _REGION_METHOD):
+        result = call("write_module_source", _region_params(token, source=source))
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "region source must be one complete method")
+        assert_error_quality(error, names=["source"], suggests=["exactly one"])
+    duplicate = call("write_module_source", _region_params(token, source="Procedure Before() Export\nEndProcedure"))
+    assert _method_hash_disk_bytes() == before
+    error = assert_error(duplicate, "existing method outside the target region is still a duplicate")
+    assert_error_quality(error, names=["Before"], suggests=["unique method"])
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_empty_region_parameter_combinations_and_preview_request_id_refuse():
+    before = _method_hash_disk_bytes()
+    for field, value in (("regionName", None), ("regionName", " "), ("expectedHash", None), ("expectedHash", " ")):
+        params = _region_params("0123456789abcdef")
+        if value is None:params.pop(field)
+        else:params[field] = value
+        result = call("write_module_source", params)
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "empty-region required argument " + field)
+        assert_error_quality(error, names=[field])
+    for key, value in (("methodName", "Before"), ("expectedMethodHash", "0123456789abcdef"),
+                       ("oldSource", "old"), ("expectedSource", "old"), ("overwrite", False),
+                       ("edits", [{"methodName": "Before", "source": "Procedure Before()\nEndProcedure"}])):
+        result = call("write_module_source", _region_params("0123456789abcdef", **{key: value}))
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "unsupported insertIntoRegion argument " + key)
+        assert_error_quality(error, names=[key])
+    for mode in ("replace", "append", "searchReplace", "insertBefore", "insertAfter", "replaceMethod"):
+        result = call("write_module_source", _region_params("0123456789abcdef", mode=mode,
+                      methodName="Before", oldSource="old"))
+        assert _method_hash_disk_bytes() == before
+        error = assert_error(result, "regionName is specific to insertIntoRegion")
+        assert_error_quality(error, names=["regionName"], suggests=["insertIntoRegion"])
+    batch = call("write_module_source", {"projectName": PROJECT, "modulePath": MODULE,
+                 "edits": [{"methodName": "Before", "source": "Procedure Before()\nEndProcedure"}],
+                 "regionName": "Target", "expectedHash": "0123456789abcdef"})
+    assert _method_hash_disk_bytes() == before
+    error = assert_error(batch, "regionName cannot authorize a method batch")
+    assert_error_quality(error, names=["regionName"], suggests=["insertIntoRegion"])
+    preview = call("write_module_source", _region_params("0123456789abcdef", preview=True,
+                   requestId="e2e-region-preview-%d" % time.time_ns()))
+    assert _method_hash_disk_bytes() == before
+    error = assert_error(preview, "preview cannot persist a region insertion receipt")
+    assert_error_quality(error, names=["preview", "requestId"])
+    assert preview.structured["code"] == "previewRequestIdUnsupported", preview.structured
+    assert_no_diff("invalid empty-region arguments do not modify the fixture")
+
+
+@e2e_test(tool="write_module_source", kind="write-metadata")
+def test_empty_region_request_id_replays_once_and_binds_region_name():
+    token = _region_seed()
+    before = _method_hash_disk_bytes()
+    request_id = "e2e-empty-region-%d" % time.time_ns()
+    params = _region_params(token, requestId=request_id)
+    first = call("write_module_source", params)
+    after = _method_hash_disk_bytes()
+    assert_ok(first, "region insertion with durable receipt")
+    assert first.structured["mutationCommitted"] is True, first.structured
+    _assert_region_insert_bytes(before, after, "# EndRegion", _REGION_METHOD)
+    replay = call("write_module_source", params)
+    assert _method_hash_disk_bytes() == after, "receipt replay inserted the method twice"
+    assert_ok(replay, "receipt replay precedes stale hash and nonempty-region validation")
+    assert replay.structured == first.structured, (first.structured, replay.structured)
+    conflict = call("write_module_source", dict(params, regionName="AnotherTarget"))
+    assert _method_hash_disk_bytes() == after
+    error = assert_error(conflict, "receipt digest binds regionName")
+    assert conflict.structured["code"] == "requestIdConflict", conflict.structured
+    assert_error_quality(error, names=[request_id], suggests=["original arguments"])
+    assert_diff_contains("RegionAdded", "the original insertion remains saved once")
+
+
+@e2e_test(tool="write_module_source", kind="read")
+def test_empty_region_existing_nonempty_public_region_refuses_preview_without_review():
+    read = call("read_module_source", {"projectName": TESTS_PROJECT, "modulePath": _PREVIEW_MODULE})
+    assert_ok(read, "read real nonempty Public region")
+    match = _HASH_RE.search(read.text or "");assert match, read.text
+    before = _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL)
+    result = call("write_module_source", _region_params(match.group(1), projectName=TESTS_PROJECT,
+                  modulePath=_PREVIEW_MODULE, regionName="Public", preview=True))
+    assert _preview_disk_digest(_PREVIEW_MODULE, TESTS_PROJECT_REL) == before
+    error = assert_error(result, "new mode cannot treat an existing method region as empty")
+    assert_error_quality(error, names=["Public"], suggests=["empty region"])
+    assert_no_diff("occupied-region preview does not write or create a review")
