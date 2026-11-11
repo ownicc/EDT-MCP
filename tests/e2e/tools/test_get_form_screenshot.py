@@ -311,7 +311,7 @@ def test_show_element_switches_the_page_and_puts_the_editor_back():
           - showElement=PageExtra differs from the baseline (a no-op switch fails here);
           - showElement=extrapagelabel (an element ON that page, case-insensitive)
             gives the same image as the page itself: same page, frame cleared both times;
-          - the capture afterwards no longer shows PageExtra (a missing restore fails).
+          - the capture afterwards matches the baseline (a missing or wrong restore fails).
 
     Limit: no MCP tool can put a live editor on a user-clicked tab, so the editor here
     starts on its default page, and this test cannot tell a restore of the user's tab
@@ -355,7 +355,7 @@ def test_show_element_switches_the_page_and_puts_the_editor_back():
     assert element == page, (
         "an element on PageExtra must give the same image as the page itself (same page, "
         "no selection frame); they differ")
-    assert after != page, "after showElement the editor still shows PageExtra: it was not put back"
+    assert after == baseline, "after showElement the editor did not return to its baseline page"
     assert_no_diff("a screenshot read must not touch the project on disk")
 
 

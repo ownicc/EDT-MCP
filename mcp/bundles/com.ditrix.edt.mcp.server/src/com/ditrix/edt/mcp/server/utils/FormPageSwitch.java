@@ -155,7 +155,8 @@ public final class FormPageSwitch
     /**
      * Puts the editor back, once and only if a render of this switch may have changed it: one full
      * render selecting the editor's last domain selection (which re-opens the pages enclosing it), or a
-     * plain full render (the default pages) when nothing was selected. Best effort: other Pages groups
+     * select-by-id render with an empty selection (the default pages) when nothing was selected.
+     * Best effort: other Pages groups
      * show their default pages, and the previous selection frame is not guaranteed.
      *
      * @return {@code null} when nothing needed restoring or the render ran, else the error
@@ -170,7 +171,8 @@ public final class FormPageSwitch
         String cause;
         try
         {
-            SyncRender restore = render(previousSelection.length == 0 ? null : previousSelection, false);
+            // An update event retains native page state; an explicit empty selection resets it.
+            SyncRender restore = render(previousSelection, false);
             if (restore.outcome == RenderOutcome.RENDERED)
             {
                 return null;
