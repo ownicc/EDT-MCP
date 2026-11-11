@@ -5588,7 +5588,7 @@ public class ModifyMetadataTool extends AbstractMetadataWriteTool
                     .toJson());
             }
             FormElementWriter.DataPathPlan plan =
-                FormElementWriter.planDataPathChange(formOf(member), member, value.getAsString());
+                FormElementWriter.planDataPathChange(formOf(member), member, value.getAsString(), version);
             if (plan.error() != null)
             {
                 throw new FormValidationException(ToolResult.error(plan.error()).toJson());

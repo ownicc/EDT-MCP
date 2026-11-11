@@ -1019,10 +1019,10 @@ public class CreateMetadataToolTest
     }
 
     @Test
-    public void testMembersWithoutAMandatoryTypeKeepThePlainPath()
+    public void testMembersWithoutAMandatoryTypeDoNotGetAValueType()
     {
         // A command's parameter type is OPTIONAL (and its own 'Type'-coded feature), an enum value has
-        // no type at all: neither is routed through the factory nor given a default type.
+        // no type at all: neither gets a default value type. Commands still need other native defaults.
         assertFalse(CreateMetadataTool.carriesMandatoryType(MdClassPackage.Literals.CATALOG_COMMAND));
         assertFalse(CreateMetadataTool.carriesMandatoryType(MdClassPackage.Literals.ENUM_VALUE));
         assertFalse(CreateMetadataTool.carriesMandatoryType(MdClassPackage.Literals.CATALOG_TABULAR_SECTION));
@@ -1046,8 +1046,8 @@ public class CreateMetadataToolTest
         assertEquals(MEMBER, command.getName());
         assertNull("a command's optional parameter type is not defaulted", //$NON-NLS-1$
             ((com._1c.g5.v8.dt.metadata.mdclass.BasicCommand)command).getCommandParameterType());
-        verify(factory, never()).create(any(EClass.class), any(org.eclipse.emf.ecore.EObject.class),
-            any(Version.class));
+        verify(factory, never()).create(MdClassPackage.Literals.ENUM_VALUE, enumValue.eContainer(),
+            Version.LATEST);
         verify(platform.provider, never()).createProxy(Mockito.anyString());
     }
 

@@ -2142,10 +2142,10 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
     }
 
     /**
-     * Factory-initialized member path (Form / Template / Recalculation, and every member with a value
-     * type): the parent-aware factory hands the member to its OWNER's type initializer, which wires
-     * the designer defaults - a Recalculation's produced types, an attribute's or a dimension's type
-     * and input flags. A bare create is the fallback when the factory declines, and a member left
+     * Factory-initialized member path: the parent-aware factory hands the member to its OWNER's
+     * initializer, which wires the designer defaults, including produced types, command settings,
+     * service member defaults, and an attribute's or dimension's type and input flags.
+     * A bare create is the fallback when the factory declines, and a member left
      * without its mandatory type gets the per-kind default ({@link #ensureMandatoryType}). Explicit
      * synonym / comment are applied after the factory, so they win. Performs the BM mutation inside
      * the write transaction.
@@ -2177,8 +2177,8 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
     }
 
     /**
-     * Plain member path (EnumValue, Command, TabularSection, ...: the members with no value type): a
-     * bare {@code EcoreUtil.create}, named, given a UUID and attached. Performs the BM mutation inside
+     * Plain member path (EnumValue, HTTP method, WebService parameter): a bare
+     * {@code EcoreUtil.create}, named, given a UUID and attached. Performs the BM mutation inside
      * the write transaction.
      *
      * @return the created and attached child
@@ -3458,22 +3458,21 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
     }
 
     /**
-     * A child whose valid default content must be wired by the model-object factory rather than by a
-     * bare {@code EcoreUtil.create}: a Recalculation needs its produced types, a Form its form type, a
-     * Template its template type, and every member with a value type ({@link #carriesMandatoryType})
-     * its type. These are CONTAINED objects - the platform serializes them inline in the owner's
-     * {@code .mdo}, like other members (empirically: a Recalculation lands as
-     * {@code <recalculations><producedTypes/><name/></...>} inside the register file) - but creating
-     * them with {@code EcoreUtil.create} would leave them ill-formed: a register dimension without a
-     * type breaks EDT's derived data for the whole register (issue #700). Plain members (EnumValue,
-     * Command, TabularSection, ...) are everything else. The classification keys off the platform
-     * base types and the metamodel, so it is robust to the concrete owner-specific element subtypes.
+     * Members whose designer defaults require their owner's initializer: forms, templates,
+     * recalculations and tabular sections, commands, service URL templates and operations, and
+     * members with a mandatory value type. In particular, tabular sections need produced types and
+     * type identifiers, commands need their representation and BM group, URL templates need their
+     * wildcard, and operations need an XDTO return type. Base types cover owner-specific subtypes.
      */
     private static boolean isFactoryInitializedChild(EClass elementType)
     {
         return MdClassPackage.Literals.BASIC_FORM.isSuperTypeOf(elementType)
             || MdClassPackage.Literals.BASIC_TEMPLATE.isSuperTypeOf(elementType)
             || MdClassPackage.Literals.RECALCULATION.isSuperTypeOf(elementType)
+            || MdClassPackage.Literals.BASIC_TABULAR_SECTION.isSuperTypeOf(elementType)
+            || MdClassPackage.Literals.BASIC_COMMAND.isSuperTypeOf(elementType)
+            || MdClassPackage.Literals.URL_TEMPLATE.isSuperTypeOf(elementType)
+            || MdClassPackage.Literals.OPERATION.isSuperTypeOf(elementType)
             || carriesMandatoryType(elementType);
     }
 

@@ -1455,7 +1455,7 @@ public final class FormElementWriter
                     : createAdditionalColumn(formModel, name, parentName, tablePathToken,
                         titleLanguage, title, createdKind, createdTablePath);
             case COMMAND:
-                return createCommand(formModel, name, titleLanguage, title, createdKind);
+                return createCommand(formModel, name, titleLanguage, title, createdKind, version);
             case PARAMETER:
                 return createParameter(formModel, name, title, createdKind);
             case FIELD:
@@ -1463,7 +1463,7 @@ public final class FormElementWriter
                     russianAutoNames, createdKind, version);
             case BUTTON:
                 return createButton(formModel, name, parentName, bindTarget, titleLanguage, title,
-                    russianAutoNames, createdKind);
+                    russianAutoNames, createdKind, version);
             case TABLE:
                 // Bare table (the bind slot carries its dataPath). The metadata-aware caller adds the
                 // tabular-section columns via createTable(..., columnAttributeNames, ...).
@@ -3317,7 +3317,7 @@ public final class FormElementWriter
     private static EObject convertPlainAttributeToDynamicList(EObject formModel, EObject attribute,
         Version version, List<String> applied)
     {
-        setExtInfoClassifier(formModel, attribute, ECLASS_DYNAMIC_LIST_EXT_INFO);
+        setExtInfoClassifier(formModel, attribute, ECLASS_DYNAMIC_LIST_EXT_INFO, version);
         EObject extInfo = singleReference(attribute, FEATURE_EXT_INFO);
         if (extInfo == null)
         {
@@ -3579,6 +3579,12 @@ public final class FormElementWriter
      */
     public static String syncTableExtInfo(EObject formModel, EObject table)
     {
+        return syncTableExtInfo(formModel, table, null);
+    }
+
+    /** Synchronizes a new table holder using project-version defaults. */
+    public static String syncTableExtInfo(EObject formModel, EObject table, Version version)
+    {
         EStructuralFeature extInfoFeature = table.eClass().getEStructuralFeature(FEATURE_EXT_INFO);
         if (!(extInfoFeature instanceof EReference) || extInfoFeature.isMany())
         {
@@ -3603,7 +3609,7 @@ public final class FormElementWriter
         {
             return classifier;
         }
-        EObject created = replaceExtInfoClassifier(formModel, table, extInfoFeature, classifier);
+        EObject created = replaceExtInfoClassifier(formModel, table, extInfoFeature, classifier, version);
         return created == null ? null : created.eClass().getName();
     }
 
@@ -4023,7 +4029,7 @@ public final class FormElementWriter
     }
 
     private static String createCommand(EObject formModel, String name, String titleLanguage,
-        String title, String[] createdKind)
+        String title, String[] createdKind, Version version)
     {
         if (findByName(referenceList(formModel, FEATURE_FORM_COMMANDS), name) != null)
         {
@@ -4040,6 +4046,10 @@ public final class FormElementWriter
         // without them the exported command is unusable.
         setAdjustableBooleanFeature(cmd, FEATURE_USE);
         setEnumFeature(cmd, "currentRowUse", "Auto"); //$NON-NLS-1$ //$NON-NLS-2$
+        if (version != null && !version.isLessThan(Version.V8_5_1))
+        {
+            setEnumFeature(cmd, "selectedRowsUse", LITERAL_AUTO); //$NON-NLS-1$
+        }
         applyTitle(cmd, titleLanguage, title);
         addToList(formModel, FEATURE_FORM_COMMANDS, cmd);
         recordKind(cmd, createdKind);
@@ -4520,12 +4530,19 @@ public final class FormElementWriter
         private final String path;
         private final TableBinding tableBinding;
         private final String error;
+        private final Version version;
 
         private DataPathPlan(String path, TableBinding tableBinding, String error)
+        {
+            this(path, tableBinding, error, null);
+        }
+
+        private DataPathPlan(String path, TableBinding tableBinding, String error, Version version)
         {
             this.path = path;
             this.tableBinding = tableBinding;
             this.error = error;
+            this.version = version;
         }
 
         /** @return an actionable refusal, or null when the path can be applied */
@@ -4673,6 +4690,14 @@ public final class FormElementWriter
         return plan;
     }
 
+    /** Validates a rebind with the version used to initialize a new binding-specific holder. */
+    public static DataPathPlan planDataPathChange(EObject formModel, EObject item, String path,
+        Version version)
+    {
+        DataPathPlan plan = planDataPathChange(formModel, item, path);
+        return new DataPathPlan(plan.path, plan.tableBinding, plan.error, version);
+    }
+
     /** Apply a plan in the write transaction; preserve dynamic-list UseAlways registration. */
     public static void applyDataPathChange(EObject formModel, EObject item, DataPathPlan plan)
     {
@@ -4687,7 +4712,7 @@ public final class FormElementWriter
         removeUnusedDynamicListUseAlwaysPath(formModel, previous);
         if (addressableKind(item) == Kind.TABLE)
         {
-            syncTableExtInfo(formModel, item);
+            syncTableExtInfo(formModel, item, plan.version);
         }
     }
 
@@ -4861,9 +4886,9 @@ public final class FormElementWriter
         applyVisibleDefaults(table);
         setIntFeature(table, FEATURE_ID, nextItemId(formModel));
         buildDataPath(formModel, table, dataPath);
-        syncTableExtInfo(formModel, table);
+        syncTableExtInfo(formModel, table, version);
         setEnumFeature(table, "titleLocation", "None"); //$NON-NLS-1$ //$NON-NLS-2$
-        applyTableDefaults(table);
+        applyTableDefaults(table, version);
         setUndefinedRowFilter(table);
         // The designer's table carries a title = its own name (hidden by titleLocation=None); use the
         // caller's explicit title when given, otherwise default to the table name. BOTH go under
@@ -5294,7 +5319,16 @@ public final class FormElementWriter
     private static void addTableAddition(EObject formModel, EObject table, String featureName,
         String suffix, String typeLiteral, String extInfoClassifier, boolean russianAutoNames)
     {
-        EStructuralFeature feat = table.eClass().getEStructuralFeature(featureName);
+        addSourceAddition(formModel, table, table, featureName, suffix, typeLiteral,
+            extInfoClassifier, russianAutoNames);
+    }
+
+    /** Creates table/PDF chrome in its holder, sourced from the owning visual item. */
+    private static void addSourceAddition(EObject formModel, EObject holder, EObject source,
+        String featureName, String suffix, String typeLiteral, String extInfoClassifier,
+        boolean russianAutoNames)
+    {
+        EStructuralFeature feat = holder.eClass().getEStructuralFeature(featureName);
         if (!(feat instanceof EReference) || feat.isMany() || !(feat.getEType() instanceof EClass))
         {
             return;
@@ -5310,7 +5344,7 @@ public final class FormElementWriter
         // build path otherwise leaves enabled at its un-set default (false), which is exactly the grey
         // symptom. Set ONLY enabled here, so the rest of the addition matches the designer byte-for-byte.
         setBooleanFeature(addition, FEATURE_ENABLED, true);
-        String tableName = stringFeature(table, FEATURE_NAME);
+        String tableName = stringFeature(source, FEATURE_NAME);
         setStringFeature(addition, FEATURE_NAME, uniqueChildName(formModel, tableName, suffix));
         if (typeLiteral != null)
         {
@@ -5321,7 +5355,7 @@ public final class FormElementWriter
         EStructuralFeature srcFeat = addition.eClass().getEStructuralFeature(FEATURE_SOURCE);
         if (srcFeat instanceof EReference)
         {
-            addition.eSet(srcFeat, table);
+            addition.eSet(srcFeat, source);
         }
         setExtInfoClassifier(formModel, addition, extInfoClassifier);
         EObject extInfo = singleReference(addition, FEATURE_EXT_INFO);
@@ -5329,14 +5363,19 @@ public final class FormElementWriter
         {
             setBooleanFeature(extInfo, KEY_AUTO_MAX_WIDTH, true);
         }
-        table.eSet(feat, addition);
+        holder.eSet(feat, addition);
         setIntFeature(addition, FEATURE_ID, nextItemId(formModel));
         addAutoChildren(formModel, addition, true, russianAutoNames);
     }
 
     /** The designer's table scalar defaults (FormObjectFactory.newTable): selection, lines, scrollbars. */
-    private static void applyTableDefaults(EObject table)
+    private static void applyTableDefaults(EObject table, Version version)
     {
+        if (version != null && !version.isLessThan(Version.V8_5_1))
+        {
+            setEnumFeature(table, "rowSelectionMode", LITERAL_AUTO); //$NON-NLS-1$
+            setBooleanFeature(table, "autoMaxCardHeight", true); //$NON-NLS-1$
+        }
         setBooleanFeature(table, "changeRowSet", true); //$NON-NLS-1$
         setBooleanFeature(table, "changeRowOrder", true); //$NON-NLS-1$
         setBooleanFeature(table, KEY_AUTO_MAX_WIDTH, true);
@@ -5382,7 +5421,7 @@ public final class FormElementWriter
     /** A Button bound to a custom or platform-standard form command. */
     private static String createButton(EObject formModel, String name, String parentName, // NOSONAR signature is inherent / public-or-test-contract; a parameter-object would not improve clarity
         String cmdName, String titleLanguage, String title, boolean russianAutoNames,
-        String[] createdKind)
+        String[] createdKind, Version version)
     {
         if (cmdName == null || cmdName.isEmpty())
         {
@@ -5430,6 +5469,10 @@ public final class FormElementWriter
         // them the exported button diverges from a designer-created one (e.g. AutoMaxWidth=false).
         setBooleanFeature(item, KEY_AUTO_MAX_WIDTH, true);
         setBooleanFeature(item, KEY_AUTO_MAX_HEIGHT, true);
+        if (version != null && !version.isLessThan(Version.V8_5_1))
+        {
+            setEnumFeature(item, "buttonImportance", "Normal"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
         setBooleanFeature(item, "commandUniqueness", true); //$NON-NLS-1$
         setEnumFeature(item, "representation", "Auto"); //$NON-NLS-1$ //$NON-NLS-2$
         setEnumFeature(item, "shape", "Auto"); //$NON-NLS-1$ //$NON-NLS-2$
@@ -5659,8 +5702,8 @@ public final class FormElementWriter
         if (extInfoClass != null && extInfoClass.getEPackage() != null)
         {
             EObject extInfo = extInfoClass.getEPackage().getEFactoryInstance().create(extInfoClass);
-            applyItemExtInfoDefaults(extInfo, version);
             item.eSet(feature, extInfo);
+            applyItemExtInfoDefaults(formModel, item, extInfo, version);
         }
     }
 
@@ -5669,7 +5712,8 @@ public final class FormElementWriter
      * passed here: their explicitly chosen properties must survive edits and repeated type writes.
      * Like applyFormDefaults, a null version retains the legacy pre-8.5.1 shape for model callers.
      */
-    private static void applyItemExtInfoDefaults(EObject extInfo, Version version)
+    private static void applyItemExtInfoDefaults(EObject formModel, EObject item, EObject extInfo,
+        Version version)
     {
         boolean before851 = version == null || version.isLessThan(Version.V8_5_1);
         switch (extInfo.eClass().getName())
@@ -5735,8 +5779,143 @@ public final class FormElementWriter
                     setEnumFeature(extInfo, "textSize", "Normal"); //$NON-NLS-1$ //$NON-NLS-2$
                 }
                 break;
+            case "LabelFieldExtInfo": //$NON-NLS-1$
+                setAutoMaxSize(extInfo);
+                break;
+            case "ImageFieldExtInfo": //$NON-NLS-1$
+                setStretchDefaults(extInfo, true);
+                if (version == null || version.isGreaterThan(Version.V8_3_12))
+                {
+                    setEnumFeature(extInfo, "fileDragMode", "AsFileRef"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                break;
+            case "CalendarFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 16, 9, true);
+                setBooleanFeature(extInfo, "showCurrentDate", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "calendarNavigation", true); //$NON-NLS-1$
+                setIntFeature(extInfo, "widthInMonths", 1); //$NON-NLS-1$
+                setIntFeature(extInfo, "heightInMonths", 1); //$NON-NLS-1$
+                break;
+            case "ProgressBarFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 32, 1, false);
+                setIntFeature(extInfo, "maxValue", 100); //$NON-NLS-1$
+                break;
+            case "TrackBarFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 32, 2, false);
+                setIntFeature(extInfo, "maxValue", 100); //$NON-NLS-1$
+                setIntFeature(extInfo, "step", 1); //$NON-NLS-1$
+                setIntFeature(extInfo, "largeStep", 10); //$NON-NLS-1$
+                setIntFeature(extInfo, "markingStep", 5); //$NON-NLS-1$
+                setEnumFeature(extInfo, "markingAppearance", "BottomRight"); //$NON-NLS-1$ //$NON-NLS-2$
+                break;
+            case "RadioButtonsFieldExtInfo": //$NON-NLS-1$
+                if (!before851)
+                {
+                    setEnumFeature(extInfo, "orientation", LITERAL_VERTICAL); //$NON-NLS-1$
+                }
+                break;
+            case "PeriodFieldExtInfo": //$NON-NLS-1$
+                setStretchDefaults(extInfo, true);
+                break;
+            case "SpreadSheetDocFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 50, 10, true);
+                setEnumFeature(extInfo, "horizontalScrollBar", "ScrollAuto"); //$NON-NLS-1$ //$NON-NLS-2$
+                setEnumFeature(extInfo, "verticalScrollBar", "ScrollAuto"); //$NON-NLS-1$ //$NON-NLS-2$
+                setEnumFeature(extInfo, "selectionShowMode", "Always"); //$NON-NLS-1$ //$NON-NLS-2$
+                if (version == null || version.isGreaterThan(Version.V8_3_16))
+                {
+                    setEnumFeature(extInfo, "drawingSelectionShowMode", LITERAL_AUTO); //$NON-NLS-1$
+                }
+                setEnumFeature(extInfo, "pointerType", "Special"); //$NON-NLS-1$ //$NON-NLS-2$
+                setBooleanFeature(extInfo, "showGroups", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "enableStartDrag", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "enableDrag", true); //$NON-NLS-1$
+                break;
+            case "PDFDocumentFieldExtInfo": //$NON-NLS-1$
+                if (version != null && !version.isGreaterThan(Version.V8_3_20))
+                {
+                    break;
+                }
+                setFieldSizeDefaults(extInfo, 50, 10, true);
+                setIntFeature(extInfo, "scale", 100); //$NON-NLS-1$
+                setIntFeature(extInfo, "currentPageNumber", 1); //$NON-NLS-1$
+                addSourceAddition(formModel, extInfo, item, FEATURE_VIEW_STATUS_ADDITION,
+                    SUFFIX_VIEW_STATUS, "ViewStatusAddition", "ViewStatusAdditionExtInfo", false); //$NON-NLS-1$ //$NON-NLS-2$
+                break;
+            case "ChartFieldExtInfo": //$NON-NLS-1$
+            case "DendrogramFieldExtInfo": //$NON-NLS-1$
+            case "FormattedDocFieldExtInfo": //$NON-NLS-1$
+            case "GanttChartFieldExtInfo": //$NON-NLS-1$
+            case "GeographicalMapFieldExtInfo": //$NON-NLS-1$
+            case "HtmlFieldExtInfo": //$NON-NLS-1$
+            case "PlannerFieldExtInfo": //$NON-NLS-1$
+            case "TextDocFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 50, 10, true);
+                break;
+            case "FlowchartFieldExtInfo": //$NON-NLS-1$
+                setFieldSizeDefaults(extInfo, 50, 10, true);
+                setBooleanFeature(extInfo, "edit", true); //$NON-NLS-1$
+                break;
+            case "LabelDecorationExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, KEY_HORIZONTAL_ALIGN, "Left"); //$NON-NLS-1$
+                break;
+            case "PictureDecorationExtInfo": //$NON-NLS-1$
+                if (version == null || version.isGreaterThan(Version.V8_3_12))
+                {
+                    setEnumFeature(extInfo, "fileDragMode", "AsFileRef"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                break;
+            case "DynamicListExtInfo": //$NON-NLS-1$
+                setBooleanFeature(extInfo, "autoSaveUserSettings", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, FEATURE_DYNAMIC_DATA_READ, true);
+                setBooleanFeature(extInfo, FEATURE_AUTO_FILL_AVAILABLE_FIELDS, true);
+                setBooleanFeature(extInfo, "getInvisibleFieldPresentations", true); //$NON-NLS-1$
+                break;
+            case "DynamicListTableExtInfo": //$NON-NLS-1$
+                setBooleanFeature(extInfo, "showRoot", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "allowGettingCurrentRowURL", //$NON-NLS-1$
+                    version == null || version.isGreaterThan(Version.V8_3_20));
+                setIntFeature(extInfo, "autoRefreshPeriod", 60); //$NON-NLS-1$
+                setNewContainedValue(extInfo, "topLevelParent", McoreFactory.eINSTANCE.createUndefinedValue()); //$NON-NLS-1$
+                com._1c.g5.v8.dt.mcore.StandardPeriod period = McoreFactory.eINSTANCE.createStandardPeriod();
+                period.setStartDate(new com._1c.g5.v8.dt.mcore.util.Date(1, 1, 1));
+                period.setEndDate(new com._1c.g5.v8.dt.mcore.util.Date(1, 1, 1));
+                setNewContainedValue(extInfo, "period", period); //$NON-NLS-1$
+                break;
+            case "DocumentFormExtInfo": //$NON-NLS-1$
+                setBooleanFeature(extInfo, "repostOnWrite", true); //$NON-NLS-1$
+                break;
             default:
                 break;
+        }
+    }
+
+    private static void setAutoMaxSize(EObject extInfo)
+    {
+        setBooleanFeature(extInfo, KEY_AUTO_MAX_WIDTH, true);
+        setBooleanFeature(extInfo, KEY_AUTO_MAX_HEIGHT, true);
+    }
+
+    private static void setStretchDefaults(EObject extInfo, boolean vertical)
+    {
+        setAutoMaxSize(extInfo);
+        setBooleanFeature(extInfo, "horizontalStretch", true); //$NON-NLS-1$
+        setBooleanFeature(extInfo, "verticalStretch", vertical); //$NON-NLS-1$
+    }
+
+    private static void setFieldSizeDefaults(EObject extInfo, int width, int height, boolean vertical)
+    {
+        setStretchDefaults(extInfo, vertical);
+        setIntFeature(extInfo, "width", width); //$NON-NLS-1$
+        setIntFeature(extInfo, "height", height); //$NON-NLS-1$
+    }
+
+    private static void setNewContainedValue(EObject target, String name, EObject value)
+    {
+        EStructuralFeature feature = target.eClass().getEStructuralFeature(name);
+        if (feature instanceof EReference && !feature.isMany())
+        {
+            target.eSet(feature, value);
         }
     }
 
@@ -6299,8 +6478,8 @@ public final class FormElementWriter
             return existing; // stale/empty but no better class resolvable - keep what is there (may be null)
         }
         EObject created = extInfoClass.getEPackage().getEFactoryInstance().create(extInfoClass);
-        applyItemExtInfoDefaults(created, version);
-        element.eSet(feature, created); // fills an empty slot or replaces a stale (type-mismatched) holder
+        element.eSet(feature, created);
+        applyItemExtInfoDefaults(formModel, element, created, version); // fills an empty slot or replaces a stale (type-mismatched) holder
         return created;
     }
 
@@ -9192,9 +9371,10 @@ public final class FormElementWriter
     }
 
     /**
-     * Pushes the {@code FormItem}s among {@code parent}'s PERSISTED children so they pop in metamodel
-     * order, keeping the walks above depth-first, left to right. The single place both form-item
-     * searches learn what a child is, so they cannot drift apart.
+     * Pushes the {@code FormItem}s among {@code parent}'s PERSISTED descendants so they pop in
+     * metamodel order, traversing non-item holders such as a PDF field's extInfo. Stops at each item:
+     * its children are pushed when the caller visits it, preserving depth-first, left-to-right order.
+     * The single place both form-item searches learn what a child is, so they cannot drift apart.
      *
      * @param parent the object whose containments to follow
      * @param formItem the {@code FormItem} EClass of the form instance's own EPackage
@@ -9209,6 +9389,10 @@ public final class FormElementWriter
             if (formItem.isInstance(child))
             {
                 pending.push(child);
+            }
+            else
+            {
+                pushFormItems(child, formItem, pending);
             }
         }
     }
