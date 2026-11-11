@@ -64,3 +64,39 @@ git merge upstream/master
 собрать и протестировать результат. Затем интегрировать ветку в форк и выпустить
 новую нашу версию. Git remote `upstream` уже настроен; установка оригинального
 ZIP или обновление из его p2-сайта не переносит наши изменения.
+
+## Integration checkpoint: 2026-11-11
+
+Integrated upstream `45593059` into the fork based on `70386336`, retaining both
+histories (14 incoming upstream commits).
+
+- Upstream batch `read_method_source` remains the base implementation. The fork's
+  `methodHash` and saved-snapshot safeguards work for single and batch reads; native
+  model reads remain available for declarations outside the text scanner.
+- Keep the fork's existing migration epochs 23/24. Epoch 25 adds upstream's
+  `standalone_server` restriction only to recorded Analysis Only / Code Review
+  profiles, without resetting other owner choices. Recognizable upstream epoch-23
+  stores receive the missing fork restriction. Old stores with indistinguishable
+  provenance cannot be perfectly reconstructed; reapplying the intended preset
+  restores its complete restrictions.
+- Follow upstream's no-root-combinator schema contract for `write_module_source`.
+  Runtime validation still rejects missing source/edits and incompatible combinations.
+  For this compatibility adjustment, the merged 109-tool schema snapshot changes
+  only by removal of this root `oneOf`.
+- Retain fork update/release URLs and the existing BSL review/diff workflows.
+
+Verification: clean canonical build on JDK 25: 13,650 Java tests, zero failures/errors,
+25 skips; Python harness 315 tests and workflow scripts 5 tests passed; agent-pack
+validator passed. Live BSL reader checks: 22 passed. Writer checks: 67 passed plus
+2 vendor-protection checks passed after importing the vendor fixture; 2 environment
+skips. Live schema snapshot passed. MCP conformance has no new baseline failures.
+
+The complete E2E sweep was attempted in isolated EDT copies and is **not green**:
+comparison/project reset stalled inside EDT; some checks assume absent platform
+runtimes while this machine has 8.3 and lacks 8.5. Screenshot page restoration also
+fails on the pre-integration fork bundle (70386336), so it is recorded separately
+as an incidental defect rather than changed during this integration. These results
+do not establish a fully verified release on every runtime/platform combination.
+
+Local evidence: `/tmp/edt-sync-full-build-verified.log`, `/tmp/edt-sync-full-e2e/`,
+`/tmp/edt-sync-conformance/final.log`, and `/tmp/edt-sync-baseline-ui/screenshot.xml`.

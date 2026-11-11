@@ -1132,7 +1132,7 @@
           "type": "string"
         },
         "properties": {
-          "description": "Optional properties to apply at creation, as [{name, value, language?}]. For most kinds this applies 'synonym' (with optional 'language' code) and 'comment'; other property names are rejected (set them via modify_metadata). Templates also accept 'templateType': TextDocument or SpreadsheetDocument (English or Russian). A FORM CONTENT member ('...Form.<F>.<Kind>.<Name>') takes a DIFFERENT vocabulary: 'title' (with optional 'language'), 'parent' (the group to nest a visual item under), 'dataPath' / 'attribute' (the bound attribute of a Field / Table), 'command' (a Button's command) and 'type' (a Group's kind). XDTO PACKAGE MEMBERS ('XDTOPackage.<Package>.ObjectType.<Name>' / '...Property.<Name>' / '...ObjectType.<Type>.Property.<Name>') use a DIFFERENT vocabulary instead: an ObjectType takes the optional boolean flags 'open' / 'abstract' / 'mixed' / 'ordered' / 'sequenced'; a Property REQUIRES 'type' (a built-in XSD type name like 'string', the EXACT name of an ObjectType already in the same package for a same-package reference, or an object {nsUri, name}) plus the optional 'lowerBound' / 'upperBound' (integers, ObjectType-nested properties only), 'nillable' / 'fixed' (booleans, 'fixed'=true needs a 'default') and 'default' (string). A PREDEFINED item ('...Predefined.<Item>') uses yet another vocabulary: 'description' / 'code' on every owner, 'isFolder' / 'parent' on a Catalog / ChartOfCharacteristicTypes (a ChartOfAccounts nests through 'parent' too; a ChartOfCalculationTypes takes neither), plus owner-specific properties - 'valueType' (alias 'type'; same {types:[...]} shape as an mdclass attribute's 'type') on a ChartOfCharacteristicTypes item; 'accountType' / 'offBalance' / 'order' / 'accountingFlags' / 'extDimensionTypes' on a ChartOfAccounts item; 'base' / 'displaced' / 'leading' / 'actionPeriodIsBase' on a ChartOfCalculationTypes item (see the guide for which apply to each owner).",
+          "description": "Optional properties to apply at creation, as [{name, value, language?}]. For most kinds this applies 'synonym' (with optional 'language' code) and 'comment'; other property names are rejected (set them via modify_metadata). Templates also accept 'templateType': TextDocument, SpreadsheetDocument or DataCompositionSchema (English or Russian). A FORM CONTENT member ('...Form.<F>.<Kind>.<Name>') takes a DIFFERENT vocabulary: 'title' (with optional 'language'), 'parent' (the group to nest a visual item under), 'dataPath' / 'attribute' (the bound attribute of a Field / Table), 'command' (a Button's command) and 'type' (a Group's kind). XDTO PACKAGE MEMBERS ('XDTOPackage.<Package>.ObjectType.<Name>' / '...Property.<Name>' / '...ObjectType.<Type>.Property.<Name>') use a DIFFERENT vocabulary instead: an ObjectType takes the optional boolean flags 'open' / 'abstract' / 'mixed' / 'ordered' / 'sequenced'; a Property REQUIRES 'type' (a built-in XSD type name like 'string', the EXACT name of an ObjectType already in the same package for a same-package reference, or an object {nsUri, name}) plus the optional 'lowerBound' / 'upperBound' (integers, ObjectType-nested properties only), 'nillable' / 'fixed' (booleans, 'fixed'=true needs a 'default') and 'default' (string). A PREDEFINED item ('...Predefined.<Item>') uses yet another vocabulary: 'description' / 'code' on every owner, 'isFolder' / 'parent' on a Catalog / ChartOfCharacteristicTypes (a ChartOfAccounts nests through 'parent' too; a ChartOfCalculationTypes takes neither), plus owner-specific properties - 'valueType' (alias 'type'; same {types:[...]} shape as an mdclass attribute's 'type') on a ChartOfCharacteristicTypes item; 'accountType' / 'offBalance' / 'order' / 'accountingFlags' / 'extDimensionTypes' on a ChartOfAccounts item; 'base' / 'displaced' / 'leading' / 'actionPeriodIsBase' on a ChartOfCalculationTypes item (see the guide for which apply to each owner).",
           "items": {
             "type": "object"
           },
@@ -1446,7 +1446,13 @@
           "type": "string"
         },
         "body": {
-          "description": "Mutation body; forbidden for get/options/remove and required by the other mutations.",
+          "description": "Mutation body; forbidden for get/options/remove and required by the other mutations. insertPosition: 1-based new-item position for upsert into an ordered settings collection.",
+          "properties": {
+            "insertPosition": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
           "type": "object"
         },
         "expectedHash": {
@@ -1858,20 +1864,8 @@
       "openWorldHint": false,
       "readOnlyHint": false
     },
-    "description": "Delete a metadata object or member (FQN-addressed). DESTRUCTIVE and CASCADING: on the md-refactoring path EDT cleans the REFERENCES to the deleted object across BSL, forms and metadata - the referring objects themselves are NOT deleted. Two-phase: call once WITHOUT confirm to preview what will be removed, then again with confirm=true to apply. A reference EDT cannot auto-clean leaves the delete BLOCKED and lists the referring objects; an EDT platform prohibition is listed separately and also blocks. force=true overrides either block and leaves only genuine incoming references dangling, but never vendor support: a delete touching an object whose support rule forbids changes is refused. EXCEPTION - an owned FORM object, a FORM member or an XDTO package member is removed straight from its container: nothing else blocks it (force is ignored) and no cross-object cascade runs, so references from elsewhere (a button's command, an XDTO type) are left broken - re-check with get_metadata_details (find_references takes TOP-level FQNs only, not these members). Use operations for atomic deletes of members of one form; preview the complete batch before confirming. Parameters and examples: get_tool_guide('delete_metadata').",
+    "description": "Delete a metadata object or member (FQN-addressed). DESTRUCTIVE and CASCADING: on the md-refactoring path EDT cleans the REFERENCES to the deleted object across BSL, forms and metadata - the referring objects themselves are NOT deleted. Two-phase: call once WITHOUT confirm to preview what will be removed, then again with confirm=true to apply. A reference EDT cannot auto-clean leaves the delete BLOCKED and lists the referring objects; an EDT platform prohibition is listed separately and also blocks. force=true overrides either block and leaves only genuine incoming references dangling, but never vendor support: a delete touching an object whose support rule forbids changes is refused. EXCEPTION - an owned FORM object, a FORM member or an XDTO package member is removed straight from its container: nothing else blocks it (force is ignored) and no cross-object cascade runs, so references from elsewhere (a button's command, an XDTO type) are left broken - re-check with get_metadata_details (find_references takes TOP-level FQNs only, not these members). Pass exactly one of fqn or operations: operations deletes members of one form atomically; preview the complete batch before confirming. Parameters and examples: get_tool_guide('delete_metadata').",
     "inputSchema": {
-      "oneOf": [
-        {
-          "required": [
-            "fqn"
-          ]
-        },
-        {
-          "required": [
-            "operations"
-          ]
-        }
-      ],
       "properties": {
         "atomic": {
           "type": "boolean"
@@ -3441,11 +3435,43 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "See validation problem counts grouped by project and severity. Parameters and examples: get_tool_guide('get_problem_summary').",
+    "description": "See validation problem counts grouped by project, severity, check, module or object. Parameters and examples: get_tool_guide('get_problem_summary').",
     "inputSchema": {
       "properties": {
+        "checkId": {
+          "type": "string"
+        },
+        "groupBy": {
+          "enum": [
+            "check",
+            "module",
+            "object"
+          ],
+          "type": "string"
+        },
+        "modulePaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "projectName": {
           "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "ERRORS",
+            "BLOCKER",
+            "CRITICAL",
+            "MAJOR",
+            "MINOR",
+            "TRIVIAL",
+            "NONE"
+          ],
+          "type": "string"
+        },
+        "top": {
+          "type": "integer"
         }
       },
       "required": [],
@@ -3525,6 +3551,13 @@
         },
         "limit": {
           "type": "integer"
+        },
+        "modulePaths": {
+          "description": "Exact module paths as shown in the Module path column, e.g. 'CommonModules/X/Module.bsl'; AND-ed with the other filters.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "objectFqns": {
           "description": "EXACT model addresses; mutually exclusive with objects. A MEMBER address (Catalog.Products.Attribute.Weight) widens the scan to its OWNING object - EDT indexes the marker there - so the result can carry problems from elsewhere in that object. Returns objectsNotFound / objectsUnsupported.",
@@ -5171,11 +5204,18 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Inspect the source of one BSL procedure or function. Parameters and examples: get_tool_guide('read_method_source').",
+    "description": "Inspect the source of one or more BSL procedures or functions. Parameters and examples: get_tool_guide('read_method_source').",
     "inputSchema": {
       "properties": {
         "methodName": {
           "type": "string"
+        },
+        "methodNames": {
+          "description": "Several procedure/function names read in one call (up to 50); use instead of methodName. One of the two is required.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "modulePath": {
           "description": "Path from src/, e.g. 'CommonModules/MyModule/Module.bsl'",
@@ -5187,8 +5227,7 @@
       },
       "required": [
         "projectName",
-        "modulePath",
-        "methodName"
+        "modulePath"
       ],
       "type": "object"
     },
@@ -5664,6 +5703,7 @@
         "outputMode": {
           "enum": [
             "full",
+            "lines",
             "count",
             "files"
           ],
@@ -5712,6 +5752,7 @@
         "outputMode": {
           "enum": [
             "full",
+            "lines",
             "count",
             "files"
           ],
@@ -6236,6 +6277,128 @@
             "type": "string"
           },
           "type": "array"
+        }
+      },
+      "required": [
+        "success"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false
+    },
+    "description": "Report, stop or start the EDT standalone server (ibsrv) of a wst-server application. DESTRUCTIVE for stop/restart: it ends every session and client of that server - call once WITHOUT confirm to preview them, then with confirm=true. A stopped server stays held until action=start. Full parameters and examples: call get_tool_guide('standalone_server').",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "description": "status (default) reads the server; stop and restart end its sessions; start releases the hold a stop leaves.",
+          "enum": [
+            "status",
+            "stop",
+            "start",
+            "restart"
+          ],
+          "type": "string"
+        },
+        "applicationId": {
+          "description": "Application ID from get_applications; defaults to the project's default application. Must be a wst-server application.",
+          "type": "string"
+        },
+        "confirm": {
+          "description": "For stop/restart: omit to preview what ends, true to do it. Refused on status/start.",
+          "type": "boolean"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "standaloneServerPortConflict": {
+          "description": "For start/restart only. Answer to EDT's standalone-server port-conflict prompt: cancel (default) = fail and name the busy ports; reassign = let EDT move the server to free ports (rewrites its configuration).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "projectName"
+      ],
+      "type": "object"
+    },
+    "name": "standalone_server",
+    "outputSchema": {
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "alreadyRunning": {
+          "type": "boolean"
+        },
+        "alreadyStopped": {
+          "type": "boolean"
+        },
+        "applicationId": {
+          "type": "string"
+        },
+        "clientLaunches": {
+          "type": "integer"
+        },
+        "confirmationRequired": {
+          "type": "boolean"
+        },
+        "databaseDirectory": {
+          "type": "string"
+        },
+        "debugTargets": {
+          "type": "integer"
+        },
+        "error": {
+          "type": "string"
+        },
+        "heldSince": {
+          "type": "string"
+        },
+        "heldStopped": {
+          "type": "boolean"
+        },
+        "infobaseUrl": {
+          "type": "string"
+        },
+        "liveLaunch": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        },
+        "mutationCommitted": {
+          "type": "boolean"
+        },
+        "mutationOutcomeUnknown": {
+          "type": "boolean"
+        },
+        "pid": {
+          "type": "integer"
+        },
+        "portsReassigned": {
+          "type": "boolean"
+        },
+        "processAlive": {
+          "type": "boolean"
+        },
+        "project": {
+          "type": "string"
+        },
+        "serverName": {
+          "type": "string"
+        },
+        "sessions": {
+          "type": "object"
+        },
+        "state": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -6907,18 +7070,6 @@
     },
     "description": "Create or edit BSL source in a metadata module. When reviewId is returned, poll get_write_review_status; only human approval in EDT applies the change. Parameters and examples: get_tool_guide('write_module_source').",
     "inputSchema": {
-      "oneOf": [
-        {
-          "required": [
-            "source"
-          ]
-        },
-        {
-          "required": [
-            "edits"
-          ]
-        }
-      ],
       "properties": {
         "commandName": {
           "description": "Command name; required when moduleType=CommandModule (e.g. 'FillByTemplate').",

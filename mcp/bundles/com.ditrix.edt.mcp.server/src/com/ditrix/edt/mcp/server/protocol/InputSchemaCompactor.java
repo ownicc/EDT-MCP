@@ -136,8 +136,9 @@ public final class InputSchemaCompactor
         // priority sub-filters the TASK family only - a bookmark has no priority, and the
         // combination is rejected. The enum lists high|normal|low with nothing saying that.
         keep.put("get_markers", asSet("markerKind", "priority")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-        // Two filters that are mutually exclusive and differ in matching semantics.
-        keep.put("get_project_errors", asSet("objects", "objectFqns")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        // Two filters that are mutually exclusive and differ in matching semantics; modulePaths carries
+        // its value shape (a src-relative module path), which the plain string array cannot state.
+        keep.put("get_project_errors", asSet("objects", "objectFqns", "modulePaths")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         // Name-only compatibility filter vs Name-or-localized-Synonym discovery filter.
         keep.put("get_metadata_objects", asSet("nameFilter", "textFilter")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         // 'callers' vs 'callees' - the enum values alone do not say which way they point.
@@ -147,6 +148,9 @@ public final class InputSchemaCompactor
         // module path and no methodName, which the tool rejects before looking anything up.
         keep.put("get_method_call_hierarchy", //$NON-NLS-1$
             asSet("direction", "methodName")); //$NON-NLS-1$ //$NON-NLS-2$
+        // Neither methodName nor methodNames is 'required', yet one of them must be passed -
+        // a conditional the schema states nowhere - and the 50-name cap is refused, not clamped.
+        keep.put("read_method_source", asSet("methodNames")); //$NON-NLS-1$ //$NON-NLS-2$
         // A scope limit that makes the tool inapplicable: FILE infobases only.
         // user carries a CROSS-FIELD rule as well as the credential fact: for a standalone
         // server the credentials are accepted only with mode='register' and rejected for a
@@ -167,7 +171,8 @@ public final class InputSchemaCompactor
         // The enum cannot express either fact: md is the default, and xml is legal only for
         // action=get + type=schema + a bare root. Without this one clause a schema-valid
         // format=xml call can select a fragment, dynamic-list type, or mutation and be refused.
-        keep.put("dcs", asSet("format")); //$NON-NLS-1$ //$NON-NLS-2$
+        // body models insertPosition only; retain its action requirements and 1-based insertion contract.
+        keep.put("dcs", asSet("format", "body")); //$NON-NLS-1$ //$NON-NLS-2$
         // Cross-field requirements are absent from the shape: replace needs both arrays,
         // even when empty, and a Condition source requires an explicit branch.
         keep.put("business_process_route_map", asSet("action", "connections")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -229,6 +234,11 @@ public final class InputSchemaCompactor
         // them prevents a compacted terminate call from losing its target and confirmation rules.
         keep.put("infobase_sessions", //$NON-NLS-1$
             asSet(McpKeys.APPLICATION_ID, McpKeys.ACTION, "sessionId", "all", "confirm")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        // The default action, the default application, the preview-then-confirm rule and the
+        // start-only port answer live only in this prose.
+        keep.put("standalone_server", //$NON-NLS-1$
+            asSet(McpKeys.APPLICATION_ID, McpKeys.ACTION, "confirm", //$NON-NLS-1$
+                "standaloneServerPortConflict")); //$NON-NLS-1$
         // includeBodies=true returns the recorded request/response JSON VERBATIM, and that
         // path is deliberately not redacted (the redactor only sees the outer tool). The
         // warning that those bodies can carry infobase and personal data is the only thing

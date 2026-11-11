@@ -140,7 +140,7 @@ public class WriteModuleSourceToolTest
         var parsed = JsonParser.parseString(schema).getAsJsonObject();
         assertEquals("projectName", parsed.getAsJsonArray("required").get(0).getAsString());
         assertFalse(parsed.getAsJsonArray("required").toString().contains("source"));
-        assertEquals(2, parsed.getAsJsonArray("oneOf").size()); //$NON-NLS-1$
+        assertTrue(parsed.getAsJsonObject("properties").has("edits")); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     @Test

@@ -20,7 +20,7 @@ public class ProjectChecksVersion17Test
     @Test
     public void version17IsRegisteredWithoutTakingTheVersion16Step()
     {
-        assertEquals(24, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
+        assertEquals(25, PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION);
         for (var additions : List.of(ToolSettingsService.ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION,
             ToolSettingsService.CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION))
         {
@@ -50,7 +50,7 @@ public class ProjectChecksVersion17Test
             PreferenceStore store = stored(id, 14);
             ToolSettingsService.ensureMigratedForTest(store);
             Set<String> expected = id.equals("analysis-only")
-                ? Set.of("owner_disabled", "get_form_screenshot", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review")
+                ? Set.of("owner_disabled", "get_form_screenshot", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "open_editor", "edt_dialog", "open_in_editor", "cancel_write_review", "standalone_server")
                 : Set.of("owner_disabled", "get_form_screenshot");
             assertEquals(expected, disabled(store));
             assertEquals(PreferenceConstants.TOOL_PREFS_MIGRATION_VERSION,
@@ -65,8 +65,8 @@ public class ProjectChecksVersion17Test
             PreferenceStore store = stored(id, version);
             ToolSettingsService.ensureMigratedForTest(store);
             Set<String> expected = new HashSet<>(version < 16
-                ? Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review")
-                : Set.of("owner_disabled", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review"));
+                ? Set.of("owner_disabled", "business_process_route_map", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review", "standalone_server")
+                : Set.of("owner_disabled", "project_checks", "infobase_extensions", "clone_metadata_object", "sort_metadata", "edt_dialog", "open_in_editor", "cancel_write_review", "standalone_server"));
             if (id.equals("analysis-only"))
             {
                 expected.add("open_editor");

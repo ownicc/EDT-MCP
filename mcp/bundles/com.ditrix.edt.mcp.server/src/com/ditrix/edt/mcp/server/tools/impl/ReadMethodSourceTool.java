@@ -6,10 +6,11 @@
 
 package com.ditrix.edt.mcp.server.tools.impl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -27,13 +28,21 @@ import com.ditrix.edt.mcp.server.tools.IMcpTool;
 import com.ditrix.edt.mcp.server.utils.ContentHash;
 import com.ditrix.edt.mcp.server.utils.FrontMatter;
 import com.ditrix.edt.mcp.server.utils.BslModuleUtils;
+import com.ditrix.edt.mcp.server.utils.BslSyntaxChecker;
 import com.ditrix.edt.mcp.server.utils.InterceptionUtils;
 import com.ditrix.edt.mcp.server.utils.ProjectContext;
 import com.ditrix.edt.mcp.server.utils.Refusals;
 
 /**
- * Tool to read a specific procedure/function from a BSL module.
+ * Tool to read procedures/functions from a BSL module by name.
  * Instead of reading 60,000 lines, reads only the needed 50.
+ * <p>
+ * {@code methodName} alone keeps the single-method answer (front matter describing that one
+ * method); {@code methodNames} reads several methods of the module in one call: the module is
+ * loaded and read ONCE, every name is located against that one copy, and one front
+ * matter describes the module, followed by one section per found method in request order.
+ * The EMF path and the text-scan fallback both reduce their findings to {@link LocatedMethod}
+ * and share {@link #render}.
  */
 public class ReadMethodSourceTool implements IMcpTool
 {
@@ -41,15 +50,49 @@ public class ReadMethodSourceTool implements IMcpTool
 
     /** Input param: name of the procedure/function to read. */
     private static final String KEY_METHOD_NAME = "methodName"; //$NON-NLS-1$
+    /** Input param: several procedure/function names read in one call. */
+    private static final String KEY_METHOD_NAMES = "methodNames"; //$NON-NLS-1$
+    /** Upper bound of {@code methodNames}; a longer list is refused, never truncated. */
+    static final int MAX_METHOD_NAMES = 50;
     private static final String KEY_MODULE = "module"; //$NON-NLS-1$
     private static final String KEY_METHOD = "method"; //$NON-NLS-1$
     private static final String KEY_EXPORT = "export"; //$NON-NLS-1$
     private static final String KEY_START_LINE = "startLine"; //$NON-NLS-1$
     private static final String KEY_END_LINE = "endLine"; //$NON-NLS-1$
+    private static final String KEY_CONTENT_HASH = "contentHash"; //$NON-NLS-1$
+    private static final String KEY_TOTAL_LINES = "totalLines"; //$NON-NLS-1$
+    private static final String KEY_REGION = "region"; //$NON-NLS-1$
+    private static final String KEY_METHODS_FOUND = "methodsFound"; //$NON-NLS-1$
+    private static final String KEY_METHODS_NOT_FOUND = "methodsNotFound"; //$NON-NLS-1$
     private static final String TYPE_PROCEDURE = "Procedure"; //$NON-NLS-1$
     private static final String TYPE_FUNCTION = "Function"; //$NON-NLS-1$
     private static final String BSL_FENCE_OPEN = "```bsl\n"; //$NON-NLS-1$
     private static final String FENCE_CLOSE = "```\n"; //$NON-NLS-1$
+    /** Separator of the one-line method summary under each section heading. */
+    private static final String SUMMARY_SEPARATOR = " · "; //$NON-NLS-1$
+    /** Appended to "methodName is required": the refusal names both ways to pass a name. */
+    private static final String METHOD_NAME_REQUIRED_DETAIL =
+        " (or pass methodNames, an array of up to " + MAX_METHOD_NAMES + " names)." //$NON-NLS-1$ //$NON-NLS-2$
+            + " Use get_module_structure to list the module's procedures and functions."; //$NON-NLS-1$
+
+    /** Where the tool reads the module from; a seam so the read count is testable. */
+    private final ModuleAccess access;
+
+    /** Creates the tool reading through the EDT platform. */
+    public ReadMethodSourceTool()
+    {
+        this(PLATFORM_ACCESS);
+    }
+
+    /**
+     * Creates the tool reading through the given access.
+     *
+     * @param access the module access
+     */
+    ReadMethodSourceTool(ModuleAccess access)
+    {
+        this.access = access;
+    }
 
     @Override
     public String getName()
@@ -60,7 +103,7 @@ public class ReadMethodSourceTool implements IMcpTool
     @Override
     public String getDescription()
     {
-        return "Inspect the source of one BSL procedure or function. Parameters and examples: " //$NON-NLS-1$
+        return "Inspect the source of one or more BSL procedures or functions. Parameters and examples: " //$NON-NLS-1$
             + "get_tool_guide('read_method_source')."; //$NON-NLS-1$
     }
 
@@ -73,7 +116,10 @@ public class ReadMethodSourceTool implements IMcpTool
             .stringProperty(McpKeys.MODULE_PATH,
                 "Path from src/, e.g. 'CommonModules/MyModule/Module.bsl'", true) //$NON-NLS-1$
             .stringProperty(KEY_METHOD_NAME,
-                "Procedure/function name (case-insensitive)", true) //$NON-NLS-1$
+                "Procedure/function name (case-insensitive)") //$NON-NLS-1$
+            .stringArrayProperty(KEY_METHOD_NAMES,
+                "Several procedure/function names read in one call (up to " + MAX_METHOD_NAMES //$NON-NLS-1$
+                    + "); use instead of methodName. One of the two is required.") //$NON-NLS-1$
             .build();
     }
 
@@ -86,6 +132,16 @@ public class ReadMethodSourceTool implements IMcpTool
     @Override
     public String getResultFileName(Map<String, String> params)
     {
+        if (!listedNames(params).isEmpty())
+        {
+            String modulePath = JsonUtils.extractStringArgument(params, McpKeys.MODULE_PATH);
+            if (modulePath != null && !modulePath.isEmpty())
+            {
+                return "methods-" //$NON-NLS-1$
+                    + modulePath.replace("/", "-").replace("\\", "-").toLowerCase(Locale.ROOT) + ".md"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+            }
+            return "methods-source.md"; //$NON-NLS-1$
+        }
         String methodName = JsonUtils.extractStringArgument(params, KEY_METHOD_NAME);
         if (methodName != null && !methodName.isEmpty())
         {
@@ -97,15 +153,32 @@ public class ReadMethodSourceTool implements IMcpTool
     @Override
     public String execute(Map<String, String> params)
     {
-        String err = JsonUtils.requireArguments(params, McpKeys.PROJECT_NAME, McpKeys.MODULE_PATH, KEY_METHOD_NAME);
+        String err = JsonUtils.requireArguments(params, McpKeys.PROJECT_NAME, McpKeys.MODULE_PATH);
         if (err != null)
         {
             return err;
+        }
+        List<String> listed = listedNames(params);
+        if (listed.size() > MAX_METHOD_NAMES)
+        {
+            return ToolResult.error("methodNames accepts at most " + MAX_METHOD_NAMES + " names, got " //$NON-NLS-1$ //$NON-NLS-2$
+                + listed.size() + ". Split them over several calls, or read the whole module with " //$NON-NLS-1$
+                + "read_module_source.").toJson(); //$NON-NLS-1$
+        }
+        boolean multi = !listed.isEmpty();
+        if (!multi)
+        {
+            err = JsonUtils.requireArgument(params, KEY_METHOD_NAME, METHOD_NAME_REQUIRED_DETAIL);
+            if (err != null)
+            {
+                return err;
+            }
         }
 
         String projectName = JsonUtils.extractStringArgument(params, McpKeys.PROJECT_NAME);
         String modulePath = JsonUtils.extractStringArgument(params, McpKeys.MODULE_PATH);
         String methodName = JsonUtils.extractStringArgument(params, KEY_METHOD_NAME);
+        List<String> names = multi ? requestedNames(methodName, listed) : List.of(methodName);
 
         // Try EMF approach first (on UI thread)
         AtomicReference<String> resultRef = new AtomicReference<>();
@@ -113,7 +186,8 @@ public class ReadMethodSourceTool implements IMcpTool
         ReadToolExecution.dispatch(() -> {
             try
             {
-                String result = ReadToolExecution.readOnHost(projectName, NAME, () -> readMethodViaEmf(projectName, modulePath, methodName));
+                String result = ReadToolExecution.readOnHost(projectName, NAME,
+                    () -> readMethodViaEmf(projectName, modulePath, names, multi));
                 resultRef.set(result);
             }
             catch (Exception e)
@@ -136,70 +210,151 @@ public class ReadMethodSourceTool implements IMcpTool
         }
 
         // Fallback: text-based approach
-        return readMethodViaText(projectName, modulePath, methodName);
+        return readMethodViaText(projectName, modulePath, names, multi);
+    }
+
+    /**
+     * The non-blank entries of {@code methodNames}, trimmed, in request order (duplicates kept,
+     * so the size check counts what the caller sent). Accepts a JSON array or a comma list.
+     *
+     * @param params the call arguments (may be {@code null})
+     * @return the listed names, never {@code null}
+     */
+    static List<String> listedNames(Map<String, String> params)
+    {
+        List<String> names = new ArrayList<>();
+        List<String> raw = JsonUtils.extractArrayArgument(params, KEY_METHOD_NAMES);
+        if (raw != null)
+        {
+            for (String name : raw)
+            {
+                if (name != null && !name.isBlank())
+                {
+                    names.add(name.trim());
+                }
+            }
+        }
+        return names;
+    }
+
+    /**
+     * The names to read: {@code methodName} (when given) followed by {@code methodNames}, in
+     * request order, with duplicates dropped by the lookup's own rule: a name is a duplicate
+     * when it {@link String#equalsIgnoreCase equalsIgnoreCase} a name already kept - the very
+     * comparison {@link BslModuleUtils#findMethod} and the text scan use - so it would only
+     * render the same method twice. (Lower-casing is NOT that rule: a capital I with a dot
+     * above and a plain i are equal ignoring case yet lower-case differently.) At most
+     * {@link #MAX_METHOD_NAMES} names, so the quadratic check is cheap.
+     *
+     * @param methodName the single name (may be {@code null} or blank)
+     * @param listed the listed names
+     * @return the union, first spelling of each name kept
+     */
+    static List<String> requestedNames(String methodName, List<String> listed)
+    {
+        List<String> names = new ArrayList<>();
+        if (methodName != null && !methodName.isBlank())
+        {
+            names.add(methodName);
+        }
+        for (String name : listed)
+        {
+            if (!containsIgnoringCase(names, name))
+            {
+                names.add(name);
+            }
+        }
+        return names;
+    }
+
+    /** Whether {@code kept} holds a name {@code name} equals ignoring case (the lookup's rule). */
+    private static boolean containsIgnoringCase(List<String> kept, String name)
+    {
+        for (String each : kept)
+        {
+            if (each.equalsIgnoreCase(name))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * Primary approach: Read method using BSL EMF model.
      */
-    private String readMethodViaEmf(String projectName, String modulePath, String methodName)
+    private String readMethodViaEmf(String projectName, String modulePath, List<String> names, boolean multi)
     {
         ProjectContext ctx = ProjectContext.of(projectName);
         if (!ctx.exists())
         {
             return ToolResult.error(ProjectContext.notFoundMessage(projectName)).toJson();
         }
-        IProject project = ctx.project();
+        return readViaEmf(ctx.project(), projectName, modulePath, names, multi);
+    }
 
-        Module module = BslModuleUtils.loadModule(project, modulePath);
+    /**
+     * EMF path over a resolved project: one module load and one saved-file snapshot.
+     *
+     * @return the answer, or {@code null} to fall back to the text scan
+     */
+    String readViaEmf(IProject project, String projectName, String modulePath, List<String> names,
+        boolean multi)
+    {
+        Module module = access.load(project, modulePath);
         if (module == null)
         {
             // EMF not available - return null to trigger fallback
             return null;
         }
 
-        Method method = BslModuleUtils.findMethod(module, methodName);
-        if (method == null)
-        {
-            // The saved file may be newer than the native model.
-            return null;
-        }
-
-        IFile file = BslModuleUtils.resolveModuleFile(project, modulePath);
+        IFile file = access.resolve(project, modulePath);
         try
         {
-            return readMethodFromFile(file, projectName, modulePath, methodName, method, module);
+            if (!multi)
+            {
+                return readMethodFromFile(file, projectName, modulePath, names.get(0), null, module);
+            }
+            return readSaved(access.readText(file), projectName, modulePath, names, multi, module, null);
         }
         catch (Exception e)
         {
             Activator.logWarning("readMethodViaEmf: failed to read file, using getText(): " + e.getMessage()); //$NON-NLS-1$
-            // Model-only source cannot authorize a saved-file write: no revision tokens.
-            return readMethodFromEmfText(method, projectName, modulePath,
-                BslModuleUtils.getStartLine(method), BslModuleUtils.getEndLine(method));
+            Method method = multi ? null : BslModuleUtils.findMethod(module, names.get(0));
+            return method == null ? null : readMethodFromEmfText(method, projectName, modulePath,
+                access.startLine(method), access.endLine(method));
         }
     }
 
     /**
      * Fallback approach: Read method using text search.
      */
-    private String readMethodViaText(String projectName, String modulePath, String methodName)
+    private String readMethodViaText(String projectName, String modulePath, List<String> names, boolean multi)
     {
         ProjectContext ctx = ProjectContext.of(projectName);
         if (!ctx.exists())
         {
             return ToolResult.error(ProjectContext.notFoundMessage(projectName)).toJson();
         }
-        IProject project = ctx.project();
+        return readViaText(ctx.project(), projectName, modulePath, names, multi);
+    }
 
+    /**
+     * Text-scan path over a resolved project: one saved-file snapshot for all requested names.
+     */
+    String readViaText(IProject project, String projectName, String modulePath, List<String> names,
+        boolean multi)
+    {
         try
         {
-            IFile file = BslModuleUtils.resolveModuleFile(project, modulePath);
+            IFile file = access.resolve(project, modulePath);
             if (!file.exists())
             {
                 return ToolResult.error("File not found: src/" + modulePath).toJson(); //$NON-NLS-1$
             }
 
-            return readMethodFromFile(file, projectName, modulePath, methodName, null, null);
+            return multi ? readSaved(access.readText(file), projectName, modulePath, names, true, null, null)
+                : readMethodFromFile(file, projectName, modulePath, names.get(0), null, null);
         }
         catch (Exception e)
         {
@@ -207,91 +362,131 @@ public class ReadMethodSourceTool implements IMcpTool
         }
     }
 
-    // ========== Helper methods ==========
+    // ========== Rendering (shared by the EMF and text paths) ==========
 
     /**
-     * Reads and formats one saved snapshot for both native-model and text-only callers.
-     * Model metadata is best-effort; token-bearing source boundaries always come from saved text.
+     * One method found in the module, reduced to what the answer prints. Lines are 1-based
+     * and inclusive; {@code from} already includes the doc-comment.
      */
-    String readMethodFromFile(IFile file, String projectName, String modulePath, String methodName,
-        Method modelMethod, Module modelModule) throws Exception
+    static final class LocatedMethod
     {
-        String moduleText = BslModuleUtils.readFileText(file);
-        List<String> allLines = moduleText.lines().toList();
-        BslModuleUtils.ReplacementMethodSnapshot snapshot =
-            BslModuleUtils.replacementMethodSnapshot(allLines, methodName);
+        final String name;
+        final boolean function;
+        final boolean export;
+        final int from;
+        final int to;
+        final String region;
+        final String footer;
+        final String methodHash;
 
-        // Keep the useful legacy read of an incomplete/ambiguous target, but never mint a
-        // method token for a fragment that method-targeted writes would refuse.
-        BslModuleUtils.TextMethod tm = BslModuleUtils.findMethodViaText(allLines, methodName);
-        if (!tm.found)
+        LocatedMethod(String name, boolean function, boolean export, int from, int to, String region,
+            String footer, String methodHash)
         {
-            if (modelMethod != null)
-            {
-                return readMethodFromEmfText(modelMethod, projectName, modulePath,
-                    BslModuleUtils.getStartLine(modelMethod), BslModuleUtils.getEndLine(modelMethod));
-            }
-            return BslModuleUtils.buildTextMethodNotFoundResponse(methodName, modulePath, tm.allMethodNames);
+            this.name = name;
+            this.function = function;
+            this.export = export;
+            this.from = from;
+            this.to = to;
+            this.region = region;
+            this.footer = footer;
+            this.methodHash = methodHash;
         }
-        int from = snapshot == null ? tm.startLine : snapshot.span().startLine;
-        int to = snapshot == null ? tm.endLine : snapshot.span().endLine;
-        boolean isFunction = snapshot == null ? tm.isFunction : snapshot.span().isFunction;
-        boolean isExport = modelMethod != null && modelMethod.isExport();
-        if (modelMethod == null)
-        {
-            for (int i = from; i <= to; i++)
-            {
-                Matcher startMatcher = BslModuleUtils.METHOD_START_PATTERN.matcher(allLines.get(i));
-                if (startMatcher.find())
-                {
-                    String afterMethod = allLines.get(i).substring(startMatcher.end());
-                    int closeParen = afterMethod.indexOf(')');
-                    if (closeParen >= 0)
-                    {
-                        String afterParen = afterMethod.substring(closeParen + 1);
-                        isExport = afterParen.matches("(?iu)\\s*(?:\u042d\u043a\u0441\u043f\u043e\u0440\u0442|Export)\\s*"); //$NON-NLS-1$
-                    }
-                    break;
-                }
-            }
-        }
+    }
 
+    /**
+     * Renders the answer: the single-method shape for {@code methodName}, the sectioned shape
+     * for {@code methodNames}.
+     */
+    private static String render(String projectName, String modulePath, String contentHash,
+        List<String> allLines, List<LocatedMethod> located, List<String> missing, boolean multi)
+    {
         FrontMatter fm = FrontMatter.create()
             .put(McpKeys.PROJECT_NAME, projectName)
-            .put(KEY_MODULE, modulePath)
-            .put("contentHash", ContentHash.of(moduleText)); //$NON-NLS-1$
-        if (snapshot != null)
+            .put(KEY_MODULE, modulePath);
+        if (contentHash != null)
         {
-            fm.put("methodHash", snapshot.methodHash()); //$NON-NLS-1$
+            fm.put(KEY_CONTENT_HASH, contentHash);
         }
-        fm.put(KEY_METHOD, tm.matchedName)
-            .put("type", isFunction ? TYPE_FUNCTION : TYPE_PROCEDURE) //$NON-NLS-1$
-            .put(KEY_EXPORT, isExport)
-            .put(KEY_START_LINE, from + 1)
-            .put(KEY_END_LINE, to + 1)
-            .put("totalLines", allLines.size()); //$NON-NLS-1$
-        String region = BslModuleUtils.findRegionForLine(allLines, from + 1);
-        if (region != null)
+        StringBuilder sb = new StringBuilder();
+        if (!multi)
         {
-            fm.put("region", region); //$NON-NLS-1$
+            LocatedMethod method = located.get(0);
+            if (method.methodHash != null)
+            {
+                fm.put("methodHash", method.methodHash); //$NON-NLS-1$
+            }
+            fm.put(KEY_METHOD, method.name)
+                .put("type", typeOf(method)) //$NON-NLS-1$
+                .put(KEY_EXPORT, method.export)
+                .put(KEY_START_LINE, method.from)
+                .put(KEY_END_LINE, method.to)
+                .put(KEY_TOTAL_LINES, allLines.size());
+            if (method.region != null)
+            {
+                fm.put(KEY_REGION, method.region);
+            }
+            appendBody(sb, allLines, method);
+            return fm.wrapContent(sb.toString());
         }
 
-        String source = snapshot == null ? String.join("\n", allLines.subList(from, to + 1)) //$NON-NLS-1$
-            : snapshot.text();
-        StringBuilder sb = new StringBuilder(BSL_FENCE_OPEN).append(source).append('\n').append(FENCE_CLOSE);
-        if (modelModule != null && modelMethod != null)
+        fm.put(KEY_TOTAL_LINES, allLines.size())
+            .put(KEY_METHODS_FOUND, located.size());
+        if (!missing.isEmpty())
         {
-            String interception = InterceptionUtils.methodFooter(modelModule, modelMethod);
-            if (interception != null)
+            fm.putList(KEY_METHODS_NOT_FOUND, missing);
+        }
+        for (int i = 0; i < located.size(); i++)
+        {
+            LocatedMethod method = located.get(i);
+            if (i > 0)
             {
-                sb.append(interception);
+                sb.append('\n');
             }
+            sb.append("### ").append(method.name).append('\n'); //$NON-NLS-1$
+            sb.append(typeOf(method));
+            if (method.export)
+            {
+                sb.append(SUMMARY_SEPARATOR).append(KEY_EXPORT);
+            }
+            sb.append(SUMMARY_SEPARATOR).append("lines ").append(method.from).append('-').append(method.to); //$NON-NLS-1$
+            if (method.region != null)
+            {
+                sb.append(SUMMARY_SEPARATOR).append("region ").append(method.region); //$NON-NLS-1$
+            }
+            sb.append('\n');
+            if (method.methodHash != null)
+            {
+                sb.append("methodHash: ").append(method.methodHash).append('\n'); //$NON-NLS-1$
+            }
+            appendBody(sb, allLines, method);
         }
         return fm.wrapContent(sb.toString());
     }
 
+    /** The {@code ```bsl} fence with the method's lines, then the interception footer if any. */
+    private static void appendBody(StringBuilder sb, List<String> allLines, LocatedMethod method)
+    {
+        sb.append(BSL_FENCE_OPEN);
+        for (int i = method.from - 1; i < method.to; i++)
+        {
+            sb.append(allLines.get(i)).append('\n');
+        }
+        sb.append(FENCE_CLOSE);
+        if (method.footer != null)
+        {
+            sb.append(method.footer);
+        }
+    }
+
+    private static String typeOf(LocatedMethod method)
+    {
+        return method.function ? TYPE_FUNCTION : TYPE_PROCEDURE;
+    }
+
+    // ========== Helper methods ==========
+
     /**
-     * Fallback: format native method source when saved text cannot be read or located.
+     * Fallback: format method source from EMF getText() when file reading fails.
      * Note: getText() may include doc-comments, so line numbers may be inaccurate.
      */
     private String readMethodFromEmfText(Method method, String projectName, String modulePath,
@@ -323,4 +518,161 @@ public class ReadMethodSourceTool implements IMcpTool
 
         return fm.wrapContent(sb.toString());
     }
+
+    /** Single-method saved-file reader shared by the native and text-only paths. */
+    String readMethodFromFile(IFile file, String projectName, String modulePath, String methodName,
+        Method modelMethod, Module modelModule) throws Exception
+    {
+        return readSaved(access.readText(file), projectName, modulePath,
+            List.of(methodName), false, modelModule, modelMethod);
+    }
+
+    /** Source, module token and per-method tokens all describe this one saved-file read. */
+    private String readSaved(String moduleText, String projectName, String modulePath,
+        List<String> names, boolean multi, Module modelModule, Method modelMethod)
+    {
+        List<String> allLines = moduleText.lines().toList();
+        List<String> masked = BslSyntaxChecker.maskLiteralsAndComments(allLines);
+        List<LocatedMethod> located = new ArrayList<>();
+        List<String> missing = new ArrayList<>();
+        List<BslModuleUtils.MethodSpan> spans = BslModuleUtils.findMethodSpansViaText(allLines);
+        List<String> available = new ArrayList<>(modelModule == null
+            ? List.of() : BslModuleUtils.methodNames(modelModule));
+        for (BslModuleUtils.MethodSpan span : spans)
+        {
+            if (!containsIgnoringCase(available, span.name))
+            {
+                available.add(span.name);
+            }
+        }
+        boolean addressable = BslModuleUtils.unaddressable(allLines) == null
+            && BslModuleUtils.secondDeclarationOnLine(allLines) < 0;
+        for (String name : names)
+        {
+            Method method = modelModule == null ? modelMethod : BslModuleUtils.findMethod(modelModule, name);
+            BslModuleUtils.MethodSpan target = null;
+            int matches = 0;
+            for (BslModuleUtils.MethodSpan span : spans)
+            {
+                if (span.name.equalsIgnoreCase(name))
+                {
+                    if (target == null)
+                    {
+                        target = span;
+                    }
+                    matches++;
+                }
+            }
+            if (target == null)
+            {
+                if (!multi && method != null)
+                {
+                    // Model-only source cannot authorize a saved-file write: no revision tokens.
+                    return readMethodFromEmfText(method, projectName, modulePath,
+                        access.startLine(method), access.endLine(method));
+                }
+                if (multi && method != null)
+                {
+                    // Retain the native batch reader for declarations outside the text scanner.
+                    // These saved lines still share the module snapshot, but cannot mint a method token.
+                    int startLine = access.startLine(method);
+                    int from = Math.max(1, BslModuleUtils.findDocCommentStartLine(allLines, startLine));
+                    int to = Math.min(allLines.size(), access.endLine(method));
+                    if (from <= to)
+                    {
+                        located.add(new LocatedMethod(method.getName(), method instanceof Function,
+                            method.isExport(), from, to,
+                            BslModuleUtils.findRegionForLine(allLines, startLine),
+                            access.footer(modelModule, method), null));
+                        continue;
+                    }
+                }
+                missing.add(name);
+                continue;
+            }
+            String methodHash = addressable && matches == 1 && target.complete
+                ? new BslModuleUtils.ReplacementMethodSnapshot(target,
+                    String.join("\n", allLines.subList(target.startLine, target.endLine + 1))).methodHash() //$NON-NLS-1$
+                : null;
+            located.add(new LocatedMethod(multi || method != null ? target.name : name, target.isFunction,
+                BslModuleUtils.isExportDeclaration(masked, target.declarationLine, target.endLine),
+                target.startLine + 1, target.endLine + 1,
+                BslModuleUtils.findRegionForLine(allLines, target.startLine + 1),
+                modelModule != null && method != null ? access.footer(modelModule, method) : null,
+                methodHash));
+        }
+        if (located.isEmpty())
+        {
+            return BslModuleUtils.buildMethodsNotFoundResponse(names, modulePath, available);
+        }
+        return render(projectName, modulePath, ContentHash.of(moduleText), allLines, located, missing, multi);
+    }
+
+    // ========== Module access (seam) ==========
+
+    /**
+     * Where the tool reads the module from. The platform implementation delegates to the
+     * shared {@link BslModuleUtils} / {@link InterceptionUtils} helpers; tests count the calls
+     * to prove one load and one saved-text read per call however many names are requested.
+     */
+    interface ModuleAccess
+    {
+        /** @return the parsed module, or {@code null} when the BSL model is unavailable */
+        Module load(IProject project, String modulePath);
+
+        /** @return the module file (may not exist) */
+        IFile resolve(IProject project, String modulePath);
+
+        /** @return the full saved text, preserving the final line separator */
+        String readText(IFile file) throws Exception;
+
+        /** @return the 1-based line of the method keyword */
+        int startLine(Method method);
+
+        /** @return the 1-based last line of the method */
+        int endLine(Method method);
+
+        /** @return the interception footer, or {@code null} */
+        String footer(Module module, Method method);
+    }
+
+    /** The production access: the EDT BSL model and the workspace file. */
+    private static final ModuleAccess PLATFORM_ACCESS = new ModuleAccess()
+    {
+        @Override
+        public Module load(IProject project, String modulePath)
+        {
+            return BslModuleUtils.loadModule(project, modulePath);
+        }
+
+        @Override
+        public IFile resolve(IProject project, String modulePath)
+        {
+            return BslModuleUtils.resolveModuleFile(project, modulePath);
+        }
+
+        @Override
+        public String readText(IFile file) throws Exception
+        {
+            return BslModuleUtils.readFileText(file);
+        }
+
+        @Override
+        public int startLine(Method method)
+        {
+            return BslModuleUtils.getStartLine(method);
+        }
+
+        @Override
+        public int endLine(Method method)
+        {
+            return BslModuleUtils.getEndLine(method);
+        }
+
+        @Override
+        public String footer(Module module, Method method)
+        {
+            return InterceptionUtils.methodFooter(module, method);
+        }
+    };
 }

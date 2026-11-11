@@ -171,8 +171,6 @@ public class WriteModuleSourceTool implements IMcpTool
             .stringProperty("expectedMethodHash", "For replaceMethod only: methodHash from read_method_source, including documentation/directives. Allows unrelated module changes before preparation. If expectedHash is also supplied, both must match.")
             .build();
         JsonObject document = JsonParser.parseString(schema).getAsJsonObject();
-        document.add("oneOf", JsonParser.parseString(GsonProvider.toJson(List.of(
-            Map.of("required", List.of("source")), Map.of("required", List.of("edits"))))));
         JsonObject edits = document.getAsJsonObject("properties").getAsJsonObject("edits");
         JsonObject item = JsonParser.parseString(JsonSchemaBuilder.object()
             .stringProperty("methodName", "Existing method name; unique in the original module and in this batch.", true)

@@ -113,6 +113,8 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
 
     private static final Set<String> READ_ONLY_V24_ADDITIONS = Set.of("cancel_write_review"); //$NON-NLS-1$
 
+    private static final Set<String> READ_ONLY_V25_ADDITIONS = Set.of("standalone_server"); //$NON-NLS-1$
+
     /** Actual disabled-name additions registered for each Analysis Only migration. */
     static final Map<Integer, Set<String>> ANALYSIS_ONLY_MIGRATION_ADDITIONS_BY_VERSION = Map.ofEntries(
         Map.entry(1, STORED_PROFILE_V1_ADDITIONS),
@@ -136,7 +138,8 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         Map.entry(21, READ_ONLY_V21_ADDITIONS),
         Map.entry(22, READ_ONLY_V22_ADDITIONS),
         Map.entry(23, READ_ONLY_V23_ADDITIONS),
-        Map.entry(24, READ_ONLY_V24_ADDITIONS));
+        Map.entry(24, READ_ONLY_V24_ADDITIONS),
+        Map.entry(25, READ_ONLY_V25_ADDITIONS));
 
     /** Actual disabled-name additions registered for each Code Review migration. */
     static final Map<Integer, Set<String>> CODE_REVIEW_MIGRATION_ADDITIONS_BY_VERSION = Map.ofEntries(
@@ -160,7 +163,8 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
         Map.entry(21, READ_ONLY_V21_ADDITIONS),
         Map.entry(22, READ_ONLY_V22_ADDITIONS),
         Map.entry(23, READ_ONLY_V23_ADDITIONS),
-        Map.entry(24, READ_ONLY_V24_ADDITIONS));
+        Map.entry(24, READ_ONLY_V24_ADDITIONS),
+        Map.entry(25, READ_ONLY_V25_ADDITIONS));
 
     /*
      * Frozen history for v1-v12 and the one-shot v13 stamp only. Newer preset-owed steps use
@@ -453,6 +457,9 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
             // list before v23 adds fork names, so ordinary origin owner opt-ins are not re-disabled.
             boolean forkEpochCollision = (storedVersion == 18 || storedVersion == 19)
                 && (disabled.contains("open_in_editor") || disabled.contains("cancel_write_review")); //$NON-NLS-1$ //$NON-NLS-2$
+            // Origin also used epoch 23, for standalone_server. Its preexisting restriction
+            // identifies that store before the fork-only restrictions are added.
+            boolean originEpochCollision = storedVersion == 23 && disabled.contains("standalone_server"); //$NON-NLS-1$
             boolean changed = false;
             // Each step is gated by its OWN version threshold, NOT merely "storedVersion is below
             // the CURRENT version" - an installation already at version 1 (git migrated in) that has
@@ -593,6 +600,14 @@ public final class ToolSettingsService // NOSONAR intentional singleton (Eclipse
             if (storedVersion < 24)
             {
                 changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V24_ADDITIONS);
+            }
+            if (storedVersion < 25)
+            {
+                if (originEpochCollision && storedPreset(store).isReadOnly())
+                {
+                    changed |= disabled.addAll(READ_ONLY_V23_ADDITIONS);
+                }
+                changed |= storedPreset(store).isReadOnly() && disabled.addAll(READ_ONLY_V25_ADDITIONS);
             }
             if (changed)
             {

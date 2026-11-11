@@ -520,8 +520,9 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
             + "blocks it (force is ignored) and no cross-object cascade runs, so references from elsewhere (a " //$NON-NLS-1$
             + "button's command, an XDTO type) are left broken - re-check with " //$NON-NLS-1$
             + "get_metadata_details (find_references takes TOP-level FQNs only, not these members). " //$NON-NLS-1$
-            + "Use operations for atomic deletes of members of one form; preview the complete batch "
-            + "before confirming. Parameters and examples: get_tool_guide('delete_metadata')."; //$NON-NLS-1$
+            + "Pass exactly one of fqn or operations: operations deletes members of one form atomically; " //$NON-NLS-1$
+            + "preview the complete batch before confirming. Parameters and examples: " //$NON-NLS-1$
+            + "get_tool_guide('delete_metadata')."; //$NON-NLS-1$
     }
 
     @Override
@@ -531,7 +532,7 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
             .stringProperty(McpKeys.PROJECT_NAME,
                 "EDT project name (required).", true) //$NON-NLS-1$
             .stringProperty("fqn", //$NON-NLS-1$
-                "Full-name FQN of the node to delete (provide fqn OR operations), e.g. 'Catalog.Products' or " //$NON-NLS-1$
+                "Full-name FQN of the node to delete (pass exactly one of fqn or operations), e.g. 'Catalog.Products' or " //$NON-NLS-1$
                 + "'Document.SalesOrder.Attribute.Amount' (type / kind tokens may be English or " //$NON-NLS-1$
                 + "Russian; the Name parts are the programmatic Name, not the synonym).") //$NON-NLS-1$
             .objectArrayProperty(MetadataDeleteBatch.OPERATIONS,
@@ -566,16 +567,6 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
             .stringProperty("fqn", "Form member address", true).build()).getAsJsonObject();
         item.addProperty("additionalProperties", false);
         operations.add("items", item);
-        JsonArray alternatives = new JsonArray();
-        for (String key : List.of("fqn", MetadataDeleteBatch.OPERATIONS))
-        {
-            JsonObject alternative = new JsonObject();
-            JsonArray required = new JsonArray();
-            required.add(key);
-            alternative.add("required", required);
-            alternatives.add(alternative);
-        }
-        object.add("oneOf", alternatives);
         return GsonProvider.toJson(object);
     }
 
@@ -586,6 +577,13 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
         {
             MetadataDeleteBatch batch = MetadataDeleteBatch.parse(params);
             return batch.errors.isEmpty() ? null : batch.refusal();
+        }
+        String fqn = JsonUtils.extractStringArgument(params, "fqn"); //$NON-NLS-1$
+        if (fqn == null || fqn.isBlank())
+        {
+            return ToolResult.error("fqn or operations is required: pass exactly one of them (fqn for one node, " //$NON-NLS-1$
+                + "operations for an atomic batch of one form's members). " //$NON-NLS-1$
+                + "Use get_metadata_objects to find an object's FQN.").toJson(); //$NON-NLS-1$
         }
         return params.containsKey("atomic")
             ? ToolResult.error("atomic is only supported with operations. Omit atomic for a single fqn.").toJson() : null;
@@ -859,14 +857,13 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
         // missing local owner - sending the caller to look for something that can never be here
         // (issue #309).
         String normFqn = MetadataTypeUtils.normalizeFqn(fqn);
-        // Validate nested addresses before context resolution can run the tolerant support lookup.
-        if (SubsystemUtils.nestedChain(normFqn) != null)
+        // Validate subsystem chain requests before context resolution can run the tolerant support
+        // lookup - by the one rule modify_metadata applies too, whether or not the address parses as a
+        // chain (Subsystem.A..Subsystem.B, Subsystem.A.Catalog.B; issue #897).
+        String malformed = SubsystemUtils.malformedChainError(normFqn);
+        if (malformed != null)
         {
-            String malformed = SubsystemUtils.malformedSegmentError(normFqn);
-            if (malformed != null)
-            {
-                return ToolResult.error(malformed + " Nothing was deleted.").toJson(); //$NON-NLS-1$
-            }
+            return ToolResult.error(malformed + " Nothing was deleted.").toJson(); //$NON-NLS-1$
         }
         ProjectContext ctx = resolveProjectAndScope(projectName, normFqn);
         if (ctx.hasError())
