@@ -151,8 +151,8 @@ public class FormPageSwitchTest
         assertEquals(List.of("select[7]/full", "select[]/updateOnly"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$
 
         assertNull(pageSwitch.restore());
-        // Nothing was selected before: a plain full render, i.e. the default pages.
-        assertEquals(List.of("select[7]/full", "select[]/updateOnly", "update/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        // Nothing was selected before: an explicit empty selection restores the default pages.
+        assertEquals(List.of("select[7]/full", "select[]/updateOnly", "select[]/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     @Test
@@ -272,7 +272,7 @@ public class FormPageSwitchTest
         assertTrue(error, error.contains("failed")); //$NON-NLS-1$
         assertTrue("a throw inside the render may have switched the page", pageSwitch.isTouched()); //$NON-NLS-1$
         assertNull(pageSwitch.restore());
-        assertEquals(List.of("select[7]/full", "update/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$
+        assertEquals(List.of("select[7]/full", "select[]/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     @Test
@@ -286,7 +286,7 @@ public class FormPageSwitchTest
 
         assertTrue(error, error.contains("selection frame could not be cleared")); //$NON-NLS-1$
         assertNull(pageSwitch.restore());
-        assertEquals(List.of("select[7]/full", "select[]/updateOnly", "update/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        assertEquals(List.of("select[7]/full", "select[]/updateOnly", "select[]/full"), editor.renders); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     @Test
@@ -311,7 +311,7 @@ public class FormPageSwitchTest
         assertTrue(error, error.contains("threw")); //$NON-NLS-1$
         assertTrue(pageSwitch.isTouched());
         assertNull(pageSwitch.restore());
-        assertEquals(List.of("update/full"), editor.renders); //$NON-NLS-1$
+        assertEquals(List.of("select[]/full"), editor.renders); //$NON-NLS-1$
     }
 
     @Test
