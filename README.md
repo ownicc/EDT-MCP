@@ -3,6 +3,7 @@
 > This is the **ownicc fork** of [DitriXNew/EDT-MCP](https://github.com/DitriXNew/EDT-MCP).
 > Install and update from this fork's releases and update site to retain its BSL diff approval.
 > See [fork update and release instructions](docs/FORK_UPDATES.md) (Russian).
+> Release history: [CHANGELOG.md](CHANGELOG.md).
 
 
 [![Build & Unit Tests](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml)
