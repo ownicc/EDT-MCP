@@ -61,3 +61,5 @@ Files: FormElementWriter.java; real-model regression tests.
 - Limitation: no platform 8.5 GUI/client execution. Native BM command group assignment requires a live engine; the corrected path invokes the native owner initializer that implements it.
 
 Final verification: Maven/Tycho `mvn -o verify --batch-mode` BUILD SUCCESS in 10:37; 13848 tests across 752 classes, 0 failures, 0 errors, 25 skipped. `git diff --check` clean. Full suite includes the review regression and native metadata initializer tests.
+
+Integration verification: concurrent master commit `6c0c07ac` (screenshot page restoration) merged without conflicts. Targeted Maven/Tycho verify on the merged source passed 299 tests (FormPageSwitchTest, both new form test classes, FormElementDefaultsTest, CreateMetadataToolTest, CreateMetadataMemberInitializationTest), zero failures/errors/skips. The 13,848-test full run preceded this independent three-file concurrent change; it is not reported as a second full run on the merged commit.
