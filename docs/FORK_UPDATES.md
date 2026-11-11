@@ -67,8 +67,8 @@ ZIP или обновление из его p2-сайта не переноси�
 
 ## Integration checkpoint: 2026-11-11
 
-Integrated upstream `45593059` into the fork based on `70386336`, retaining both
-histories (14 incoming upstream commits).
+Integrated upstream `45593059` into the fork, retaining both histories (14 incoming
+upstream commits) and the concurrent local `cb8a4a7c` form-defaults fix.
 
 - Upstream batch `read_method_source` remains the base implementation. The fork's
   `methodHash` and saved-snapshot safeguards work for single and batch reads; native
@@ -85,7 +85,7 @@ histories (14 incoming upstream commits).
   only by removal of this root `oneOf`.
 - Retain fork update/release URLs and the existing BSL review/diff workflows.
 
-Verification: clean canonical build on JDK 25: 13,650 Java tests, zero failures/errors,
+Verification: clean canonical build on JDK 25: 13,661 Java tests, zero failures/errors,
 25 skips; Python harness 315 tests and workflow scripts 5 tests passed; agent-pack
 validator passed. Live BSL reader checks: 22 passed. Writer checks: 67 passed plus
 2 vendor-protection checks passed after importing the vendor fixture; 2 environment
@@ -98,5 +98,5 @@ fails on the pre-integration fork bundle (70386336), so it is recorded separatel
 as an incidental defect rather than changed during this integration. These results
 do not establish a fully verified release on every runtime/platform combination.
 
-Local evidence: `/tmp/edt-sync-full-build-verified.log`, `/tmp/edt-sync-full-e2e/`,
+Local evidence: `/tmp/edt-sync-concurrent-master-build.log`, `/tmp/edt-sync-full-e2e/`,
 `/tmp/edt-sync-conformance/final.log`, and `/tmp/edt-sync-baseline-ui/screenshot.xml`.

@@ -4663,7 +4663,7 @@ public class ModifyMetadataTool extends AbstractMetadataWriteTool
                     // on the extInfo holder, created (or reused) here now that every property has
                     // validated. Mixing both in one call routes each change to its correct receiver.
                     EObject holder = hc.onExtInfo
-                        ? FormElementWriter.ensureExtInfo(formModel, target) : target;
+                        ? FormElementWriter.ensureExtInfo(formModel, target, version) : target;
                     // BEFORE the write: whether this locale already held text decides if the
                     // OTHER locales go stale (see LocalizedWriteReport.rememberPreState).
                     localizedReport.rememberPreState(holder, List.of(hc.change));
@@ -4674,7 +4674,7 @@ public class ModifyMetadataTool extends AbstractMetadataWriteTool
                         writtenExcludedCommands.addAll(plan.names());
                     }
                     applied.add(hc.change.featureName());
-                    if (syncExtInfoAfter(hc, formModel, target, removedHandlers))
+                    if (syncExtInfoAfter(hc, formModel, target, removedHandlers, version))
                     {
                         applied.add("extInfo"); //$NON-NLS-1$
                     }
@@ -5208,7 +5208,7 @@ public class ModifyMetadataTool extends AbstractMetadataWriteTool
      * @return {@code true} when an extInfo is now attached (so the caller can report it as applied)
      */
     private static boolean syncExtInfoAfter(HolderChange hc, EObject formModel, EObject member,
-        List<String> lostHandlers)
+        List<String> lostHandlers, Version version)
     {
         if (hc.onExtInfo)
         {
@@ -5220,7 +5220,7 @@ public class ModifyMetadataTool extends AbstractMetadataWriteTool
         }
         if ("type".equalsIgnoreCase(hc.change.featureName())) //$NON-NLS-1$
         {
-            return FormElementWriter.syncItemExtInfo(formModel, member, lostHandlers) != null;
+            return FormElementWriter.syncItemExtInfo(formModel, member, lostHandlers, version) != null;
         }
         return false;
     }

@@ -1435,6 +1435,15 @@ public final class FormElementWriter
         String bindTarget, String titleLanguage, String title, boolean russianAutoNames,
         String[] createdKind, String tablePathToken, String[] createdTablePath)
     {
+        return createMember(formModel, kind, name, parentName, bindTarget, titleLanguage, title,
+            russianAutoNames, createdKind, tablePathToken, createdTablePath, null);
+    }
+
+    /** Creates a form member using the project's platform version. */
+    public static String createMember(EObject formModel, Kind kind, String name, String parentName,
+        String bindTarget, String titleLanguage, String title, boolean russianAutoNames,
+        String[] createdKind, String tablePathToken, String[] createdTablePath, Version version)
+    {
         switch (kind)
         {
             case ATTRIBUTE:
@@ -1451,7 +1460,7 @@ public final class FormElementWriter
                 return createParameter(formModel, name, title, createdKind);
             case FIELD:
                 return createField(formModel, name, parentName, bindTarget, titleLanguage, title,
-                    russianAutoNames, createdKind);
+                    russianAutoNames, createdKind, version);
             case BUTTON:
                 return createButton(formModel, name, parentName, bindTarget, titleLanguage, title,
                     russianAutoNames, createdKind);
@@ -1459,13 +1468,13 @@ public final class FormElementWriter
                 // Bare table (the bind slot carries its dataPath). The metadata-aware caller adds the
                 // tabular-section columns via createTable(..., columnAttributeNames, ...).
                 return createTable(formModel, name, parentName, bindTarget, java.util.Collections.emptyList(),
-                    titleLanguage, title, russianAutoNames, createdKind);
+                    titleLanguage, title, russianAutoNames, createdKind, version);
             case GROUP:
             case DECORATION:
             default:
                 // For a GROUP the bind slot carries the optional explicit group type literal.
                 return createItem(formModel, kind, name, parentName, bindTarget, titleLanguage,
-                    title, russianAutoNames, createdKind);
+                    title, russianAutoNames, createdKind, version);
         }
     }
 
@@ -1814,7 +1823,7 @@ public final class FormElementWriter
             // designer wizard's checked attribute list. Each via createField, so it carries the same
             // designer defaults + auto-children as a manually-created field. Only when the main Object
             // attribute is actually present (it gates createField's dotted-path acceptance). Issue #208.
-            seedObjectFields(content, russianAutoNames, objectFields);
+            seedObjectFields(content, russianAutoNames, objectFields, version);
         }
         normalizeFormIds(content);
         return content;
@@ -1837,7 +1846,7 @@ public final class FormElementWriter
      * validated up-front by {@link #validateObjectFields}, so any collision here is between requested
      * names or with the main attribute). Issue #208 (round 2 review).
      */
-    private static void seedObjectFields(EObject content, boolean russianAutoNames, List<String> objectFields)
+    private static void seedObjectFields(EObject content, boolean russianAutoNames, List<String> objectFields, Version version)
     {
         if (objectFields == null || objectFields.isEmpty())
         {
@@ -1860,7 +1869,7 @@ public final class FormElementWriter
             // The field's own name = the attribute name (the designer's default field name). The bound
             // dataPath is "<MainAttr>.<attr>" so it resolves to the object's sub-attribute.
             String fieldError = createField(content, trimmed, null, mainName + "." + trimmed, null, //$NON-NLS-1$
-                null, russianAutoNames, null);
+                null, russianAutoNames, null, version);
             if (fieldError != null)
             {
                 skipped.add(trimmed);
@@ -4039,7 +4048,7 @@ public final class FormElementWriter
 
     private static String createItem(EObject formModel, Kind kind, String name, String parentName, // NOSONAR signature is inherent / public-or-test-contract; a parameter-object would not improve clarity
         String groupTypeLiteral, String titleLanguage, String title, boolean russianAutoNames,
-        String[] createdKind)
+        String[] createdKind, Version version)
     {
         if (findItem(formModel, name) != null)
         {
@@ -4081,7 +4090,7 @@ public final class FormElementWriter
             setBooleanFeature(item, KEY_AUTO_MAX_WIDTH, true);
             setBooleanFeature(item, KEY_AUTO_MAX_HEIGHT, true);
         }
-        initManagedItem(formModel, item, kind, container, requestedType);
+        initManagedItem(formModel, item, kind, container, requestedType, version);
         applyTitle(item, titleLanguage, title);
         addToList(container, FEATURE_ITEMS, item);
         // The designer's auto-children: a decoration carries a context menu + an extended tooltip,
@@ -4751,7 +4760,7 @@ public final class FormElementWriter
     /** A FormField bound to a form attribute via its dataPath (a generic InputField the user can refine). */
     private static String createField(EObject formModel, String name, String parentName, // NOSONAR signature is inherent / public-or-test-contract; a parameter-object would not improve clarity
         String attrName, String titleLanguage, String title, boolean russianAutoNames,
-        String[] createdKind)
+        String[] createdKind, Version version)
     {
         DataPathPlan pathPlan = planDataPath(formModel, Kind.FIELD, attrName);
         if (pathPlan.error != null)
@@ -4785,7 +4794,7 @@ public final class FormElementWriter
         // Pure-model default field type (InputField + a fresh InputFieldExtInfo), as the platform's
         // own factory does before the value type is known.
         setEnumFeature(item, FEATURE_TYPE, "InputField"); //$NON-NLS-1$
-        setExtInfoClassifier(formModel, item, ECLASS_INPUT_FIELD_EXT_INFO);
+        setExtInfoClassifier(formModel, item, ECLASS_INPUT_FIELD_EXT_INFO, version);
         // The designer's new-field defaults (FormObjectFactory.newFormField / newInputFieldExtInfo); // NOSONAR explanatory comment, not commented-out code
         // the booleans default to false in the model, so without them a created field renders with
         // no table header/footer, no wrap and a read-only text box. 'Auto'-valued enums are the
@@ -4794,16 +4803,6 @@ public final class FormElementWriter
         setBooleanFeature(item, "showInFooter", true); //$NON-NLS-1$
         setEnumFeature(item, "headerHorizontalAlign", "Left"); //$NON-NLS-1$ //$NON-NLS-2$
         setEnumFeature(item, FEATURE_EDIT_MODE, "Enter"); //$NON-NLS-1$
-        EObject extInfo = singleReference(item, FEATURE_EXT_INFO);
-        if (extInfo != null)
-        {
-            setBooleanFeature(extInfo, KEY_AUTO_MAX_WIDTH, true);
-            setBooleanFeature(extInfo, KEY_AUTO_MAX_HEIGHT, true);
-            setBooleanFeature(extInfo, "wrap", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "chooseType", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "typeDomainEnabled", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "textEdit", true); //$NON-NLS-1$
-        }
         applyTitle(item, titleLanguage, title);
         addToList(container, FEATURE_ITEMS, item);
         // A field carries both designer auto-children (context menu + extended tooltip).
@@ -4827,6 +4826,15 @@ public final class FormElementWriter
     public static String createTable(EObject formModel, String name, String parentName, String dataPath, // NOSONAR signature is inherent / public-or-test-contract; a parameter-object would not improve clarity
         List<String> columnAttributeNames, String titleLanguage, String title, boolean russianAutoNames,
         String[] createdKind)
+    {
+        return createTable(formModel, name, parentName, dataPath, columnAttributeNames, titleLanguage,
+            title, russianAutoNames, createdKind, null);
+    }
+
+    /** Creates a table and its generated input columns for the project's platform version. */
+    public static String createTable(EObject formModel, String name, String parentName, String dataPath,
+        List<String> columnAttributeNames, String titleLanguage, String title, boolean russianAutoNames,
+        String[] createdKind, Version version)
     {
         DataPathPlan pathPlan = planDataPath(formModel, Kind.TABLE, dataPath);
         if (pathPlan.error != null)
@@ -4896,7 +4904,7 @@ public final class FormElementWriter
                     if (columnName != null && !columnName.isEmpty())
                     {
                         buildColumnField(formModel, table, name + columnName,
-                            dataPath + "." + columnName, russianAutoNames); //$NON-NLS-1$
+                            dataPath + "." + columnName, russianAutoNames, version); //$NON-NLS-1$
                     }
                 }
                 break;
@@ -4915,13 +4923,13 @@ public final class FormElementWriter
                 // column per TS attribute the metadata-aware caller resolved.
                 String lineNumber = russianAutoNames ? RU_LINE_NUMBER : EN_LINE_NUMBER;
                 buildColumnField(formModel, table, name + lineNumber, dataPath + "." + lineNumber, //$NON-NLS-1$
-                    russianAutoNames);
+                    russianAutoNames, version);
                 if (columnAttributeNames != null)
                 {
                     for (String attr : columnAttributeNames)
                     {
                         buildColumnField(formModel, table, name + attr, dataPath + "." + attr, //$NON-NLS-1$
-                            russianAutoNames);
+                            russianAutoNames, version);
                     }
                 }
                 break;
@@ -5239,7 +5247,7 @@ public final class FormElementWriter
      * an input field.
      */
     private static void buildColumnField(EObject formModel, EObject table, String name,
-        String columnDataPath, boolean russianAutoNames)
+        String columnDataPath, boolean russianAutoNames, Version version)
     {
         EObject column = createFromClassifier(formModel, ECLASS_FORM_FIELD);
         if (column == null)
@@ -5255,17 +5263,7 @@ public final class FormElementWriter
         setBooleanFeature(column, "showInFooter", true); //$NON-NLS-1$
         setEnumFeature(column, "headerHorizontalAlign", "Left"); //$NON-NLS-1$ //$NON-NLS-2$
         setEnumFeature(column, FEATURE_EDIT_MODE, "EnterOnInput"); //$NON-NLS-1$
-        setExtInfoClassifier(formModel, column, ECLASS_INPUT_FIELD_EXT_INFO);
-        EObject extInfo = singleReference(column, FEATURE_EXT_INFO);
-        if (extInfo != null)
-        {
-            setBooleanFeature(extInfo, KEY_AUTO_MAX_WIDTH, true);
-            setBooleanFeature(extInfo, KEY_AUTO_MAX_HEIGHT, true);
-            setBooleanFeature(extInfo, "wrap", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "chooseType", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "typeDomainEnabled", true); //$NON-NLS-1$
-            setBooleanFeature(extInfo, "textEdit", true); //$NON-NLS-1$
-        }
+        setExtInfoClassifier(formModel, column, ECLASS_INPUT_FIELD_EXT_INFO, version);
         addToList(table, FEATURE_ITEMS, column);
         addAutoChildren(formModel, column, true, russianAutoNames);
     }
@@ -5644,6 +5642,12 @@ public final class FormElementWriter
     /** Attaches a fresh extInfo of the named concrete classifier to an item (best-effort). */
     private static void setExtInfoClassifier(EObject formModel, EObject item, String classifier)
     {
+        setExtInfoClassifier(formModel, item, classifier, null);
+    }
+
+    private static void setExtInfoClassifier(EObject formModel, EObject item, String classifier,
+        Version version)
+    {
         EStructuralFeature feature = item.eClass().getEStructuralFeature(FEATURE_EXT_INFO);
         // A null classifier means "this type pairs with no extInfo" (a ContextMenu / AutoCommandBar /
         // Navigator group): leave the slot alone rather than resolving a classifier called null.
@@ -5654,7 +5658,97 @@ public final class FormElementWriter
         EClass extInfoClass = formEClass(formModel, classifier);
         if (extInfoClass != null && extInfoClass.getEPackage() != null)
         {
-            item.eSet(feature, extInfoClass.getEPackage().getEFactoryInstance().create(extInfoClass));
+            EObject extInfo = extInfoClass.getEPackage().getEFactoryInstance().create(extInfoClass);
+            applyItemExtInfoDefaults(extInfo, version);
+            item.eSet(feature, extInfo);
+        }
+    }
+
+    /**
+     * FormObjectFactory defaults for newly allocated item extensions. Existing extensions are never
+     * passed here: their explicitly chosen properties must survive edits and repeated type writes.
+     * Like applyFormDefaults, a null version retains the legacy pre-8.5.1 shape for model callers.
+     */
+    private static void applyItemExtInfoDefaults(EObject extInfo, Version version)
+    {
+        boolean before851 = version == null || version.isLessThan(Version.V8_5_1);
+        switch (extInfo.eClass().getName())
+        {
+            case "UsualGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, FEATURE_GROUP, before851
+                    ? (version != null && version.isLessThan(Version.V8_3_7)
+                        ? LITERAL_VERTICAL : "HorizontalIfPossible") : LITERAL_AUTO); //$NON-NLS-1$
+                setEnumFeature(extInfo, "representation", before851 ? "WeakSeparation" : LITERAL_AUTO); //$NON-NLS-1$ //$NON-NLS-2$
+                setBooleanFeature(extInfo, "showLeftMargin", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "united", true); //$NON-NLS-1$
+                setGroupTitleDefault(extInfo, before851);
+                setEnumFeature(extInfo, "throughAlign", LITERAL_AUTO); //$NON-NLS-1$
+                setEnumFeature(extInfo, "currentRowUse", //$NON-NLS-1$
+                    version != null && version.isLessThan(Version.V8_3_12) ? "DontUse" : LITERAL_AUTO); //$NON-NLS-1$
+                if (version == null || version.isGreaterThan(Version.V8_3_19))
+                {
+                    setEnumFeature(extInfo, "behavior", LITERAL_AUTO); //$NON-NLS-1$
+                }
+                break;
+            case "PageGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, FEATURE_GROUP, before851 ? LITERAL_VERTICAL : LITERAL_AUTO);
+                setGroupTitleDefault(extInfo, before851);
+                break;
+            case "PagesGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, "pagesRepresentation", //$NON-NLS-1$
+                    version == null || version.isGreaterThan(Version.V8_3_19) ? LITERAL_AUTO : "TabsOnTop"); //$NON-NLS-1$
+                setEnumFeature(extInfo, "currentRowUse", //$NON-NLS-1$
+                    version != null && version.isLessThan(Version.V8_3_12) ? "DontUse" : LITERAL_AUTO); //$NON-NLS-1$
+                break;
+            case "ColumnGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, FEATURE_GROUP, LITERAL_VERTICAL);
+                setGroupTitleDefault(extInfo, before851);
+                if (!before851)
+                {
+                    setBooleanFeature(extInfo, "showInCard", true); //$NON-NLS-1$
+                }
+                break;
+            case "CommandBarExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, KEY_HORIZONTAL_ALIGN, "Left"); //$NON-NLS-1$
+                break;
+            case "PopupGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, "representation", LITERAL_AUTO); //$NON-NLS-1$
+                setEnumFeature(extInfo, "shape", LITERAL_AUTO); //$NON-NLS-1$
+                setEnumFeature(extInfo, "shapeRepresentation", LITERAL_AUTO); //$NON-NLS-1$
+                if (!before851)
+                {
+                    setEnumFeature(extInfo, "importance", "Normal"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                break;
+            case "ButtonGroupExtInfo": //$NON-NLS-1$
+                setEnumFeature(extInfo, "representation", LITERAL_AUTO); //$NON-NLS-1$
+                break;
+            case ECLASS_INPUT_FIELD_EXT_INFO:
+                setBooleanFeature(extInfo, KEY_AUTO_MAX_WIDTH, true);
+                setBooleanFeature(extInfo, KEY_AUTO_MAX_HEIGHT, true);
+                setBooleanFeature(extInfo, "wrap", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "chooseType", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "typeDomainEnabled", true); //$NON-NLS-1$
+                setBooleanFeature(extInfo, "textEdit", true); //$NON-NLS-1$
+                if (!before851)
+                {
+                    setEnumFeature(extInfo, "textSize", "Normal"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void setGroupTitleDefault(EObject extInfo, boolean before851)
+    {
+        if (before851)
+        {
+            setBooleanFeature(extInfo, "showTitle", true); //$NON-NLS-1$
+        }
+        else
+        {
+            setEnumFeatureIfUnset(extInfo, "showTitle851", LITERAL_AUTO); //$NON-NLS-1$
         }
     }
 
@@ -5898,6 +5992,13 @@ public final class FormElementWriter
     public static String syncItemExtInfo(EObject formModel, EObject item,
         List<String> lostHandlers)
     {
+        return syncItemExtInfo(formModel, item, lostHandlers, null);
+    }
+
+    /** Re-pairs an item for the project's platform version. */
+    public static String syncItemExtInfo(EObject formModel, EObject item,
+        List<String> lostHandlers, Version version)
+    {
         EStructuralFeature feature = item.eClass().getEStructuralFeature(FEATURE_EXT_INFO);
         if (!(feature instanceof EReference) || feature.isMany())
         {
@@ -5922,7 +6023,7 @@ public final class FormElementWriter
             // The node did not change, so neither did anything bound inside it.
             return classifier;
         }
-        EObject created = replaceExtInfoClassifier(formModel, item, feature, classifier);
+        EObject created = replaceExtInfoClassifier(formModel, item, feature, classifier, version);
         if (created == null)
         {
             // The pairing could not be created, so the slot was cleared: the old node is gone and
@@ -6130,7 +6231,13 @@ public final class FormElementWriter
     private static EObject replaceExtInfoClassifier(EObject formModel, EObject element,
         EStructuralFeature extInfoFeature, String classifier)
     {
-        setExtInfoClassifier(formModel, element, classifier);
+        return replaceExtInfoClassifier(formModel, element, extInfoFeature, classifier, null);
+    }
+
+    private static EObject replaceExtInfoClassifier(EObject formModel, EObject element,
+        EStructuralFeature extInfoFeature, String classifier, Version version)
+    {
+        setExtInfoClassifier(formModel, element, classifier, version);
         EObject created = singleReference(element, FEATURE_EXT_INFO);
         if (created != null && classifier.equals(created.eClass().getName()))
         {
@@ -6164,6 +6271,12 @@ public final class FormElementWriter
      */
     public static EObject ensureExtInfo(EObject formModel, EObject element) // NOSONAR formModel bounds the element to a content-form context and keeps the write-helper signature symmetry
     {
+        return ensureExtInfo(formModel, element, null);
+    }
+
+    /** Ensures a newly allocated extension receives the project's version-specific defaults. */
+    public static EObject ensureExtInfo(EObject formModel, EObject element, Version version)
+    {
         EStructuralFeature feature = element.eClass().getEStructuralFeature(FEATURE_EXT_INFO);
         if (!(feature instanceof EReference) || feature.isMany())
         {
@@ -6186,6 +6299,7 @@ public final class FormElementWriter
             return existing; // stale/empty but no better class resolvable - keep what is there (may be null)
         }
         EObject created = extInfoClass.getEPackage().getEFactoryInstance().create(extInfoClass);
+        applyItemExtInfoDefaults(created, version);
         element.eSet(feature, created); // fills an empty slot or replaces a stale (type-mismatched) holder
         return created;
     }
@@ -7258,7 +7372,7 @@ public final class FormElementWriter
      * inside tables and column groups, a UsualGroup elsewhere.
      */
     private static void initManagedItem(EObject formModel, EObject item, Kind kind, EObject container,
-        String requestedGroupType)
+        String requestedGroupType, Version version)
     {
         String typeLiteral;
         if (kind == Kind.GROUP)
@@ -7273,7 +7387,7 @@ public final class FormElementWriter
         String extInfoClassifier = kind == Kind.GROUP
             ? groupExtInfoClassifierFor(typeLiteral) : ECLASS_LABEL_DECORATION_EXT_INFO;
         setEnumFeature(item, FEATURE_TYPE, typeLiteral);
-        setExtInfoClassifier(formModel, item, extInfoClassifier);
+        setExtInfoClassifier(formModel, item, extInfoClassifier, version);
         if (kind == Kind.DECORATION)
         {
             // The factory's label decoration default (newLabelDecorationExtInfo).
