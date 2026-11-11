@@ -2202,6 +2202,14 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
         Configuration config = ctx.config;
         MetadataScope scope = ctx.scope;
 
+        IV8ProjectManager v8ProjectManager = Activator.getDefault().getV8ProjectManager();
+        IV8Project v8Project = v8ProjectManager != null ? v8ProjectManager.getProject(project) : null;
+        final Version version = v8Project != null ? v8Project.getVersion() : null;
+        if (version == null)
+        {
+            return ToolResult.error("Cannot resolve the platform version needed to create a form " //$NON-NLS-1$
+                + "element. Wait for the project to finish loading, then retry.").toJson(); //$NON-NLS-1$
+        }
         final FormElementWriter.Kind fKind = kind;
         final String[] createdTablePath = new String[1];
         // A COLUMN's owner is named by the FQN itself ('...Attribute.AttrName.Column.ColName'), so it
@@ -2262,7 +2270,7 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
                 {
                     String err = writeFormMember(formModel, ref, fKind, parent, bind, tableColumns,
                         titleLanguage, writeTitleLanguage, titleText, russianAutoNames, createdKind,
-                        createdTablePath);
+                        createdTablePath, version);
                     if (err != null)
                     {
                         // A refusal. The writers RAISE a model/platform failure (modelLacks) and
@@ -2321,10 +2329,20 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
         String writeTitleLanguage, String titleText, boolean russianAutoNames, String[] createdKind,
         String[] createdTablePath)
     {
+        return writeFormMember(formModel, ref, kind, parent, bind, tableColumns, titleLanguage,
+            writeTitleLanguage, titleText, russianAutoNames, createdKind, createdTablePath, null);
+    }
+
+    /** Writes a form member with the project's platform version for designer defaults. */
+    static String writeFormMember(EObject formModel, FormElementWriter.FormMemberRef ref,
+        FormElementWriter.Kind kind, String parent, String bind, List<String> tableColumns, String titleLanguage,
+        String writeTitleLanguage, String titleText, boolean russianAutoNames, String[] createdKind,
+        String[] createdTablePath, Version version)
+    {
         if (kind == FormElementWriter.Kind.TABLE)
         {
             return FormElementWriter.createTable(formModel, ref.name, parent, bind, tableColumns,
-                writeTitleLanguage, titleText, russianAutoNames, createdKind);
+                writeTitleLanguage, titleText, russianAutoNames, createdKind, version);
         }
         List<String> tableSegments = ref.tablePathSegments;
         if (tableSegments != null && tableSegments.size() > 1)
@@ -2336,7 +2354,8 @@ public class CreateMetadataTool extends AbstractMetadataWriteTool
                 + "modified, renamed and deleted by its full address."; //$NON-NLS-1$
         }
         return FormElementWriter.createMember(formModel, kind, ref.name, parent, bind, titleLanguage, titleText,
-            russianAutoNames, createdKind, tableSegments == null ? null : tableSegments.get(0), createdTablePath);
+            russianAutoNames, createdKind, tableSegments == null ? null : tableSegments.get(0), createdTablePath,
+            version);
     }
 
     /** The common part of a created form member's response; {@code tablePath} only for an additional column. */
