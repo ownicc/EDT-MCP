@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    # Set BUILD_RUNNER to an available Linux x86_64 Docker runner label.
+    runs-on: ${{ vars.BUILD_RUNNER }}
+    timeout-minutes: 60
+    container:
+      image: node:24-bookworm
+
+    steps:
+      - name: Prepare build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git python3 unzip xz-utils zip zstd
+
+      - name: Checkout
+        uses: https://data.forgejo.org/actions/checkout@v7
+        with:
+          repository: ${{ forgejo.repository }}
+          github-server-url: ${{ forgejo.server_url }}
+          token: ${{ forgejo.token }}
+          ref: ${{ forgejo.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 25
+        uses: https://data.forgejo.org/actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Set up Maven
+        uses: ./.github/actions/setup-maven
+
+      - name: EDT channel guard
+        id: edt-channel
+        uses: ./.github/actions/edt-channel-guard
+
+      - name: Cache Tycho P2 repositories
+        uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository/.cache/tycho
+            ~/.m2/repository/p2
+          key: ${{ runner.os }}-tycho-p2-${{ hashFiles('**/*.target') }}-${{ steps.edt-channel.outputs.edt-build }}
+          restore-keys: |
+            ${{ runner.os }}-tycho-p2-${{ hashFiles('**/*.target') }}-
+            ${{ runner.os }}-tycho-p2-
+
+      - name: Build and test plugin
+        id: build
+        uses: ./.github/actions/build-plugin
+
+      # Forgejo 15 supports the v3 artifact protocol; upstream v4+ requires
+      # GitHub's newer service. Keep the Forgejo-supported Node 20 variant.
+      - name: Upload artifact
+        uses: https://data.forgejo.org/actions/upload-artifact@v3-node20
+        with:
+          name: MCP-EDT.v${{ steps.build.outputs.version }}
+          path: mcp/repositories/com.ditrix.edt.mcp.server.repository/target/repository/
+          if-no-files-found: error
+
+      - name: Upload test reports
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@v3-node20
+        with:
+          name: unit-test-results
+          path: mcp/tests/**/target/surefire-reports/
+          if-no-files-found: ignore

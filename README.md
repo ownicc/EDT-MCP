@@ -1272,7 +1272,20 @@ groups:
 
 ## Building from source
 
-The plugin is a Maven/Tycho project under [mcp/](mcp/). CI builds it via [.github/workflows/build.yml](.github/workflows/build.yml); the same flow can be run locally with [source/compile.sh](source/compile.sh).
+The plugin is a Maven/Tycho project under [mcp/](mcp/). [GitHub Actions](.github/workflows/build.yml) and the [Forgejo mirror workflow](.forgejo/workflows/build.yml) both use the same [build-plugin action](.github/actions/build-plugin/action.yml) for project checks, Maven/Tycho tests and the p2 build. Local builds use [source/compile.sh](source/compile.sh).
+
+### Forgejo mirror CI
+
+The mirror builds its own `master` commit after synchronization; it also supports a manual run from the Actions tab. Each successful run provides an `MCP-EDT.v<version>` artifact containing the p2 update site. Download it from the run to install using EDT's **Help → Install New Software → Add → Archive…**. Surefire test reports are available as a separate artifact, including after test failures. GitHub keeps its existing workflows, SonarCloud analysis, releases and Pages deployment.
+
+Before enabling the Forgejo workflow:
+
+1. Make sure the mirror has synchronized `.forgejo/workflows/build.yml`. Without that directory, Forgejo falls back to `.github/workflows`, whose service-specific actions are not the Forgejo build configuration.
+2. Provide a Linux x86_64 Docker runner that supports Node 24 JavaScript actions. Set the repository Actions variable `BUILD_RUNNER` to its actual runner label in **Settings → Actions → Variables**. The workflow uses the `node:24-bookworm` job image and installs its Python and archive tools; it needs permission to run those package-install steps as root inside the job container.
+3. Configure the runner cache service so the job container can reach it. Allow network access to this Forgejo instance, Docker Hub, `data.forgejo.org`, the Temurin JDK download locations, Maven Central, `edt.1c.ru`, and `download.eclipse.org`.
+4. Enable Actions on the Forgejo server and in the repository, then run the workflow and check that a subsequent mirror synchronization also starts it automatically. Checkout uses Forgejo's per-job token; no personal access token needs to be added as a CI secret.
+
+The Forgejo workflow uses the supported `upload-artifact@v3-node20` protocol instead of GitHub's artifact action version. Runner registration and server configuration are deployment prerequisites; the workflow does not install a persistent runner.
 
 ### Prerequisites
 
