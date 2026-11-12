@@ -16,7 +16,8 @@ jobs:
       - name: Prepare build tools
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates curl git python3 unzip xz-utils zip zstd
+          # Platform-backed unit tests initialize SWT even without a UI harness.
+          apt-get install -y --no-install-recommends ca-certificates curl git libgtk-3-0 python3 unzip xz-utils zip zstd
 
       - name: Checkout
         uses: https://data.forgejo.org/actions/checkout@v7

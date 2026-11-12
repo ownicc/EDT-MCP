@@ -1281,7 +1281,7 @@ The mirror builds its own `master` commit after synchronization; it also support
 Before enabling the Forgejo workflow:
 
 1. Make sure the mirror has synchronized `.forgejo/workflows/build.yml`. Without that directory, Forgejo falls back to `.github/workflows`, whose service-specific actions are not the Forgejo build configuration.
-2. Provide a Linux x86_64 Docker runner that supports Node 24 JavaScript actions and declares the `edt-build` label (for example, `edt-build:docker://node:24-bookworm`). The workflow uses the `node:24-bookworm` job image and installs its Python and archive tools; it needs permission to run those package-install steps as root inside the job container.
+2. Provide a Linux x86_64 Docker runner that supports Node 24 JavaScript actions and declares the `edt-build` label (for example, `edt-build:docker://node:24-bookworm`). The workflow uses the `node:24-bookworm` job image and installs Python, GTK 3 and archive tools; it needs permission to run those package-install steps as root inside the job container.
 3. Configure the runner cache service so the job container can reach it. Allow network access to this Forgejo instance, Docker Hub, `data.forgejo.org`, the Temurin JDK download locations, Maven Central, `edt.1c.ru`, and `download.eclipse.org`.
 4. Enable Actions on the Forgejo server and in the repository, then run the workflow and check that a subsequent mirror synchronization also starts it automatically. Checkout uses Forgejo's per-job token; no personal access token needs to be added as a CI secret.
 
@@ -1292,6 +1292,7 @@ The Forgejo workflow uses the supported `upload-artifact@v3-node20` protocol ins
 - JDK 25 (e.g. Temurin) - Tycho 5 needs JDK 21+ to run and reads the platform's Java 25 class files; the plugin itself is still compiled to Java 17
 - Apache Maven matching the [CI pin](.github/actions/setup-maven/action.yml), currently 3.9.16. Maven 3.10 is incompatible with the current Tycho resolver. No `mvnw` wrapper is committed.
 - `bash` (Git Bash on Windows works) and either `zip` or the `jar` binary that ships with the JDK
+- On Linux when running tests, GTK 3 runtime libraries for SWT (for example, Debian's `libgtk-3-0`)
 - Network access to `https://edt.1c.ru/`, `https://download.eclipse.org/` and Maven Central — Tycho downloads the EDT p2 repository and Eclipse SDK on the first run (hundreds of MB, cached afterwards under `~/.m2/`)
 
 ### Quick start
