@@ -113,6 +113,79 @@ public class BslMethodNavigationUiTest
         }
     }
 
+    @Test public void oneSidedMethodsRemainNavigableWithoutOpeningComparison()
+    {
+        Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));
+        Display display = new Display(); Shell shell = new Shell(display);
+        try
+        {
+            shell.setLayout(new FillLayout());
+            List<BslMethodNavigation.Entry> revealed = new ArrayList<>();
+            List<MethodAwareBslDiff.MethodChange> opened = new ArrayList<>();
+            var panel = new BslMethodNavigationPanel(shell, revealed::add, opened::add);
+            shell.setSize(320, 400); shell.open();
+            for (boolean added : List.of(true, false))
+            {
+                var method = new MethodAwareBslDiff.MethodChange("method:one", "One",
+                    added ? List.of() : spans(0), added ? spans(0) : List.of(),
+                    added ? MethodAwareBslDiff.MethodKind.ADDED : MethodAwareBslDiff.MethodKind.REMOVED);
+                var entry = new BslMethodNavigation.Entry(method, 0, java.util.Set.of(0), 1, 1, null);
+                panel.show(List.of(entry)); panel.table.setSelection(0);
+                panel.table.notifyListeners(SWT.Selection, new Event());
+                assertSame(entry, revealed.get(revealed.size() - 1));
+                panel.table.notifyListeners(SWT.DefaultSelection, new Event());
+                assertTrue("A method without a peer must not open on double-click", opened.isEmpty());
+                Event enter = new Event(); enter.keyCode = SWT.CR;
+                panel.filter.notifyListeners(SWT.KeyDown, enter);
+                assertTrue("A method without a peer must not open on Enter", opened.isEmpty());
+            }
+        }
+        finally { shell.dispose(); display.dispose(); }
+    }
+
+    @Test public void nonMoveStatusIconsHaveReadableFootprints()
+    {
+        Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));
+        Display display = new Display(); Shell shell = new Shell(display);
+        try
+        {
+            shell.setLayout(new FillLayout());
+            var panel = new BslMethodNavigationPanel(shell, entry -> { }, method -> { });
+            shell.setSize(320, 400); shell.open();
+            for (var kind : List.of(MethodAwareBslDiff.MethodKind.ADDED,
+                MethodAwareBslDiff.MethodKind.REMOVED, MethodAwareBslDiff.MethodKind.CHANGED))
+            {
+                var method = new MethodAwareBslDiff.MethodChange("method:icon", "Icon", spans(0), spans(0), kind);
+                panel.show(List.of(new BslMethodNavigation.Entry(method, 0, java.util.Set.of(0), 1, 1, null)));
+                shell.layout(true, true); while (display.readAndDispatch()) { }
+                var image = new org.eclipse.swt.graphics.Image(display, 80, 60);
+                var gc = new org.eclipse.swt.graphics.GC(image);
+                try
+                {
+                    gc.setBackground(display.getSystemColor(SWT.COLOR_WHITE)); gc.fillRectangle(image.getBounds());
+                    gc.setForeground(display.getSystemColor(SWT.COLOR_BLACK));
+                    Event paint = new Event(); paint.index = 0; paint.item = panel.table.getItem(0); paint.gc = gc;
+                    panel.table.notifyListeners(SWT.PaintItem, paint);
+                    var pixels = image.getImageData(); int minX = 80, maxX = -1, minY = 60, maxY = -1;
+                    for (int y = 0; y < 60; y++) for (int x = 0; x < 80; x++)
+                    {
+                        RGB pixel = pixels.palette.getRGB(pixels.getPixel(x, y));
+                        if (pixel.red + pixel.green + pixel.blue < 384)
+                        {
+                            minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                            minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                        }
+                    }
+                    assertTrue(kind + " icon is too narrow", maxX - minX + 1 >= 14);
+                    if (kind != MethodAwareBslDiff.MethodKind.REMOVED)
+                        assertTrue(kind + " icon is too short", maxY - minY + 1 >= 7);
+                }
+                finally { gc.dispose(); image.dispose(); }
+            }
+        }
+        finally { shell.dispose(); display.dispose(); }
+    }
+
     @Test public void largerStatusIconsKeepCountsInsideTheTable()
     {
         Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));

@@ -81,3 +81,19 @@ all types followed by choosing Moved shows only moved methods; selecting all
 restores every type. The existing native SWT interaction test exercises these
 buttons. Affected Maven/Tycho verification passed 42 tests without failures,
 errors or skips (`/tmp/edt-navigation-tools/type-actions-green.log`).
+
+## Larger status icons and paired-only method comparison
+
+Non-move status icons now use larger vector strokes: plus, minus, a smooth changed
+wave and outside-code braces. Move icons and their geometry are unchanged.
+A shared endpoint predicate disables the Compare method action and prevents
+opening from double-click or Enter when either method endpoint is absent.
+One-sided methods remain selectable and navigable.
+
+Both reported behaviors were reproduced before fixing them. Affected Maven/Tycho
+verification passed 44 tests without failures, errors or skips; native QualityProbe
+passed both themes, all method kinds, forced disabled-button activation, existing
+paired comparison/search behavior and source coverage for 95 inputs. Evidence:
+`/tmp/edt-navigation-tools/status-pairs-final.log` and
+`/tmp/edt-navigation-tools/status-pairs-native/`. Independent review found no
+additional actionable issue.

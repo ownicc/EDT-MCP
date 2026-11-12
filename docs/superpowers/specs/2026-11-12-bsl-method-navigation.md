@@ -7,8 +7,8 @@ combined changed/moved/added/removed filters, visible/total count, and one item
 per method identity. Moved-and-edited methods match both changed and moved.
 Selection reveals the first actual edit (or the moved declaration), synchronizes
 with caret/change navigation, and preserves original source ordering. Enter or
-double-click opens the existing detached method comparison, including one-sided
-added/removed methods. Outside-method changes and ambiguous/parser fallback have
+double-click opens the existing detached method comparison, only when the method exists in both versions. Added/removed methods remain
+selectable for navigation but cannot open a method comparison. Outside-method changes and ambiguous/parser fallback have
 explicit entries; neither invents a method pair. Empty results explain themselves.
 
 Use the existing parser identities, diff spans, move pairs and method comparison.

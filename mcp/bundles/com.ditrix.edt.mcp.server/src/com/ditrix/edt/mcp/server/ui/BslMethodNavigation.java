@@ -21,6 +21,11 @@ final class BslMethodNavigation
 
     private BslMethodNavigation() { }
 
+    static boolean canCompare(MethodChange method)
+    {
+        return method != null && !method.left().isEmpty() && !method.right().isEmpty();
+    }
+
     static List<Entry> entries(Result diff, List<MethodChange> methods, String fallback)
     {
         Map<Integer, Integer> leftRows = new HashMap<>(), rightRows = new HashMap<>();

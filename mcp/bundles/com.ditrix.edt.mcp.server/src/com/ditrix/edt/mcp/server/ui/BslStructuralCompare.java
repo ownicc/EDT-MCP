@@ -165,12 +165,14 @@ final class BslStructuralCompare
         });
         overview.onMethodSelection(method -> {
             navigation.select(method, overview.selectedRow());
-            compareMethod.setEnabled(allowMethodComparison && method != null);
+            compareMethod.setEnabled(allowMethodComparison && BslMethodNavigation.canCompare(method));
             var entry = navigation.selectedEntry();
             String name = method != null ? method.name() : entry != null ? entry.name() : Messages.BslDiff_NoMethodSelected;
             selectedMethod.setText(name);
             selectedMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : name);
-            compareMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : Messages.BslDiff_CompareMethod + ": " + name); //$NON-NLS-1$
+            compareMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint
+                : BslMethodNavigation.canCompare(method) ? Messages.BslDiff_CompareMethod + ": " + name //$NON-NLS-1$
+                : Messages.BslDiff_MethodAbsent);
             methodKind.setText(method == null ? "" : BslMethodNavigationPanel.kindLabel(method.kind())); //$NON-NLS-1$
             methodRoute.setText(method == null ? "" : org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_MethodRoute, //$NON-NLS-1$
                 methodRange(method.left(), leftOffset), methodRange(method.right(), rightOffset)));
@@ -337,7 +339,8 @@ final class BslStructuralCompare
 
     private void openMethod(MethodAwareBslDiff.MethodChange method)
     {
-        if (method != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(method, before, after));
+        if (BslMethodNavigation.canCompare(method))
+            org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(method, before, after));
     }
 
     static String methodRange(List<Span> spans, int offset)

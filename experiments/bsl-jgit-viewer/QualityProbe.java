@@ -302,7 +302,15 @@ public class QualityProbe extends ViewerProbe
                         StyledText text=(StyledText)field(field(viewer,lhs?"left":"right"),"text");
                         int offset=text.getText().indexOf("Функция "+method.name()+"(")+9;
                         text.setCaretOffset(offset);
-                        require(compare.isEnabled()&&call(nav,"selectedMethod")==method,"Either source side selects exact method: "+method.name());
+                        require(call(nav,"selectedMethod")==method,"Either source side selects exact method: "+method.name());
+                        require(compare.isEnabled()==(!method.left().isEmpty()&&!method.right().isEmpty()),"Only paired methods enable comparison");
+                        if(!compare.isEnabled())
+                        {
+                            var page=PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+                            int tabs=page.getEditorReferences().length;
+                            compare.notifyListeners(SWT.Selection,new Event());
+                            require(page.getEditorReferences().length==tabs,"Unpaired methods cannot open a comparison");
+                        }
                         require(((Label)field(viewer,"selectedMethod")).getText().equals(method.name()),"Panel preserves actual method name");
                         require(!((Label)field(viewer,"methodKind")).getText().isEmpty(),"Panel identifies change kind");
                         require(((Label)field(viewer,"methodRoute")).getText().contains("—")==(method.kind()==MethodAwareBslDiff.MethodKind.ADDED||method.kind()==MethodAwareBslDiff.MethodKind.REMOVED),"Only absent side has no source coordinate");

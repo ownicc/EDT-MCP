@@ -10,8 +10,11 @@ import java.util.function.Consumer;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Path;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
@@ -114,12 +117,7 @@ final class BslMethodNavigationPanel
             }
             else
             {
-                String label = entry.method() == null ? "{ }" : switch (entry.method().kind()) { //$NON-NLS-1$
-                    case ADDED -> "+"; case REMOVED -> "−"; default -> "~"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                };
-                Point extent = event.gc.stringExtent(label);
-                event.gc.drawString(label, bounds.x + (bounds.width - extent.x) / 2,
-                    bounds.y + (bounds.height - extent.y) / 2, true);
+                drawStatus(event.gc, bounds, entry.method() == null ? null : entry.method().kind());
             }
         });
         empty = new Label(root, SWT.WRAP);
@@ -132,7 +130,7 @@ final class BslMethodNavigationPanel
         table.addListener(SWT.DefaultSelection, event -> {
             if (table.getSelectionCount() == 0) return;
             Entry entry = (Entry)table.getSelection()[0].getData();
-            if (entry.method() != null) open.accept(entry.method());
+            if (BslMethodNavigation.canCompare(entry.method())) open.accept(entry.method());
         });
         table.addListener(SWT.MouseMove, event -> {
             TableItem item = table.getItem(new Point(event.x, event.y));
@@ -174,6 +172,45 @@ final class BslMethodNavigationPanel
     {
         filters.values().forEach(button -> button.setSelection(selected));
         refresh();
+    }
+
+    private static void drawStatus(GC gc, Rectangle bounds, MethodKind kind)
+    {
+        int size = Math.max(18, bounds.height - 4);
+        int x = bounds.x + (bounds.width - size) / 2, y = bounds.y + (bounds.height - size) / 2;
+        int left = x + 2, right = x + size - 3, top = y + 2, bottom = y + size - 3;
+        int middleX = (left + right) / 2, middleY = (top + bottom) / 2;
+        int oldWidth = gc.getLineWidth(), oldCap = gc.getLineCap(), oldAntialias = gc.getAntialias();
+        try
+        {
+            gc.setAntialias(SWT.ON); gc.setLineWidth(Math.max(2, size / 10)); gc.setLineCap(SWT.CAP_ROUND);
+            if (kind == MethodKind.ADDED || kind == MethodKind.REMOVED)
+            {
+                gc.drawLine(left, middleY, right, middleY);
+                if (kind == MethodKind.ADDED) gc.drawLine(middleX, top, middleX, bottom);
+            }
+            else if (kind == null)
+            {
+                gc.drawPolyline(new int[] {left + 4, top, left + 2, top, left + 2, middleY - 2,
+                    left, middleY, left + 2, middleY + 2, left + 2, bottom, left + 4, bottom});
+                gc.drawPolyline(new int[] {right - 4, top, right - 2, top, right - 2, middleY - 2,
+                    right, middleY, right - 2, middleY + 2, right - 2, bottom, right - 4, bottom});
+            }
+            else
+            {
+                Path wave = new Path(gc.getDevice());
+                try
+                {
+                    float amplitude = Math.max(10, size / 2);
+                    wave.moveTo(left, middleY);
+                    wave.cubicTo(left + (right - left) / 3f, middleY - amplitude,
+                        right - (right - left) / 3f, middleY + amplitude, right, middleY);
+                    gc.drawPath(wave);
+                }
+                finally { wave.dispose(); }
+            }
+        }
+        finally { gc.setLineWidth(oldWidth); gc.setLineCap(oldCap); gc.setAntialias(oldAntialias); }
     }
 
     private void refresh()
