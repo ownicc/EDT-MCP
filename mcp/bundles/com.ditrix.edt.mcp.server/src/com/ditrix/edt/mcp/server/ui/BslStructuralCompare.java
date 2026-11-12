@@ -399,7 +399,7 @@ final class BslStructuralCompare
             {
                 gutterGc.setFont(text.getFont());
                 numberWidth = gutterGc.stringExtent(Integer.toString(Math.max(1, lines.size() + lineOffset))).x;
-                int markerWidth = gutterGc.stringExtent(" +").x; //$NON-NLS-1$
+                int markerWidth = Math.max(gutterGc.stringExtent(" +").x, BslMoveIcon.size(text.getLineHeight()) + 8); //$NON-NLS-1$
                 text.setMargins(Math.max(48, numberWidth + markerWidth + 18), 4, 4, 4);
             }
             finally { gutterGc.dispose(); }

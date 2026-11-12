@@ -30,7 +30,6 @@ import com.ditrix.edt.mcp.server.ui.StructuralBslDiff.Span;
 /** One scrollbar for aligned read-only panes; all positions are display rows, never source offsets. */
 final class BslDiffOverview
 {
-    private static final String MOVE_ICON = "↔"; //$NON-NLS-1$
     // Red/green flags can coexist in an edited hunk. A move has two linked endpoints.
     private record Change(int start, int end, int kind, String id, boolean left, int peer,
         int sourceLine, int peerLine, int badgeRow) { }
@@ -425,20 +424,20 @@ final class BslDiffOverview
             int y = text.getLinePixel(change.badgeRow);
             if (y < 0 || y >= text.getClientArea().height) continue;
             // A dedicated gutter target stays visible even for long declarations or horizontal scrolling.
-            String label = MOVE_ICON;
-            int width = gc.stringExtent(label).x + 8;
+            int size = BslMoveIcon.size(text.getLineHeight());
+            int width = size + 8;
             int numberX = text.getLeftMargin() - 7 - gc.stringExtent(Integer.toString(change.sourceLine + 1)).x;
-            int gap = gc.stringExtent(" ").x; //$NON-NLS-1$
+            int gap = 6;
             int x = Math.max(3, numberX - gap - width);
             int height = text.getLineHeight();
             // The declaration's move action occupies the status column; retain the source number.
             gc.setBackground(text.getBackground());
             gc.fillRectangle(0, y, Math.max(0, numberX - gap), height);
             gc.setBackground(background());
-            gc.fillRoundRectangle(x, y, width, height, 5, 5);
+            gc.fillRoundRectangle(x, y + 1, width, height - 2, 5, 5);
             gc.setForeground(blue());
-            gc.drawRoundRectangle(x, y, width, height - 1, 5, 5);
-            gc.drawString(label, x + 4, y, true);
+            gc.drawRoundRectangle(x, y + 1, width, height - 3, 5, 5);
+            BslMoveIcon.draw(gc, x + 4, y + (height - size) / 2, size);
             String hint = (lhs ? " → " : " ← ") + (change.peerLine + 1); //$NON-NLS-1$ //$NON-NLS-2$
             int end = text.getOffsetAtLine(change.badgeRow) + text.getLine(change.badgeRow).length();
             int hintX = text.getLocationAtOffset(end).x + 12;

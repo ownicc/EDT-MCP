@@ -51,3 +51,25 @@ Windows rendering and the previously reported scrollbar size remain separate
 checks on the user's Windows configuration. No release or push is implied.
 
 Full suite: 13853 tests, 0 failures, 0 errors, 25 skips.
+
+## Visual refinement after attended feedback
+
+The user selected multi-select buttons instead of checkboxes and reported small
+arrows in both the method list and source gutter. Filters now use native toggle
+buttons. A shared vector arrow has a minimum size of 16 SWT coordinates and grows
+with row height. The table reserves a status column and the source gutter reserves
+the icon width, so arrow geometry no longer depends on a Unicode font glyph.
+Moved-and-edited entries retain a dot marker and their explicit kind tooltip.
+
+Focused Maven/Tycho verification passed **42 tests, no failures/errors/skips**:
+`/tmp/edt-navigation-tools/controls-final-focused.log`. The tests cover readable
+arrow pixel footprints at three sizes, multi-select filters, native selected-row
+colors, button contrast and count-column bounds after icon scaling. The selected
+row color and width regressions failed before their fixes. Independent review
+confirmed the selected-row color issue; the scaling concern was then reproduced.
+
+Actual EDT QualityProbe passed both themes, sidebar/gutter actions, existing method
+comparison and inline search checks, and source coverage for the 95-input corpus.
+Evidence: `/tmp/edt-navigation-tools/controls-native-final/`. The full 13,853-test
+run above applies to the original feature; this visual patch ran the affected UI,
+method comparison, search, theme and method-aware engine tests.

@@ -11,6 +11,7 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
@@ -29,10 +30,13 @@ final class BslMethodNavigationPanel
     private final Map<MethodKind, Button> filters = new EnumMap<>(MethodKind.class);
     private List<Entry> entries = List.of();
     private Entry selected;
+    private Color moveColor;
 
     BslMethodNavigationPanel(Composite parent, Consumer<Entry> reveal, Consumer<MethodChange> open)
     {
         root = new Composite(parent, SWT.NONE);
+        moveColor = new Color(parent.getDisplay(), new RGB(47, 107, 191));
+        root.addDisposeListener(event -> moveColor.dispose());
         root.setLayout(new GridLayout(1, false));
         count = new Label(root, SWT.NONE);
         count.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -47,7 +51,7 @@ final class BslMethodNavigationPanel
         types.setLayout(typeLayout);
         for (MethodKind kind : List.of(MethodKind.CHANGED, MethodKind.MOVED, MethodKind.ADDED, MethodKind.REMOVED))
         {
-            Button button = new Button(types, SWT.CHECK);
+            Button button = new Button(types, SWT.TOGGLE);
             button.setText(kindLabel(kind));
             button.setSelection(true);
             button.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
@@ -56,10 +60,55 @@ final class BslMethodNavigationPanel
         }
         table = new Table(root, SWT.SINGLE | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.BORDER);
         table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        TableColumn status = new TableColumn(table, SWT.LEFT);
         TableColumn name = new TableColumn(table, SWT.LEFT);
         TableColumn changes = new TableColumn(table, SWT.RIGHT);
+        status.setWidth(28);
         changes.setWidth(82);
-        table.addListener(SWT.Resize, event -> name.setWidth(Math.max(0, table.getClientArea().width - changes.getWidth())));
+        table.addListener(SWT.Resize, event -> name.setWidth(Math.max(0,
+            table.getClientArea().width - status.getWidth() - changes.getWidth())));
+        table.addListener(SWT.MeasureItem, event -> {
+            event.height = Math.max(event.height, 22);
+            if (event.index == 0)
+            {
+                int width = BslMoveIcon.size(event.height) + 12;
+                if (status.getWidth() != width)
+                {
+                    status.setWidth(width);
+                    name.setWidth(Math.max(0, table.getClientArea().width - width - changes.getWidth()));
+                }
+            }
+        });
+        table.addListener(SWT.EraseItem, event -> { if (event.index == 0) event.detail &= ~SWT.FOREGROUND; });
+        table.addListener(SWT.PaintItem, event -> {
+            if (event.index != 0) return;
+            TableItem item = (TableItem)event.item;
+            Entry entry = (Entry)item.getData();
+            var bounds = item.getBounds(0);
+            int size = BslMoveIcon.size(bounds.height);
+            int x = bounds.x + (bounds.width - size) / 2, y = bounds.y + (bounds.height - size) / 2;
+            boolean selectedRow = table.indexOf(item) == table.getSelectionIndex();
+            if (entry.method() != null && (entry.method().kind() == MethodKind.MOVED
+                || entry.method().kind() == MethodKind.MOVED_CHANGED))
+            {
+                if (!selectedRow) event.gc.setForeground(moveColor);
+                BslMoveIcon.draw(event.gc, x, y, size);
+                if (entry.method().kind() == MethodKind.MOVED_CHANGED)
+                {
+                    event.gc.setBackground(event.gc.getForeground());
+                    event.gc.fillOval(x + size - 4, y + size - 4, 4, 4);
+                }
+            }
+            else
+            {
+                String label = entry.method() == null ? "{ }" : switch (entry.method().kind()) { //$NON-NLS-1$
+                    case ADDED -> "+"; case REMOVED -> "−"; default -> "~"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                };
+                Point extent = event.gc.stringExtent(label);
+                event.gc.drawString(label, bounds.x + (bounds.width - extent.x) / 2,
+                    bounds.y + (bounds.height - extent.y) / 2, true);
+            }
+        });
         empty = new Label(root, SWT.WRAP);
         empty.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         table.addListener(SWT.Selection, event -> {
@@ -121,11 +170,8 @@ final class BslMethodNavigationPanel
                 if (!BslMethodNavigation.matches(entry, filter.getText(), kinds)) continue;
                 TableItem item = new TableItem(table, SWT.NONE);
                 item.setData(entry);
-                String prefix = entry.method() == null ? "{ }" : switch (entry.method().kind()) { //$NON-NLS-1$
-                    case CHANGED -> "~"; case MOVED -> "↔"; case MOVED_CHANGED -> "↔*"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                    case ADDED -> "+"; case REMOVED -> "−"; //$NON-NLS-1$ //$NON-NLS-2$
-                };
-                item.setText(new String[] {prefix + " " + entry.name(), "+" + entry.added() + " −" + entry.removed()}); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                item.setText(new String[] {entry.method() == null ? entry.name() : kindLabel(entry.method().kind()),
+                    entry.name(), "+" + entry.added() + " −" + entry.removed()}); //$NON-NLS-1$ //$NON-NLS-2$
             }
             restoreSelection();
         }
@@ -166,12 +212,20 @@ final class BslMethodNavigationPanel
         };
     }
 
-    void applyTheme(Color background, Color foreground) { applyTheme(root, background, foreground); }
+    void applyTheme(Color background, Color foreground)
+    {
+        moveColor.dispose();
+        moveColor = new Color(root.getDisplay(), background.getRGB().red < 128
+            ? new RGB(138, 188, 255) : new RGB(47, 107, 191));
+        applyTheme(root, background, foreground);
+        table.redraw();
+    }
 
     private static void applyTheme(Control control, Color background, Color foreground)
     {
-        // Leave checkbox indicators to the native theme.
-        if (!(control instanceof Button)) control.setBackground(background);
+        // Both button colors belong to the native theme, including pressed/inactive states.
+        if (control instanceof Button) return;
+        control.setBackground(background);
         control.setForeground(foreground);
         if (control instanceof Composite composite)
             for (Control child : composite.getChildren()) applyTheme(child, background, foreground);

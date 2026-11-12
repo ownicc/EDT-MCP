@@ -24,3 +24,8 @@ choice; the user approved the interaction and visual mockup.
 Verify model behavior with real BSL comparisons and SWT integration under Xvfb.
 Do not launch UI test windows on the user's desktop. Windows appearance and
 platform-specific scrolling remain a later check on the user's configuration.
+
+Attended visual refinement: use multi-select native toggle buttons for the type
+filters. Move arrows use shared vector geometry, at least 16 SWT coordinates and
+scaled to row height, with reserved space in the list and gutter. Preserve native
+selection/button colors and keep counts inside the table when icons grow.
