@@ -97,6 +97,13 @@ public class Messages extends NLS {
     public static String BslDiff_MethodRemoved; // NOSONAR Eclipse NLS field
     public static String BslDiff_MethodAbsent; // NOSONAR Eclipse NLS field
     public static String BslDiff_MethodRoute; // NOSONAR Eclipse NLS field
+    public static String BslDiff_Methods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_FilterMethods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_MethodCount; // NOSONAR Eclipse NLS field
+    public static String BslDiff_NoChangedMethods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_NoMatchingMethods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_OutsideMethods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_NavigationFallback; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchOld; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchNew; // NOSONAR Eclipse NLS field
     public static String BslDiff_SearchBoth; // NOSONAR Eclipse NLS field

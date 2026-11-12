@@ -103,7 +103,7 @@ public class QualityProbe extends ViewerProbe
                                 require(style.fontStyle==(attribute==null?SWT.NORMAL:attribute.getStyle()&(SWT.BOLD|SWT.ITALIC)),"Added token retains lexical font style");
                             }
                     }
-                    capture(root,dark?"quality-dark.png":"quality-light.png");
+                    captureSettled(root,dark?"quality-dark.png":"quality-light.png");
                 }
                 report.put("syntaxPreservedBothThemes",true);
                 int movedRow=text.getLineAtOffset(text.getText().indexOf("Функция Переносимый"));
@@ -159,7 +159,7 @@ public class QualityProbe extends ViewerProbe
                 matchCase.setSelection(true);matchCase.notifyListeners(SWT.Selection,new Event());
                 require(((List<?>)field(search,"matches")).isEmpty(),"Case-sensitive query with no results");
                 matchCase.setSelection(false);matchCase.notifyListeners(SWT.Selection,new Event());
-                capture(root,"quality-search.png");
+                captureSettled(root,"quality-search.png");
                 Event escape=new Event();escape.keyCode=SWT.ESC;query.notifyListeners(SWT.KeyDown,escape);
                 require(!searchRow.getVisible(),"Escape closes inline search");
                 call(search,"refresh");
@@ -193,7 +193,60 @@ public class QualityProbe extends ViewerProbe
             return null;
         });
         verifyAllMethodKinds();
+        verifyExternalNavigation();
+        verifyFormattingMoveNavigation();
         report.put("qualityPassed",true);
+    }
+
+    private void verifyFormattingMoveNavigation() throws Exception
+    {
+        String method="// Documentation\nFunction Transfer()\nReturn 1;\nEndFunction\n";
+        String a="#Region A\n"+method+"#EndRegion\n#Region B\n#EndRegion\n";
+        String b="#Region A\n#EndRegion\n#Region B\n"+method.replace("Return", "    Return")+"#EndRegion\n";
+        var result=MethodAwareBslDiff.compute(a,b,new NullProgressMonitor());
+        ui(()->{
+            Shell shell=new Shell(display);shell.setLayout(new FillLayout());
+            try
+            {
+                var constructor=BslStructuralCompare.class.getDeclaredConstructor(Composite.class,String.class,String.class);
+                constructor.setAccessible(true);Object viewer=constructor.newInstance(shell,a,b);
+                set(viewer,"methodChanges",result.methods());set(viewer,"movePairs",result.moves());call(viewer,"show",result.diff());
+                var navigation=(BslMethodNavigationPanel)field(viewer,"navigation");
+                TableItem item=Arrays.stream(navigation.table.getItems()).filter(row->((BslMethodNavigation.Entry)row.getData()).method()!=null).findFirst().orElseThrow();
+                var entry=(BslMethodNavigation.Entry)item.getData();
+                require(entry.method().kind()==MethodAwareBslDiff.MethodKind.MOVED_CHANGED&&entry.changedRows().isEmpty(),"Formatting move has no token edits");
+                navigation.table.setSelection(item);navigation.table.notifyListeners(SWT.Selection,new Event());
+                StyledText text=(StyledText)field(field(viewer,"right"),"text");
+                require(text.getLine(text.getLineAtOffset(text.getCaretOffset())).startsWith("Function"),"Formatting-only move jumps to declaration instead of documentation");
+            }
+            finally{shell.dispose();}
+            return null;
+        });
+        report.put("formattingMoveDeclarationJump",true);
+    }
+
+    private void verifyExternalNavigation() throws Exception
+    {
+        var executable=out.resolve("external-diff-fixture.sh");
+        Files.writeString(executable,"#!/bin/sh\nprintf '%s' '{\"language\":\"BSL\",\"status\":\"created\"}'\n");
+        require(executable.toFile().setExecutable(true),"External comparison fixture is executable");
+        ui(()->{
+            Shell shell=new Shell(display);shell.setLayout(new FillLayout());
+            try
+            {
+                Composite root=BslStructuralCompare.create(shell,"",method("External","1"),executable,reason->{throw new AssertionError(reason);});
+                Table table=controls(root,Table.class).get(0);
+                long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+                while(table.getItemCount()==0&&System.nanoTime()<deadline)
+                    if(!display.readAndDispatch())Thread.sleep(10);
+                require(table.getItemCount()==1,"External comparison exposes one navigation fallback entry");
+                var entry=(BslMethodNavigation.Entry)table.getItem(0).getData();
+                require(entry.method()==null&&entry.fallback()!=null,"External engine must not classify all method edits as outside code");
+            }
+            finally{shell.dispose();}
+            return null;
+        });
+        report.put("externalComparisonNavigationFallback",true);
     }
 
     private void verifyAllMethodKinds() throws Exception
@@ -217,6 +270,29 @@ public class QualityProbe extends ViewerProbe
                 set(viewer,"methodChanges",result.methods());set(viewer,"movePairs",result.moves());
                 call(viewer,"show",result.diff());shell.open();shell.layout(true,true);display.update();
                 Object nav=field(viewer,"overview");Button compare=(Button)field(viewer,"compareMethod");
+                var navigation=(BslMethodNavigationPanel)field(viewer,"navigation");
+                require(navigation.table.getItemCount()==BslMethodNavigation.entries(result.diff(),result.methods(),result.fallback()).size(),"Sidebar includes all method identities and outside edits");
+                for(TableItem item:navigation.table.getItems())
+                {
+                    var entry=(BslMethodNavigation.Entry)item.getData();
+                    navigation.table.setSelection(item);navigation.table.notifyListeners(SWT.Selection,new Event());
+                    require(call(nav,"selectedMethod")==entry.method(),"Sidebar selection selects the exact comparison pair");
+                    StyledText target=(StyledText)field(field(viewer,"right"),"text");
+                    if(!entry.changedRows().isEmpty())
+                        require(target.getLineAtOffset(target.getCaretOffset())==entry.row(),"Sidebar jumps to actual first edit");
+                    if(entry.method()!=null&&entry.method().kind()==MethodAwareBslDiff.MethodKind.MOVED)
+                    {
+                        require(entry.added()==0&&entry.removed()==0,"Pure move does not count as a body edit");
+                        require(target.getLine(target.getLineAtOffset(target.getCaretOffset())).contains("Функция"),"Pure move jumps to declaration instead of documentation");
+                    }
+                }
+                Button toggle=controls(root,Button.class).stream().filter(button->button.getText().equals(Messages.BslDiff_Methods)).findFirst().orElseThrow();
+                SashForm content=(SashForm)navigation.root.getParent().getParent();
+                toggle.setSelection(false);toggle.notifyListeners(SWT.Selection,new Event());
+                require(content.getMaximizedControl()!=null,"Methods toggle collapses sidebar");
+                toggle.setSelection(true);toggle.notifyListeners(SWT.Selection,new Event());
+                require(content.getMaximizedControl()==null,"Methods toggle restores sidebar");
+                report.put("methodNavigationSidebar",true);
                 Composite panel=(Composite)field(viewer,"methodPanel");
                 for(var method:result.methods())
                 {
@@ -239,7 +315,7 @@ public class QualityProbe extends ViewerProbe
                 int padding=lines.indexOf(null);require(padding>=0,"Fixture includes alignment padding");
                 left.setCaretOffset(left.getOffsetAtLine(padding));
                 require(call(nav,"selectedMethod")==null&&!compare.isEnabled(),"Synthetic padding never selects a method");
-                capture(root,"quality-method-panel-c.png");
+                captureSettled(root,"quality-method-panel-c.png");
             }
             finally{shell.dispose();}
             for(boolean isAdded:List.of(true,false))
@@ -266,6 +342,15 @@ public class QualityProbe extends ViewerProbe
     private static String method(String name,String value)
     {
         return "Функция "+name+"() Экспорт\nВозврат "+value+";\nКонецФункции\n\n";
+    }
+
+    private void captureSettled(Control control,String name) throws Exception
+    {
+        // GTK animates newly realized checkbox ticks; capture the settled state.
+        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(250);
+        while(System.nanoTime()<deadline)
+            if(!display.readAndDispatch())Thread.sleep(10);
+        capture(control,name);
     }
 
     private static double luminance(org.eclipse.swt.graphics.RGB color)
