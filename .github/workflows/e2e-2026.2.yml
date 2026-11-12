@@ -6,8 +6,26 @@ name: E2E 2026.2
 on:
   pull_request:
     branches: [master]
+    paths:
+      - 'mcp/**'
+      - 'tests/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/e2e-2026.2.yml'
+      - '.github/workflows/e2e-tests.yml'
+      - '.github/workflows/coverage.yml'
+      - '.gitattributes'
   push:
     branches: [master]
+    paths:
+      - 'mcp/**'
+      - 'tests/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/e2e-2026.2.yml'
+      - '.github/workflows/e2e-tests.yml'
+      - '.github/workflows/coverage.yml'
+      - '.gitattributes'
   workflow_dispatch: {}
 
 permissions:

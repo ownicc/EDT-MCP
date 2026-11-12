@@ -6,8 +6,24 @@ name: Conformance 2026.2
 on:
   pull_request:
     branches: [master]
+    paths:
+      - 'mcp/**'
+      - 'tests/conformance/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/conformance-2026.2.yml'
+      - '.github/workflows/conformance.yml'
+      - '.gitattributes'
   push:
     branches: [master]
+    paths:
+      - 'mcp/**'
+      - 'tests/conformance/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/conformance-2026.2.yml'
+      - '.github/workflows/conformance.yml'
+      - '.gitattributes'
   workflow_dispatch: {}
 
 permissions:
