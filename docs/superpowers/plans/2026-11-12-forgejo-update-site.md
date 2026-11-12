@@ -23,28 +23,28 @@ PAT не передаётся CI. Стабильные релизы только
 **Interfaces:** CLI `--tag vX.Y.Z` (optional), env `UPDATE_SITE_TOKEN`; готовый
 GitHub stable release ZIP → `EDT-MCP-update-site/master`.
 
-- [ ] Сначала тесты: стабильный тег, prerelease/draft, безопасная распаковка,
+- [x] Сначала тесты: стабильный тег, prerelease/draft, безопасная распаковка,
   неправильная версия/повреждённый p2, сохранение старых JAR, запрет downgrade,
   повторная публикация без изменений, отказ push при конкурентном обновлении.
-- [ ] Реализовать stdlib + git, переиспользовать `validate-update-site.py`.
-- [ ] Запустить `.github/scripts` unittest и `git diff --check`; commit.
+- [x] Реализовать stdlib + git, переиспользовать `validate-update-site.py`.
+- [x] Запустить `.github/scripts` unittest и `git diff --check`; commit.
 
 ### Task 2: Workflow, доступ и инструкции
 
 **Files:** `.forgejo/workflows/deploy-update-site.yml`, `README.md`.
 **Interfaces:** Скрипт Task 1, secret `UPDATE_SITE_TOKEN`, runner `edt-build`.
 
-- [ ] Workflow: push tags `v*`, manual optional tag, node24 + git/python,
+- [x] Workflow: push tags `v*`, manual optional tag, node24 + git/python,
   checkout master с полной историей, проверка tag ancestor master, вызов скрипта.
-- [ ] Создать публичный p2 repo и repository-scoped token; сохранить secret.
-- [ ] Проверить схему runner и shell; описать URL и порядок обновления EDT.
-- [ ] Commit, интеграция в master, push только master, синхронизация зеркала.
+- [x] Создать публичный p2 repo и repository-scoped token; сохранить secret.
+- [x] Проверить схему runner и shell; описать URL и порядок обновления EDT.
+- [x] Commit, интеграция в master, push только master, синхронизация зеркала.
 
 ### Task 3: Живая проверка
 
 **Files:** `docs/superpowers/reports/2026-11-12-forgejo-update-site.md`.
 **Interfaces:** Ручной запуск Task 2 с v1.0.6; публичный raw URL.
 
-- [ ] Запустить реальный Forgejo workflow; проверить успешную публикацию.
-- [ ] Анонимно скачать metadata/JAR, проверить валидатором и p2 director.
-- [ ] Зафиксировать фактический результат, закрыть checklist и включить в master.
+- [x] Запустить реальный Forgejo workflow; проверить успешную публикацию.
+- [x] Анонимно скачать metadata/JAR, проверить валидатором и p2 director.
+- [x] Зафиксировать фактический результат, закрыть checklist и включить в master.
