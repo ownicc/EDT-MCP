@@ -31,6 +31,7 @@ public enum ToolGroup
     PROBLEMS("problems", "Errors & Problems", //$NON-NLS-1$ //$NON-NLS-2$
         "Error reporting, validation, and workspace markers (bookmarks, tasks)", //$NON-NLS-1$
         "get_problem_summary", "get_project_errors", "get_markers", "apply_quick_fix", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        "problem_snapshots", //$NON-NLS-1$
         "project_checks", //$NON-NLS-1$
         "validate_xdto_package"), //$NON-NLS-1$
 

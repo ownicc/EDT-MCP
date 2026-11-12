@@ -5096,6 +5096,201 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Capture stored EDT diagnostics, then compare two snapshots for new, fixed and remaining signature counts. Does not run validation. Full parameters and examples: call get_tool_guide('problem_snapshots').",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "enum": [
+            "capture",
+            "compare"
+          ],
+          "type": "string"
+        },
+        "baselineId": {
+          "type": "string"
+        },
+        "checkId": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "modulePaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "ERRORS",
+            "BLOCKER",
+            "CRITICAL",
+            "MAJOR",
+            "MINOR",
+            "TRIVIAL",
+            "NONE"
+          ],
+          "type": "string"
+        },
+        "snapshotId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "type": "object"
+    },
+    "name": "problem_snapshots",
+    "outputSchema": {
+      "properties": {
+        "action": {
+          "enum": [
+            "capture",
+            "compare"
+          ],
+          "type": "string"
+        },
+        "baselineId": {
+          "type": "string"
+        },
+        "capturedAt": {
+          "type": "string"
+        },
+        "counts": {
+          "properties": {
+            "fixed": {
+              "type": "integer"
+            },
+            "new": {
+              "type": "integer"
+            },
+            "remaining": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "new",
+            "fixed",
+            "remaining"
+          ],
+          "type": "object"
+        },
+        "hasMore": {
+          "type": "boolean"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "matchingBasis": {
+          "type": "string"
+        },
+        "matchingLimit": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "problemCount": {
+          "type": "integer"
+        },
+        "problems": {
+          "items": {
+            "properties": {
+              "afterLength": {
+                "type": "integer"
+              },
+              "afterLine": {
+                "type": "integer"
+              },
+              "afterOffset": {
+                "type": "integer"
+              },
+              "beforeLength": {
+                "type": "integer"
+              },
+              "beforeLine": {
+                "type": "integer"
+              },
+              "beforeOffset": {
+                "type": "integer"
+              },
+              "checkId": {
+                "type": "string"
+              },
+              "contributorId": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "modulePath": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "new",
+                  "fixed",
+                  "remaining"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "checkId",
+              "severity",
+              "message",
+              "location"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "returned": {
+          "type": "integer"
+        },
+        "scope": {
+          "type": "object"
+        },
+        "snapshotId": {
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "success",
+        "action",
+        "snapshotId"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "openWorldHint": false,
       "readOnlyHint": false

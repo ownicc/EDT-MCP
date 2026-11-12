@@ -4,8 +4,8 @@
 
 Show which EDT validation problems appeared, disappeared or remained after a code
 change. Existing problem counts can hide two fixes accompanied by two regressions.
-The user approved this functional scenario; the interface and implementation
-choices below are proposed for review.
+The user approved this design in the conversation, including the Russian summary
+of its contract, matching limits, retention and verification.
 
 ## Approaches
 

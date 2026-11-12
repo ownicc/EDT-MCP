@@ -65,6 +65,7 @@ import com.ditrix.edt.mcp.server.tools.impl.GetPlatformDocumentationTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetProblemSummaryTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetProfilingResultsTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetProjectErrorsTool;
+import com.ditrix.edt.mcp.server.tools.impl.ProblemSnapshotsTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetServerStatusTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetSubsystemContentTool;
 import com.ditrix.edt.mcp.server.tools.impl.GetSymbolInfoTool;
@@ -174,6 +175,7 @@ public final class BuiltInToolRegistrar
         catalogue.add(new GetProblemSummaryTool());
         catalogue.add(new ApplyQuickFixTool());
         catalogue.add(new GetProjectErrorsTool());
+        catalogue.add(new ProblemSnapshotsTool());
         catalogue.add(new GetMarkersTool());
         catalogue.add(new GetEventLogTool());
         catalogue.add(new GetMcpHistoryTool());
