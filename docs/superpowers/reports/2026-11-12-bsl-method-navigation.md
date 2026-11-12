@@ -73,3 +73,11 @@ comparison and inline search checks, and source coverage for the 95-input corpus
 Evidence: `/tmp/edt-navigation-tools/controls-native-final/`. The full 13,853-test
 run above applies to the original feature; this visual patch ran the affected UI,
 method comparison, search, theme and method-aware engine tests.
+
+## Bulk type-filter actions
+
+Added localized Select all / Clear all buttons under the type toggles. Clearing
+all types followed by choosing Moved shows only moved methods; selecting all
+restores every type. The existing native SWT interaction test exercises these
+buttons. Affected Maven/Tycho verification passed 42 tests without failures,
+errors or skips (`/tmp/edt-navigation-tools/type-actions-green.log`).

@@ -72,8 +72,12 @@ public class BslMethodNavigationUiTest
             {
                 Button button = (Button)control;
                 assertTrue("Type filters use toggle buttons", (button.getStyle() & SWT.TOGGLE) != 0);
-                button.setSelection(false); button.notifyListeners(SWT.Selection, new Event());
             }
+            var actions = (Composite)panel.root.getChildren()[3];
+            Button selectAll = (Button)actions.getChildren()[0];
+            Button clearAll = (Button)actions.getChildren()[1];
+            clearAll.notifyListeners(SWT.Selection, new Event());
+            for (Control control : buttons) assertFalse(((Button)control).getSelection());
             assertEquals(0, panel.table.getItemCount());
             Button moved = (Button)buttons[1];
             moved.setSelection(true); moved.notifyListeners(SWT.Selection, new Event());
@@ -81,6 +85,9 @@ public class BslMethodNavigationUiTest
             assertSame(method, ((BslMethodNavigation.Entry)panel.table.getItem(0).getData()).method());
             Button changed = (Button)buttons[0];
             changed.setSelection(true); changed.notifyListeners(SWT.Selection, new Event());
+            assertEquals(2, panel.table.getItemCount());
+            selectAll.notifyListeners(SWT.Selection, new Event());
+            for (Control control : buttons) assertTrue(((Button)control).getSelection());
             assertEquals(2, panel.table.getItemCount());
             right.setSelection(right.getOffsetAtLine(3));
             assertNull(overview.selectedMethod());
