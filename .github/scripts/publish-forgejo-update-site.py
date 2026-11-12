@@ -44,7 +44,8 @@ def release_asset(release, tag):
     name = f'MCP-EDT.{tag}.zip'
     expected_url = f'https://github.com/{SOURCE}/releases/download/{tag}/{name}'
     for asset in release['assets']:
-        if asset['name'] == name and asset['browser_download_url'] == expected_url:
+        if (asset['name'] == name and asset['browser_download_url'] == expected_url
+                and asset.get('state') == 'uploaded'):
             return tag[1:], expected_url
     raise ReleasePending('Stable release p2 archive is missing')
 

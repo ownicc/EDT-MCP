@@ -21,7 +21,7 @@ SPEC.loader.exec_module(publisher)
 class PublicationTest(unittest.TestCase):
     def test_only_stable_release_with_expected_asset_is_accepted(self):
         release = {'tag_name': 'v1.0.6', 'draft': False, 'prerelease': False,
-                   'assets': [{'name': 'MCP-EDT.v1.0.6.zip',
+                   'assets': [{'name': 'MCP-EDT.v1.0.6.zip', 'state': 'uploaded',
                                'browser_download_url': 'https://github.com/ownicc/EDT-MCP/releases/download/v1.0.6/MCP-EDT.v1.0.6.zip'}]}
         self.assertEqual(publisher.release_asset(release, 'v1.0.6')[0], '1.0.6')
         for key in ('draft', 'prerelease'):
@@ -85,10 +85,12 @@ class PublicationTest(unittest.TestCase):
 
     def test_release_waits_for_asset_upload_after_release_creation(self):
         pending = {'tag_name': 'v1.0.6', 'draft': False, 'prerelease': False, 'assets': []}
-        ready = dict(pending, assets=[{'name': 'MCP-EDT.v1.0.6.zip',
+        ready = dict(pending, assets=[{'name': 'MCP-EDT.v1.0.6.zip', 'state': 'uploaded',
             'browser_download_url': 'https://github.com/ownicc/EDT-MCP/releases/download/v1.0.6/MCP-EDT.v1.0.6.zip'}])
+        uploading = dict(pending, assets=[dict(ready['assets'][0], state='starter')])
         responses = [urllib.error.HTTPError('url', 404, 'not released', {}, None),
-                     io.BytesIO(json.dumps(pending).encode()), io.BytesIO(json.dumps(ready).encode())]
+                     io.BytesIO(json.dumps(pending).encode()), io.BytesIO(json.dumps(uploading).encode()),
+                     io.BytesIO(json.dumps(ready).encode())]
         with patch.object(publisher.urllib.request, 'urlopen', side_effect=responses), \
                 patch.object(publisher.time, 'sleep'):
             release = publisher.get_release('v1.0.6', 1800)
