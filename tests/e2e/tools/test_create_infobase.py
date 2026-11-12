@@ -71,9 +71,9 @@ from harness import (
     assert_error_quality,
     assert_no_diff,
     requires_live_infobase,
+    requires_no_platform,
     e2e_test,
     PROJECT,
-    LIVE_INFOBASE,
     snapshot_application_bindings,
 )
 
@@ -160,22 +160,10 @@ def test_no_platform_runtime_errors_actionably():
     probe must fire fast with an actionable 'No 1C platform runtime is registered' error
     instead of hanging. This is the primary CI contract for create_infobase.
 
-    On a live stand WITH a platform registered, this test is expected to PASS (the
-    platform probe succeeds and execution moves on to actually try to create the
-    infobase) — in that case a later error (e.g. the project itself) may fire instead.
-    We assert the probe contract only when no platform is available (headless CI).
-
-    Design note: we cannot reliably distinguish "probe fired and said no platform" from
-    "probe passed but later step failed" in a single call without inspecting the exact
-    error text. So this test gates on NOT LIVE_INFOBASE (headless only) to avoid a
-    false failure on the stand."""
-    if LIVE_INFOBASE:
-        # On the stand the platform is registered and the probe passes; skip this
-        # specific test (the live round-trip covers the success path).
-        from harness import E2ESkip
-        raise E2ESkip(
-            "no-platform-runtime test skipped on the live stand "
-            "(a platform IS registered; the probe would pass)")
+    Run only with EDT_MCP_NO_PLATFORM=1 on a stand known to have no registered
+    platform. Without that declaration, skip before calling a tool that could
+    create an infobase. Live round-trips retain their separate opt-in."""
+    requires_no_platform()
 
     # On headless CI: provide a REAL, open project and a valid path so every
     # earlier guard passes and execution reaches the platform probe.

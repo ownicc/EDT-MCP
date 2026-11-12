@@ -47,9 +47,8 @@ from harness import (
     assert_no_diff_rel,
     settle_or_fail,
     requires_live_infobase,
+    requires_no_platform,
     e2e_test,
-    E2ESkip,
-    LIVE_INFOBASE,
     PROJECT,
     TESTS_PROJECT,
     EXT_OBJECTS_REL,
@@ -275,8 +274,7 @@ def test_a_platform_version_that_matches_nothing_is_refused_naming_it():
 def test_without_a_platform_the_call_is_refused_at_once():
     """Headless CI has no 1C platform: the call must be refused before any job, naming the
     missing platform and the XML route instead of hanging or creating anything."""
-    if LIVE_INFOBASE:
-        raise E2ESkip("a platform IS registered on the live stand; the happy paths cover it")
+    requires_no_platform()
     r = call(TOOL, {"filePath": _CF, "projectName": _REFUSED_PROJECT})
     e = assert_error(r, "no installed platform")
     assert_error_quality(e, names=["platform"], suggests=["import_configuration_from_xml"],

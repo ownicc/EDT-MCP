@@ -94,6 +94,14 @@ python tests/e2e/run_all.py --filter modify_metadata
 python tests/e2e/run_all.py --junit-xml results.xml
 ```
 
+The two no-platform refusal probes (`create_infobase` and `import_project_from_file`)
+run only with `EDT_MCP_NO_PLATFORM=1`. Set it only when the EDT stand is known to have
+no registered 1C:Enterprise platform runtime; cloud CI sets it explicitly. Otherwise
+these probes skip before making any MCP call. This declaration does not detect installed
+platforms. `EDT_MCP_LIVE_INFOBASE=1` remains a separate opt-in for real database operations
+and skips the no-platform probes even if both variables are set. Do not enable live tests
+to suppress the no-platform probes.
+
 Each mutating test isolates itself with a **git fixture**: it snapshots the
 `TestConfiguration/` tree, runs, then restores it (`git checkout` + `git clean`), so a
 failed test never leaks artifacts into the next one. The runner reports `fixture clean:
