@@ -28,11 +28,12 @@ jobs:
 
       - name: Validate release tag
         id: release
+        shell: bash
         env:
           REQUESTED_TAG: ${{ inputs.tag || forgejo.ref_name }}
         run: |
           set -eu
-          printf '%s\n' "$REQUESTED_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || {
+          [[ "$REQUESTED_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
             echo 'Expected stable release tag vX.Y.Z' >&2
             exit 1
           }
@@ -56,7 +57,7 @@ jobs:
         run: |
           set -eu
           SOURCE_SHA=$(git rev-parse HEAD)
-          if [ "$EVENT_NAME" = push ] && [ "$SOURCE_SHA" != "$EVENT_SHA" ]; then
+          if [ "$EVENT_NAME" = push ] && [ "$SOURCE_SHA" != "$(git rev-parse --verify "$EVENT_SHA^{commit}")" ]; then
             echo 'Release tag moved after the push event' >&2
             exit 1
           fi
