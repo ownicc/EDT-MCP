@@ -44,9 +44,22 @@ public class BslMethodNavigationUiTest
             shell.setSize(1000, 500); shell.open();
             while (display.readAndDispatch()) { }
             assertEquals(2, panel.table.getItemCount());
+            assertEquals("Status icons must have their own column", 3, panel.table.getColumnCount());
+            assertEquals("M", panel.table.getItem(0).getText(1));
             panel.table.setSelection(0); panel.table.notifyListeners(SWT.Selection, new Event());
             assertSame(method, overview.selectedMethod());
             assertEquals(1, right.getLineAtOffset(right.getCaretOffset()));
+            var selectedImage = new org.eclipse.swt.graphics.Image(display, 300, 80);
+            var selectedGc = new org.eclipse.swt.graphics.GC(selectedImage);
+            try
+            {
+                Color nativeSelectionText = display.getSystemColor(SWT.COLOR_BLACK);
+                selectedGc.setForeground(nativeSelectionText);
+                Event paint = new Event(); paint.index = 0; paint.item = panel.table.getItem(0); paint.gc = selectedGc;
+                panel.table.notifyListeners(SWT.PaintItem, paint);
+                assertEquals("Move icon must respect native inactive selection text", nativeSelectionText, selectedGc.getForeground());
+            }
+            finally { selectedGc.dispose(); selectedImage.dispose(); }
             panel.table.notifyListeners(SWT.DefaultSelection, new Event());
             assertEquals(List.of(method), opened);
             panel.filter.setText("no match");
@@ -58,6 +71,7 @@ public class BslMethodNavigationUiTest
             for (Control control : buttons)
             {
                 Button button = (Button)control;
+                assertTrue("Type filters use toggle buttons", (button.getStyle() & SWT.TOGGLE) != 0);
                 button.setSelection(false); button.notifyListeners(SWT.Selection, new Event());
             }
             assertEquals(0, panel.table.getItemCount());
@@ -75,9 +89,11 @@ public class BslMethodNavigationUiTest
             assertEquals(1, opened.size());
             Color background = new Color(display, new RGB(30, 30, 30)); colors.add(background);
             Color foreground = new Color(display, new RGB(212, 212, 212)); colors.add(foreground);
+            Color nativeButtonForeground = moved.getForeground();
             panel.applyTheme(background, foreground);
             assertEquals(background, panel.table.getBackground());
             assertEquals(foreground, panel.filter.getForeground());
+            assertEquals("Toggle labels must retain their native theme contrast", nativeButtonForeground, moved.getForeground());
             panel.show(BslMethodNavigation.entries(diff, List.of(), "ambiguous-identity:flat-tokens"));
             assertEquals(1, panel.table.getItemCount());
             panel.table.setSelection(0); panel.table.notifyListeners(SWT.Selection, new Event());
@@ -88,6 +104,65 @@ public class BslMethodNavigationUiTest
         {
             shell.dispose(); colors.forEach(Color::dispose); display.dispose();
         }
+    }
+
+    @Test public void largerStatusIconsKeepCountsInsideTheTable()
+    {
+        Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));
+        Display display = new Display(); Shell shell = new Shell(display);
+        try
+        {
+            shell.setLayout(new FillLayout());
+            var panel = new BslMethodNavigationPanel(shell, entry -> { }, method -> { });
+            panel.show(List.of(new BslMethodNavigation.Entry(null, 0, java.util.Set.of(0), 1, 1, null)));
+            shell.setSize(320, 400); shell.open(); shell.layout(true, true);
+            while (display.readAndDispatch()) { }
+            Event tallerRows = new Event(); tallerRows.index = 0; tallerRows.height = 44;
+            panel.table.notifyListeners(SWT.MeasureItem, tallerRows);
+            int totalWidth = 0;
+            for (TableColumn column : panel.table.getColumns()) totalWidth += column.getWidth();
+            assertTrue("Larger icons must not clip the counts column", totalWidth <= panel.table.getClientArea().width);
+        }
+        finally { shell.dispose(); display.dispose(); }
+    }
+
+    @Test public void moveIconHasReadableFontIndependentGeometry()
+    {
+        Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));
+        assertTrue(BslMoveIcon.size(18) >= 16);
+        assertTrue(BslMoveIcon.size(44) > BslMoveIcon.size(22));
+        Display display = new Display();
+        try
+        {
+            for (int lineHeight : List.of(18, 28, 44))
+            {
+                int size = BslMoveIcon.size(lineHeight);
+                var image = new org.eclipse.swt.graphics.Image(display, size, size);
+                var gc = new org.eclipse.swt.graphics.GC(image);
+                try
+                {
+                    gc.setBackground(display.getSystemColor(SWT.COLOR_WHITE));
+                    gc.fillRectangle(image.getBounds());
+                    gc.setForeground(display.getSystemColor(SWT.COLOR_BLACK));
+                    BslMoveIcon.draw(gc, 0, 0, size);
+                    var pixels = image.getImageData();
+                    int minX = size, maxX = -1, minY = size, maxY = -1;
+                    for (int y = 0; y < size; y++) for (int x = 0; x < size; x++)
+                    {
+                        RGB pixel = pixels.palette.getRGB(pixels.getPixel(x, y));
+                        if (pixel.red + pixel.green + pixel.blue < 384)
+                        {
+                            minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                            minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                        }
+                    }
+                    assertTrue("Arrow fills its icon width", maxX - minX + 1 >= size - 4);
+                    assertTrue("Arrowheads are visible", maxY - minY + 1 >= size / 2);
+                }
+                finally { gc.dispose(); image.dispose(); }
+            }
+        }
+        finally { display.dispose(); }
     }
 
     private static List<StructuralBslDiff.Span> spans(int... lines)
