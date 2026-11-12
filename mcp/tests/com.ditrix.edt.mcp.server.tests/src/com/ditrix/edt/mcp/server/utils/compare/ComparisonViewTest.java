@@ -20,6 +20,8 @@ import com._1c.g5.v8.dt.compare.datasource.IComparisonDataSource;
 import com._1c.g5.v8.dt.compare.model.ComparisonSide;
 import com._1c.g5.v8.dt.bsl.compare.BslModuleComparisonNode;
 import com._1c.g5.v8.dt.bsl.compare.BslModuleSectionComparisonNode;
+import com._1c.g5.v8.dt.bsl.compare.BslModuleSectionType;
+import com._1c.g5.v8.dt.bsl.compare.BslCompareFactory;
 import com._1c.g5.v8.dt.core.filesystem.IQualifiedNameFilePathConverter;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -114,7 +116,7 @@ public class ComparisonViewTest
     }
 
     @Test
-    public void sectionUsesItsWholeOwningModuleAndAbsenceIsNotReadFailure()
+    public void sectionPreservesModuleReadFailuresAndSideAbsence()
     {
         ComparisonView view = new ComparisonView(null, mock(IComparisonSession.class));
         BslModuleComparisonNode module = mock(BslModuleComparisonNode.class);
@@ -149,6 +151,250 @@ public class ComparisonViewTest
         assertFalse(source.absent());
         assertTrue(source.problem(), source.problem().contains("Binary module"));
         org.junit.Assert.assertNull(source.text());
+    }
+
+    @Test
+    public void regionOwnTextExcludesChangedChildMethods() throws Exception
+    {
+        String before = "#Область Расчеты\nПроцедура Тест()\n    Сумма = 100;\nКонецПроцедуры\n#КонецОбласти\n";
+        String after = before.replace("100", "200");
+        var region = section(BslModuleSectionType.REGION_PREPROCESSOR);
+        pairedRange(region, 0, "#Область Расчеты\n".length(), 0, "#Область Расчеты\n".length());
+        pairedRange(region, before.indexOf("#КонецОбласти"), "#КонецОбласти\n".length(),
+            after.indexOf("#КонецОбласти"), "#КонецОбласти\n".length());
+        var child = section(BslModuleSectionType.PROCEDURE);
+        region.getChildren().add(child);
+        String report = sectionDiff(region, before, after);
+        assertTrue(report, report.contains("selected section texts are equal"));
+        assertFalse(report, report.contains("Сумма"));
+        assertFalse(report, report.contains("whole owning module"));
+    }
+
+    @Test
+    public void changedRegionHeaderUsesItsOwnOriginalLines() throws Exception
+    {
+        String before = "// prefix\n#Область До\nПроцедура Тест()\nКонецПроцедуры\n#КонецОбласти\n";
+        String after = before.replace("Область До", "Область После").replace("Тест()", "Другой()");
+        var region = section(BslModuleSectionType.REGION_PREPROCESSOR);
+        pairedRange(region, before.indexOf('#'), "#Область До\n".length(),
+            after.indexOf('#'), "#Область После\n".length());
+        pairedRange(region, before.indexOf("#Конец"), "#КонецОбласти\n".length(), after.indexOf("#Конец"), "#КонецОбласти\n".length());
+        String report = sectionDiff(region, before, after);
+        assertTrue(report, report.contains("@@ -2 +2 @@"));
+        assertTrue(report, report.contains("-#Область До\n+#Область После"));
+        assertFalse(report, report.contains("Другой"));
+    }
+
+    @Test
+    public void splitMethodIncludesCommentsSignatureAndBodyAtOriginalCoordinates() throws Exception
+    {
+        String before = "// prefix\n// Описание\nПроцедура Тест()\n    А = 1;\nКонецПроцедуры\n";
+        String after = "// another prefix\n" + before.replace("Тест()", "Тест(Параметр)").replace("А = 1", "А = 2");
+        var method = section(BslModuleSectionType.PROCEDURE);
+        var signature = section(BslModuleSectionType.METHOD_SIGNATURE);
+        var body = section(BslModuleSectionType.METHOD_BODY);
+        method.getChildren().add(signature);
+        method.getChildren().add(body);
+        pairedRange(signature, before.indexOf("// Описание"), before.indexOf("    А") - before.indexOf("// Описание"),
+            after.indexOf("// Описание"), after.indexOf("    А") - after.indexOf("// Описание"));
+        pairedRange(signature, before.indexOf("КонецПроцедуры"), "КонецПроцедуры\n".length(), after.indexOf("КонецПроцедуры"), "КонецПроцедуры\n".length());
+        pairedRange(body, before.indexOf("    А"), "    А = 1;\n".length(), after.indexOf("    А"), "    А = 2;\n".length());
+        String report = sectionDiff(method, before, after);
+        assertTrue(report, report.contains("// Описание"));
+        assertTrue(report, report.contains("-Процедура Тест()\n+Процедура Тест(Параметр)"));
+        assertTrue(report, report.contains("@@ -4 +5 @@"));
+        assertTrue(report, report.contains("-    А = 1;\n+    А = 2;"));
+        assertFalse(report, report.contains("another prefix"));
+    }
+
+    @Test
+    public void invalidOrMissingSectionRangesNeverClaimEquality() throws Exception
+    {
+        for (int[] range : new int[][] {{-1, 2}, {0, -1}, {1, Integer.MAX_VALUE}, {9, 2}})
+        {
+            var region = section(BslModuleSectionType.MAIN);
+            pairedRange(region, range[0], range[1], range[0], range[1]);
+            String report = sectionDiff(region, "text\n", "text\n");
+            assertTrue(report, report.contains("unavailable"));
+            assertFalse(report, report.contains("texts are equal"));
+        }
+        var missing = section(BslModuleSectionType.REGION_PREPROCESSOR);
+        String report = sectionDiff(missing, "text\n", "text\n");
+        assertTrue(report, report.contains("unavailable"));
+        assertFalse(report, report.contains("texts are equal"));
+    }
+
+    @Test
+    public void disjointFragmentsNeverUseJoinedLineNumbersOrInterveningText() throws Exception
+    {
+        String before = "А = 1;\nПроцедура Скрытая()\nКонецПроцедуры\nБ = 1;\n";
+        String after = before.replace("Б = 1", "Б = 2");
+        var main = section(BslModuleSectionType.MAIN);
+        pairedRange(main, 0, 7, 0, 7);
+        pairedRange(main, before.indexOf("Б = 1"), 7, after.indexOf("Б = 2"), 7);
+        String report = sectionDiff(main, before, after);
+        assertTrue(report, report.contains("@@ -4 +4 @@"));
+        assertFalse(report, report.contains("Скрытая"));
+        assertFalse(report, report.contains("@@ -2 +2 @@"));
+    }
+
+    @Test
+    public void absentSectionDoesNotBecomeWholeModuleDeletion() throws Exception
+    {
+        var section = section(BslModuleSectionType.MAIN);
+        when(section.getSymlink(ComparisonSide.MAIN)).thenReturn(null);
+        pairedRange(section, 0, 0, 7, 7);
+        section.getComparisonRegions().get(0).setMainRegion(null);
+        String report = sectionDiff(section, "hidden\n", "hidden\nА = 1;\n");
+        assertTrue(report, report.contains("Main: absent"));
+        assertTrue(report, report.contains("@@ -0,0 +2 @@"));
+        assertTrue(report, report.contains("+А = 1;"));
+        assertFalse(report, report.contains("hidden"));
+    }
+
+    @Test
+    public void partialLinesKeepColumnsAndLiteralNewlineMarkerText() throws Exception
+    {
+        String before = "prefix А=1; suffix\n";
+        String after = "prefix А=2; suffix\n";
+        var section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 7, 4, 7, 4);
+        String report = sectionDiff(section, before, after);
+        assertTrue(report, report.contains("offset 7, length 4, line 1, column 8"));
+        assertTrue(report, report.contains("-А=1;\n"));
+        assertFalse(report, report.contains("suffix"));
+        String literal = "\\ No newline at end of file\n";
+        section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 0, literal.length(), 0, literal.length() + 1);
+        report = sectionDiff(section, literal, "+" + literal);
+        assertTrue(report, report.contains("-" + literal));
+        assertTrue(report, report.contains("++" + literal));
+    }
+
+    @Test
+    public void fragmentsShareOneOutputBudget() throws Exception
+    {
+        String before = "А = 1;\nБ = 1;\n";
+        String after = before.replace("1", "2");
+        var section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 0, 7, 0, 7);
+        pairedRange(section, 7, 7, 7, 7);
+        String report = sectionDiff(section, before, after, 7);
+        assertTrue(report, report.contains("truncated"));
+        assertFalse(report, report.contains("+Б = 2;"));
+    }
+
+    @Test
+    public void overlappingOrUnlocatedPresentFragmentsAreUnavailable() throws Exception
+    {
+        var section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 0, 3, 0, 3);
+        pairedRange(section, 1, 3, 1, 3);
+        String report = sectionDiff(section, "text\n", "text\n");
+        assertTrue(report, report.contains("unavailable"));
+        assertFalse(report, report.contains("texts are equal"));
+        section.getComparisonRegions().clear();
+        section.getComparisonRegions().add(BslCompareFactory.eINSTANCE.createComparisonTextRegion());
+        report = sectionDiff(section, "text\n", "text\n");
+        assertTrue(report, report.contains("unavailable"));
+        assertFalse(report, report.contains("texts are equal"));
+    }
+
+    @Test
+    public void sectionCoordinatesPreserveBomCrLfAndAncestorSide() throws Exception
+    {
+        String before = "\ufeff// prefix\r\nА=1;\r\n";
+        String after = before.replace("1", "2");
+        var section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 12, 6, 12, 6);
+        String report = sectionDiff(section, before, after);
+        assertTrue(report, report.contains("offset 12, length 6, line 2, column 1"));
+        assertTrue(report, report.contains("@@ -2 +2 @@"));
+        assertTrue(report, report.contains("-А=1;\r\n+А=2;\r\n"));
+        section.getComparisonRegions().get(0).setRegion(ComparisonSide.COMMON_ANCESTOR,
+            section.getComparisonRegions().get(0).getMainRegion());
+        var ancestor = ComparisonSectionText.capture(ComparisonTextDiff.Source.available("Test.Module", before),
+            section, ComparisonSide.COMMON_ANCESTOR);
+        assertEquals("А=1;\r\n", ancestor.text());
+    }
+
+    @Test
+    public void zeroLengthPresentSectionRemainsDistinctFromAbsence() throws Exception
+    {
+        var section = section(BslModuleSectionType.MAIN);
+        pairedRange(section, 0, 0, 0, 0);
+        String report = sectionDiff(section, "", "");
+        assertTrue(report, report.contains("Main: present"));
+        assertTrue(report, report.contains("Other: present"));
+        assertTrue(report, report.contains("length 0, line 1, column 1"));
+        assertTrue(report, report.contains("selected section texts are equal"));
+    }
+
+    private static BslModuleSectionComparisonNode section(BslModuleSectionType type)
+    {
+        var result = mock(BslModuleSectionComparisonNode.class);
+        when(result.getSectionType()).thenReturn(type);
+        when(result.getComparisonRegions()).thenReturn(new org.eclipse.emf.common.util.BasicEList<>());
+        when(result.getChildren()).thenReturn(new org.eclipse.emf.common.util.BasicEList<>());
+        for (var side : new ComparisonSide[] {ComparisonSide.MAIN, ComparisonSide.OTHER, ComparisonSide.COMMON_ANCESTOR})
+            when(result.getSymlink(side)).thenReturn("Test.Module.Section");
+        return result;
+    }
+
+    private static void addRange(BslModuleSectionComparisonNode section, ComparisonSide side, int offset, int length)
+    {
+        var region = BslCompareFactory.eINSTANCE.createTextRegion();
+        region.setOffset(offset);
+        region.setLength(length);
+        var pair = BslCompareFactory.eINSTANCE.createComparisonTextRegion();
+        pair.setRegion(side, region);
+        section.getComparisonRegions().add(pair);
+    }
+
+    private static void pairedRange(BslModuleSectionComparisonNode section, int left, int leftLength,
+        int right, int rightLength)
+    {
+        addRange(section, ComparisonSide.MAIN, left, leftLength);
+        addRange(section, ComparisonSide.OTHER, right, rightLength);
+        pairSideRanges(section);
+    }
+
+    private static void pairSideRanges(BslModuleSectionComparisonNode section)
+    {
+        var ranges = section.getComparisonRegions();
+        int last = ranges.size() - 1;
+        var right = ranges.remove(last).getRegion(ComparisonSide.OTHER);
+        ranges.get(last - 1).setRegion(ComparisonSide.OTHER, right);
+    }
+
+    private static String sectionDiff(BslModuleSectionComparisonNode section, String before, String after)
+        throws Exception
+    {
+        return sectionDiff(section, before, after, 100);
+    }
+
+    private static String sectionDiff(BslModuleSectionComparisonNode section, String before, String after, int maxLines)
+        throws Exception
+    {
+        IComparisonSession session = mock(IComparisonSession.class);
+        BslModuleComparisonNode module = mock(BslModuleComparisonNode.class);
+        when(section.getParent()).thenReturn(module);
+        var converter = mock(IQualifiedNameFilePathConverter.class);
+        var view = new ComparisonView(null, session);
+        ComparisonTextDiff.Source[] sources = new ComparisonTextDiff.Source[2];
+        ComparisonSide[] sides = {ComparisonSide.MAIN, ComparisonSide.OTHER};
+        String[] texts = {before, after};
+        for (int i = 0; i < sides.length; i++)
+        {
+            when(module.getSymlink(sides[i])).thenReturn("Test.Module");
+            when(converter.getFilePath("Test.Module")).thenReturn("test.bsl");
+            var data = mock(IComparisonDataSource.class);
+            when(session.getDataSource(sides[i])).thenReturn(data);
+            when(data.fileExists(Path.of("test.bsl"))).thenReturn(true);
+            when(data.getFileStream(Path.of("test.bsl"))).thenReturn(new ByteArrayInputStream(texts[i].getBytes(StandardCharsets.UTF_8)));
+            sources[i] = view.moduleText(section, sides[i], () -> converter);
+        }
+        return ComparisonTextDiff.render(sources[0], sources[1], "Main", "Other", 1, maxLines);
     }
 
     /**

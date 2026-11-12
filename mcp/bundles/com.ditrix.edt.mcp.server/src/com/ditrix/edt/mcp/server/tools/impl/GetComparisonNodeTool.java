@@ -351,8 +351,9 @@ public class GetComparisonNodeTool implements IMcpTool
                 "Maximum time this call may wait for the node to finish comparing, in seconds; " //$NON-NLS-1$
                     + "defaults to " + DEFAULT_WAIT_SECONDS + " and accepts 0 to " //$NON-NLS-1$ //$NON-NLS-2$
                     + MAX_WAIT_SECONDS + ".") //$NON-NLS-1$
-            .enumProperty("textDiff", "Optional whole-module text diff; omitted by default. "
-                + "For a section, includes its whole owning module. Independent of the addressing side.",
+            .enumProperty("textDiff", "Optional module/section text diff; omitted by default. "
+                + "A section includes only its own source fragments; methods include signature/body. "
+                + "Independent of the addressing side.",
                 "main-other", "ancestor-main", "ancestor-other")
             .integerProperty("contextLines", "Text diff context lines, 0 to 10 (default 3).")
             .integerProperty("maxDiffLines", "Maximum formatted text diff lines, 1 to 2000 (default 200); "

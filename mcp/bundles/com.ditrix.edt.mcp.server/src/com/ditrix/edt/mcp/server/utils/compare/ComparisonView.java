@@ -130,7 +130,7 @@ public final class ComparisonView
         return session.isThreeWay();
     }
 
-    /** Read the addressed module/section's owning module from this session, inside its read boundary. */
+    /** Read the addressed module or exact section from this session, inside its read boundary. */
     public ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side)
     {
         return moduleText(node, side, () -> MdPlugin.getDefault().getInjector()
@@ -138,6 +138,14 @@ public final class ComparisonView
     }
 
     ComparisonTextDiff.Source moduleText(ComparisonNode node, ComparisonSide side,
+        Supplier<IQualifiedNameFilePathConverter> converterSource)
+    {
+        ComparisonTextDiff.Source module = readModuleText(node, side, converterSource);
+        return node instanceof BslModuleSectionComparisonNode section
+            ? ComparisonSectionText.capture(module, section, side) : module;
+    }
+
+    private ComparisonTextDiff.Source readModuleText(ComparisonNode node, ComparisonSide side,
         Supplier<IQualifiedNameFilePathConverter> converterSource)
     {
         String name = "";

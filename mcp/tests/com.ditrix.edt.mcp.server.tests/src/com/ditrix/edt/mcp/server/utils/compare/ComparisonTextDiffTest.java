@@ -112,6 +112,21 @@ public class ComparisonTextDiffTest
     }
 
     @Test
+    public void separatePartialLinesShareTheSectionInputLineBudget()
+    {
+        for (int firstLines : new int[] {19_999, 20_000})
+        {
+            String first = "x\n".repeat(firstLines - 1) + "x";
+            var source = new ComparisonTextDiff.Source("Test.Module", first + "y", false, null,
+                java.util.List.of(new ComparisonTextDiff.Fragment(first, 0, 1, 1),
+                    new ComparisonTextDiff.Fragment("y", first.length() + 100, 20_010, 1)));
+            String report = ComparisonTextDiff.render(source, source, "Main", "Other", 0, 20);
+            assertEquals(report, firstLines == 20_000, report.contains("input limit"));
+            assertEquals(report, firstLines == 19_999, report.contains("selected section texts are equal"));
+        }
+    }
+
+    @Test
     public void literalMarkdownFenceCannotEndTheDiffBlock()
     {
         String result = diff("// before\n", "```\n// after\n", 0, 100);
