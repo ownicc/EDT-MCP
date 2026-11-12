@@ -99,6 +99,8 @@ public class Messages extends NLS {
     public static String BslDiff_MethodRoute; // NOSONAR Eclipse NLS field
     public static String BslDiff_Methods; // NOSONAR Eclipse NLS field
     public static String BslDiff_FilterMethods; // NOSONAR Eclipse NLS field
+    public static String BslDiff_SelectAllTypes; // NOSONAR Eclipse NLS field
+    public static String BslDiff_ClearTypes; // NOSONAR Eclipse NLS field
     public static String BslDiff_MethodCount; // NOSONAR Eclipse NLS field
     public static String BslDiff_NoChangedMethods; // NOSONAR Eclipse NLS field
     public static String BslDiff_NoMatchingMethods; // NOSONAR Eclipse NLS field

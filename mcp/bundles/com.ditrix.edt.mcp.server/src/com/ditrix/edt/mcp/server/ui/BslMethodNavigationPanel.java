@@ -58,6 +58,19 @@ final class BslMethodNavigationPanel
             button.addListener(SWT.Selection, event -> refresh());
             filters.put(kind, button);
         }
+        Composite actions = new Composite(root, SWT.NONE);
+        actions.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        GridLayout actionLayout = new GridLayout(2, true);
+        actionLayout.marginWidth = 0; actionLayout.marginHeight = 0;
+        actions.setLayout(actionLayout);
+        Button selectAll = new Button(actions, SWT.PUSH);
+        selectAll.setText(Messages.BslDiff_SelectAllTypes);
+        selectAll.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        selectAll.addListener(SWT.Selection, event -> selectTypes(true));
+        Button clearAll = new Button(actions, SWT.PUSH);
+        clearAll.setText(Messages.BslDiff_ClearTypes);
+        clearAll.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        clearAll.addListener(SWT.Selection, event -> selectTypes(false));
         table = new Table(root, SWT.SINGLE | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.BORDER);
         table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         TableColumn status = new TableColumn(table, SWT.LEFT);
@@ -156,6 +169,12 @@ final class BslMethodNavigationPanel
     }
 
     Entry selectedEntry() { return selected; }
+
+    private void selectTypes(boolean selected)
+    {
+        filters.values().forEach(button -> button.setSelection(selected));
+        refresh();
+    }
 
     private void refresh()
     {
