@@ -1,0 +1,48 @@
+name: Build plugin
+description: Validate the project and build the tested MCP plugin p2 repository.
+
+outputs:
+  version:
+    description: Plugin version used in artifact names.
+    value: ${{ steps.version.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate business-project skills
+      shell: bash
+      run: python3 docs/validate_agent_skills.py
+
+    - name: Update site validator tests
+      shell: bash
+      run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
+    - name: Tool documentation generator tests
+      shell: bash
+      run: python3 -m unittest discover -s docs/tests -p 'test_*.py' -v
+
+    - name: E2E runner contract tests
+      shell: bash
+      run: python3 -m unittest discover -s tests/e2e/runner_tests -p 'test_*.py' -v
+
+    - name: Maven build
+      shell: bash
+      working-directory: mcp
+      env:
+        MAVEN_OPTS: -Xmx2g -XX:+UseParallelGC
+      run: bash "$GITHUB_WORKSPACE/.github/scripts/mvn-retry.sh" clean verify --batch-mode --no-transfer-progress -T 1C
+
+    - name: JaCoCo coverage report
+      shell: bash
+      working-directory: mcp
+      # Tycho resolves the target even for jacoco:report. Keep targets/default in
+      # the reactor: verify does not install its target artifact in the local repo.
+      run: mvn --batch-mode --no-transfer-progress -pl targets/default,bundles/com.ditrix.edt.mcp.server jacoco:report
+
+    - name: Extract version
+      id: version
+      shell: bash
+      run: |
+        VERSION=$(grep -oP 'Bundle-Version:\s*\K[\d.]+' mcp/bundles/com.ditrix.edt.mcp.server/META-INF/MANIFEST.MF)
+        test -n "$VERSION"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
