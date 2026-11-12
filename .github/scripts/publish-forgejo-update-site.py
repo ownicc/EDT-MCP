@@ -129,7 +129,7 @@ def main():
         extract_site(work/'release.zip', work/'site')
         validator.validate(work/'site', version)
         askpass = work/'askpass.sh'
-        askpass.write_text('#!/bin/sh\ncase "$1" in *Username*) echo ownicc;; *) printf "%s\\n" "$UPDATE_SITE_TOKEN";; esac\n')
+        askpass.write_text('#!/bin/sh\ncase "$1" in *Username*) echo edt-mcp-publisher;; *) printf "%s\\n" "$UPDATE_SITE_TOKEN";; esac\n')
         askpass.chmod(0o700)
         os.environ.update(GIT_ASKPASS=str(askpass), GIT_TERMINAL_PROMPT='0')
         # Suppress ambient credential helpers; only this job's scoped token is used.

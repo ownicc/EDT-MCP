@@ -1,0 +1,44 @@
+name: Deploy Update Site
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Stable release tag vX.Y.Z; empty selects latest stable release'
+        type: string
+        required: false
+
+concurrency:
+  group: forgejo-update-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: edt-build
+    timeout-minutes: 40
+    container:
+      image: node:24-bookworm
+    steps:
+      - name: Prepare publication tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates git python3
+
+      # Publication code comes from master; the released source tag can predate it.
+      - name: Checkout publication scripts
+        uses: https://data.forgejo.org/actions/checkout@v7
+        with:
+          repository: ${{ forgejo.repository }}
+          github-server-url: ${{ forgejo.server_url }}
+          token: ${{ forgejo.token }}
+          ref: master
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Publish validated stable release
+        env:
+          UPDATE_SITE_TOKEN: ${{ secrets.UPDATE_SITE_TOKEN }}
+          REQUESTED_TAG: ${{ inputs.tag || (forgejo.event_name == 'push' && forgejo.ref_name) || '' }}
+        run: python3 .github/scripts/publish-forgejo-update-site.py --tag "$REQUESTED_TAG"

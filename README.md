@@ -1291,6 +1291,20 @@ Before enabling the Forgejo workflow:
 
 The Forgejo workflow uses the supported `upload-artifact@v3-node20` protocol instead of GitHub's artifact action version. Runner registration and server configuration are deployment prerequisites; the workflow does not install a persistent runner.
 
+### Stable update site on Forgejo
+
+Add this URL in EDT via **Help → Install New Software → Add… → Location**:
+
+```text
+https://forgejo.ownicc.ru/ownicc/EDT-MCP-update-site/raw/branch/master/
+```
+
+After installing, keep this site enabled under **Available Software Sites** and use **Help → Check for Updates**. You can disable the GitHub update site there if you want EDT to download updates only from Forgejo. The plugin's own release notification still checks GitHub; EDT's p2 update site is configured separately.
+
+The [Forgejo publication workflow](.forgejo/workflows/deploy-update-site.yml) publishes the validated ZIP from a successful stable GitHub Release, matching the GitHub Pages channel. It starts when a `vX.Y.Z` tag reaches the mirror, waits up to 30 minutes for the release/archive to appear, and supports manual **Run workflow** with an optional tag (empty selects the latest stable release). It does not rebuild the plugin. Ordinary master pushes and documentation changes do not publish the site.
+
+Publication uses the restricted `edt-mcp-publisher` service account and the `UPDATE_SITE_TOKEN` Forgejo Actions secret with `write:repository` access limited to the public `ownicc/EDT-MCP-update-site` output repository. The source mirror stays private. Validation failures, prereleases, downgrades and failed pushes leave the published branch unchanged; older JARs remain available. If the GitHub release takes longer than the wait limit, rerun publication after it completes. GitHub Pages remains available at its existing URL.
+
 ### Prerequisites
 
 - JDK 25 (e.g. Temurin) - Tycho 5 needs JDK 21+ to run and reads the platform's Java 25 class files; the plugin itself is still compiled to Java 17
