@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Размер значков методов — варианты</title>
+<style>
+:root{color-scheme:light;--bg:#f4f5f7;--paper:#fff;--ink:#252a30;--muted:#6e7782;--line:#d8dce2;--soft:#f7f8fa;--blue:#2873c3;--selection:#337fcc;--selected-text:#fff;--code:#872368;--green:#32825b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 "Segoe UI",system-ui,sans-serif}body.dark{color-scheme:dark;--bg:#1b1e23;--paper:#252930;--ink:#dce1e9;--muted:#a0a9b7;--line:#414955;--soft:#2c313a;--blue:#93bfff;--selection:#365e89;--code:#d6a9ec;--green:#a4c194}
+main{max-width:1450px;margin:auto;padding:30px 26px 35px}header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px}h1{font-size:24px;line-height:1.25;letter-spacing:-.4px;margin:0 0 10px;font-weight:600}p{margin:0;color:var(--muted)}.eyebrow{text-transform:uppercase;letter-spacing:1.3px;font-size:10px;color:var(--muted);margin-bottom:8px}.theme{border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:7px 11px;border-radius:5px;white-space:nowrap;font:inherit;cursor:pointer}.guide{margin:19px 0 16px;display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.guide strong{color:var(--ink);font-weight:500}
+.options{display:grid;grid-template-columns:repeat(4,minmax(185px,1fr));gap:14px}.choice{display:block;text-align:left;padding:0;color:var(--ink);font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--paper);overflow:hidden;cursor:pointer;min-width:0;box-shadow:0 1px 2px #00000004}.choice:hover{border-color:var(--blue)}.choice:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.choice[aria-pressed=true]{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:14px 12px 11px;border-bottom:1px solid var(--line)}.card-title{display:block;font-weight:600;font-size:15px}.card-sub{display:block;font-size:11px;color:var(--muted);margin-top:3px}.radio{width:15px;height:15px;border:1px solid var(--line);border-radius:50%;background:var(--paper);flex-shrink:0}.choice[aria-pressed=true] .radio{border:4px solid var(--blue)}.reference .card-head{background:var(--soft)}.list-title{display:block;padding:9px 11px 7px;font-size:11px;color:var(--muted)}.list{display:block;padding:0 5px 7px}.method-row{display:flex;align-items:center;gap:3px;height:26px;padding:0 5px;border-radius:2px;font-size:13px;line-height:normal;white-space:nowrap;min-width:0}.method-row.selected{background:var(--selection);color:var(--selected-text)}.icon-slot{display:flex;align-items:center;justify-content:center;width:28px;flex-shrink:0;height:24px;color:inherit}.icon-slot.moved{color:var(--blue)}.selected .icon-slot{color:inherit}.icon{display:block;flex-shrink:0;overflow:visible}.icon path{vector-effect:non-scaling-stroke}.name{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}.amount{font-size:11px;opacity:.8;flex-shrink:0;padding-left:3px;font-variant-numeric:tabular-nums}.card-foot{display:block;border-top:1px solid var(--line);padding:9px 12px;font-size:11px;color:var(--muted);background:var(--soft)}
+.decision{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:22px 0 15px;padding:13px 16px;border:1px solid var(--line);border-radius:6px;background:var(--paper)}#selection{font-weight:600;color:var(--ink)}.decision small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.answer{font-family:inherit;font-size:12px;background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:5px 9px;white-space:nowrap}.context-label{font-size:12px;font-weight:600;margin:0 0 8px}.window{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--paper)}.window-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--soft);font-size:12px}.window-bar span:last-child{color:var(--muted)}.workbench{display:grid;grid-template-columns:315px minmax(0,1fr);min-height:275px}.sidebar{padding:9px 7px;border-right:1px solid var(--line)}.side-title{padding:0 4px 7px;font-size:12px}.fake-input{padding:5px 8px;color:var(--muted);border:1px solid var(--line);border-radius:3px;margin:0 3px 8px;font-size:12px}.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 3px 8px}.filter-grid span{display:block;text-align:center;padding:4px;background:var(--soft);border:1px solid var(--line);border-radius:3px;font-size:11px}.filter-grid .active{background:var(--selection);border-color:var(--selection);color:var(--selected-text)}.editor{min-width:0}.selected-method{padding:10px 13px;border-bottom:1px solid var(--line);font-size:12px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}.selected-method .kind{color:var(--muted);margin-left:auto;font-size:11px}.panes{display:grid;grid-template-columns:1fr 1fr}.pane{min-width:0}.pane+.pane{border-left:1px solid var(--line)}.pane-title{padding:7px 12px;color:var(--muted);background:var(--soft);font-size:11px;border-bottom:1px solid var(--line)}.source{padding:9px 0;font:12px/26px ui-monospace,"DejaVu Sans Mono",Consolas,monospace;white-space:pre;overflow:hidden}.line{display:flex;padding-right:8px}.line .num{color:var(--muted);width:31px;text-align:right;padding-right:8px;flex-shrink:0}.keyword{color:var(--code);font-weight:600}.comment{color:var(--green)}.edited-old{background:#c64a4912}.edited-new{background:#24874413}.notes{font-size:11px;color:var(--muted);margin-top:13px;display:flex;gap:20px;flex-wrap:wrap}
+@media(max-width:950px){.options{grid-template-columns:repeat(2,minmax(200px,1fr))}.workbench{grid-template-columns:285px minmax(0,1fr)}.panes{grid-template-columns:1fr}.pane+.pane{display:none}}@media(max-width:540px){main{padding:20px 12px}.options{grid-template-columns:1fr}h1{font-size:21px}.decision{align-items:flex-start;flex-direction:column}.workbench{grid-template-columns:1fr}.sidebar{border:0}.editor{display:none}.guide{gap:5px;flex-direction:column}}
+</style>
+<main>
+<header><div><div class="eyebrow">BSL · навигация по методам</div><h1>Какой размер значков оставить?</h1><p>Три компактных варианта и текущий размер для сравнения. Нажми на подходящую карточку.</p></div><button class="theme" id="theme" type="button" aria-pressed="false">Тёмная тема</button></header>
+<div class="guide"><span>Текст: <strong>13 px</strong> · строка: <strong>26 px</strong></span><span>Перемещения: <strong>одинаковые во всех вариантах</strong></span><span>Для сравнения используй масштаб браузера <strong>100%</strong></span></div>
+<div class="options cards" id="options" aria-label="Варианты размера значков"></div>
+<div class="decision" aria-live="polite"><div><div id="selection">Вариант пока не выбран</div><small id="hint">В примере ниже показан размер 14 px. После выбора напиши букву или размер в чат.</small></div><span class="answer" id="answer">А / Б / В</span></div>
+<div class="context-label">В контексте сравнения</div>
+<section class="window" aria-label="Пример сравнения с выбранным размером">
+<div class="window-bar"><span>Структурное сравнение BSL</span><span id="preview-size">Предпросмотр · 14 px</span></div>
+<div class="workbench"><aside class="sidebar"><div class="side-title">Методы: 6 / 6</div><div class="fake-input">⌕ Фильтр по имени метода</div><div class="filter-grid"><span class="active">Изменён</span><span class="active">Перемещён</span><span class="active">Добавлен</span><span class="active">Удалён</span><span>Выбрать все</span><span>Снять все</span></div><div id="preview-list"></div></aside>
+<div class="editor"><div class="selected-method"><strong>ЗаписатьРезультат</strong><span class="kind">Изменён · старая 42–45 → новая 38–42</span></div><div class="panes">
+<div class="pane"><div class="pane-title">Текущий текст</div><div class="source"><div class="line"><span class="num">42</span><span><span class="keyword">Процедура</span> ЗаписатьРезультат()</span></div><div class="line edited-old"><span class="num">43</span><span>    Сообщить("Готово");</span></div><div class="line"><span class="num">44</span><span><span class="keyword">КонецПроцедуры</span></span></div><div class="line"><span class="num">45</span><span></span></div><div class="line"><span class="num">46</span><span class="comment">// Продолжение модуля</span></div></div></div>
+<div class="pane"><div class="pane-title">Предлагаемый текст</div><div class="source"><div class="line"><span class="num">38</span><span><span class="keyword">Процедура</span> ЗаписатьРезультат()</span></div><div class="line edited-new"><span class="num">39</span><span>    Сообщить("Сохранено");</span></div><div class="line"><span class="num">40</span><span><span class="keyword">КонецПроцедуры</span></span></div><div class="line"><span class="num">41</span><span></span></div><div class="line"><span class="num">42</span><span class="comment">// Продолжение модуля</span></div></div></div>
+</div></div></div></section>
+<div class="notes"><span>Размер указан для значка; ширина колонки, текст и отступы не меняются.</span><span>Текущий пример — 22 px: в плагине он сейчас зависит от высоты строки.</span><span>Это HTML-макет. Изменения в плагин будут внесены после выбора.</span></div>
+</main>
+<script>
+const items=[
+ {name:'ЗаписатьРезультат',kind:'changed',amount:'+1 −1'},
+ {name:'НоваяПроверка',kind:'added',amount:'+3 −0'},
+ {name:'СтароеУведомление',kind:'removed',amount:'+0 −5'},
+ {name:'Код вне методов',kind:'outside',amount:'+1 −0'},
+ {name:'ПодготовитьПараметры',kind:'moved',amount:'+0 −0'},
+ {name:'СформироватьПозицию',kind:'moved_changed',amount:'+2 −0'}
+];
+const variants=[{letter:'А',id:'a-12',size:12},{letter:'Б',id:'b-14',size:14},{letter:'В',id:'c-16',size:16},{letter:'Сейчас',id:'current-22',size:22,reference:true}];
+function icon(kind,size){
+ const moved=kind==='moved'||kind==='moved_changed',actual=moved?20:size;
+ let shape='';
+ if(kind==='added')shape='<path d="M3 12H21M12 3V21"/>';
+ else if(kind==='removed')shape='<path d="M3 12H21"/>';
+ else if(kind==='changed')shape='<path d="M3 12C9 2 15 22 21 12"/>';
+ else if(kind==='outside')shape='<path d="M9 3H7V9L4 12L7 15V21H9M15 3H17V9L20 12L17 15V21H15"/>';
+ else shape='<path d="M3 12H21M8 7L3 12L8 17M16 7L21 12L16 17"/>'+(kind==='moved_changed'?'<circle cx="21" cy="21" r="2" fill="currentColor" stroke="none"/>':'');
+ return `<svg class="icon" data-kind="${kind}" data-size="${actual}" width="${actual}" height="${actual}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shape}</svg>`;
+}
+function rows(size){return items.map((m,i)=>`<span class="method-row ${i===0?'selected':''}"><span class="icon-slot ${m.kind.startsWith('moved')?'moved':''}">${icon(m.kind,size)}</span><span class="name">${m.name}</span><span class="amount">${m.amount}</span></span>`).join('');}
+document.querySelector('#options').innerHTML=variants.map(v=>`<button type="button" class="choice card ${v.reference?'reference':''}" data-choice="${v.id}" data-size="${v.size}" aria-pressed="false" onclick="choose('${v.id}',this)"><span class="card-head"><span><span class="card-title">${v.reference?'Текущий пример':`Вариант ${v.letter}`} · ${v.size} px</span><span class="card-sub">${v.reference?'Для сравнения':'Фиксированный размер'}</span></span><span class="radio"></span></span><span class="list-title">Методы · текст 13 px</span><span class="list">${rows(v.size)}</span><span class="card-foot">${v.reference?'Размер от высоты строки':`Выбрать ${v.letter} · ${v.size} px`}</span></button>`).join('');
+function choose(id,button){
+ const v=variants.find(x=>x.id===id);
+ document.querySelectorAll('.choice').forEach(el=>el.setAttribute('aria-pressed',String(el===button)));
+ document.querySelector('#selection').textContent=`Выбран ${v.reference?'текущий размер':`вариант ${v.letter}`} · ${v.size} px`;
+ document.querySelector('#hint').textContent='Предпросмотр обновлён. Можно сравнить другой вариант или написать свой выбор в чат.';
+ document.querySelector('#answer').textContent=v.reference?'Текущий размер':`${v.letter} · ${v.size} px`;
+ document.querySelector('#preview-size').textContent=`Предпросмотр · ${v.size} px`;
+ document.querySelector('#preview-list').innerHTML=rows(v.size);
+ if(typeof window.toggleSelect==='function'&&!button.classList.contains('selected'))window.toggleSelect(button);
+}
+document.querySelector('#theme').addEventListener('click',function(){const dark=document.body.classList.toggle('dark');this.setAttribute('aria-pressed',String(dark));this.textContent=dark?'Светлая тема':'Тёмная тема';});
+document.querySelector('#preview-list').innerHTML=rows(14);
+</script>
+</html>

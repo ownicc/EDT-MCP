@@ -143,14 +143,16 @@ public class BslMethodNavigationUiTest
         finally { shell.dispose(); display.dispose(); }
     }
 
-    @Test public void nonMoveStatusIconsHaveReadableFootprints()
+    @Test public void nonMoveStatusIconsUseChosenSizeEvenWithLargeRows()
     {
         Assume.assumeTrue("true".equals(System.getenv("EDT_MCP_NAVIGATION_UI_TESTS")));
         Display display = new Display(); Shell shell = new Shell(display);
+        var largeFont = new org.eclipse.swt.graphics.Font(display, "Sans", 18, SWT.NORMAL);
         try
         {
             shell.setLayout(new FillLayout());
             var panel = new BslMethodNavigationPanel(shell, entry -> { }, method -> { });
+            panel.table.setFont(largeFont);
             shell.setSize(320, 400); shell.open();
             for (var kind : List.of(MethodAwareBslDiff.MethodKind.ADDED,
                 MethodAwareBslDiff.MethodKind.REMOVED, MethodAwareBslDiff.MethodKind.CHANGED))
@@ -177,13 +179,14 @@ public class BslMethodNavigationUiTest
                         }
                     }
                     assertTrue(kind + " icon is too narrow", maxX - minX + 1 >= 14);
+                    assertTrue(kind + " icon exceeds the chosen 16 px size", maxX - minX + 1 <= 16);
                     if (kind != MethodAwareBslDiff.MethodKind.REMOVED)
-                        assertTrue(kind + " icon is too short", maxY - minY + 1 >= 7);
+                        assertTrue(kind + " icon is too short", maxY - minY + 1 >= 5);
                 }
                 finally { gc.dispose(); image.dispose(); }
             }
         }
-        finally { shell.dispose(); display.dispose(); }
+        finally { shell.dispose(); largeFont.dispose(); display.dispose(); }
     }
 
     @Test public void largerStatusIconsKeepCountsInsideTheTable()

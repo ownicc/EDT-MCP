@@ -97,3 +97,19 @@ paired comparison/search behavior and source coverage for 95 inputs. Evidence:
 `/tmp/edt-navigation-tools/status-pairs-final.log` and
 `/tmp/edt-navigation-tools/status-pairs-native/`. Independent review found no
 additional actionable issue.
+
+## Approved size: 16 px
+
+The user compared the HTML variants (12 / 14 / 16 px plus the current example)
+and selected variant C, 16 px. The chooser is preserved in
+[the size mockup](../mockups/2026-11-12-bsl-method-icon-sizes.html).
+Non-move icons now use a fixed 16-unit frame and the same 24-unit paths with a
+2-unit stroke. Their size no longer follows the table row height. Move icons
+remain unchanged. The large-font pixel regression failed before this fix.
+
+Browser mockup checks passed 22 assertions. Affected Maven/Tycho tests passed
+44/44 with no skips; native EDT QualityProbe passed both themes, existing
+navigation/comparison checks and source coverage for 95 inputs. Evidence:
+`/tmp/edt-navigation-tools/icon16-green.log` and
+`/tmp/edt-navigation-tools/icon16-native/`. Independent review confirmed that
+the native paths match the chosen SVG variant and found no actionable issue.

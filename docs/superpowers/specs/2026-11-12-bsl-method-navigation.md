@@ -29,3 +29,7 @@ Attended visual refinement: use multi-select native toggle buttons for the type
 filters. Move arrows use shared vector geometry, at least 16 SWT coordinates and
 scaled to row height, with reserved space in the list and gutter. Preserve native
 selection/button colors and keep counts inside the table when icons grow.
+
+Final user-approved non-move status size: fixed 16 SWT coordinates (variant C in
+`../mockups/2026-11-12-bsl-method-icon-sizes.html`), independent of row height,
+with the mockup's 24-unit paths and a 2-unit stroke. Move icon sizing is unchanged.

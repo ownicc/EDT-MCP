@@ -176,41 +176,46 @@ final class BslMethodNavigationPanel
 
     private static void drawStatus(GC gc, Rectangle bounds, MethodKind kind)
     {
-        int size = Math.max(18, bounds.height - 4);
+        // Approved 16 px variant: use the mockup's 24-unit paths without scaling the stroke.
+        int size = 16;
+        float unit = size / 24f;
         int x = bounds.x + (bounds.width - size) / 2, y = bounds.y + (bounds.height - size) / 2;
-        int left = x + 2, right = x + size - 3, top = y + 2, bottom = y + size - 3;
-        int middleX = (left + right) / 2, middleY = (top + bottom) / 2;
-        int oldWidth = gc.getLineWidth(), oldCap = gc.getLineCap(), oldAntialias = gc.getAntialias();
+        int oldWidth = gc.getLineWidth(), oldCap = gc.getLineCap(), oldJoin = gc.getLineJoin(), oldAntialias = gc.getAntialias();
+        Path icon = new Path(gc.getDevice());
         try
         {
-            gc.setAntialias(SWT.ON); gc.setLineWidth(Math.max(2, size / 10)); gc.setLineCap(SWT.CAP_ROUND);
+            gc.setAntialias(SWT.ON); gc.setLineWidth(2); gc.setLineCap(SWT.CAP_ROUND); gc.setLineJoin(SWT.JOIN_ROUND);
             if (kind == MethodKind.ADDED || kind == MethodKind.REMOVED)
             {
-                gc.drawLine(left, middleY, right, middleY);
-                if (kind == MethodKind.ADDED) gc.drawLine(middleX, top, middleX, bottom);
+                icon.moveTo(x + 3 * unit, y + 12 * unit); icon.lineTo(x + 21 * unit, y + 12 * unit);
+                if (kind == MethodKind.ADDED)
+                {
+                    icon.moveTo(x + 12 * unit, y + 3 * unit); icon.lineTo(x + 12 * unit, y + 21 * unit);
+                }
             }
             else if (kind == null)
             {
-                gc.drawPolyline(new int[] {left + 4, top, left + 2, top, left + 2, middleY - 2,
-                    left, middleY, left + 2, middleY + 2, left + 2, bottom, left + 4, bottom});
-                gc.drawPolyline(new int[] {right - 4, top, right - 2, top, right - 2, middleY - 2,
-                    right, middleY, right - 2, middleY + 2, right - 2, bottom, right - 4, bottom});
+                icon.moveTo(x + 9 * unit, y + 3 * unit); icon.lineTo(x + 7 * unit, y + 3 * unit);
+                icon.lineTo(x + 7 * unit, y + 9 * unit); icon.lineTo(x + 4 * unit, y + 12 * unit);
+                icon.lineTo(x + 7 * unit, y + 15 * unit); icon.lineTo(x + 7 * unit, y + 21 * unit);
+                icon.lineTo(x + 9 * unit, y + 21 * unit);
+                icon.moveTo(x + 15 * unit, y + 3 * unit); icon.lineTo(x + 17 * unit, y + 3 * unit);
+                icon.lineTo(x + 17 * unit, y + 9 * unit); icon.lineTo(x + 20 * unit, y + 12 * unit);
+                icon.lineTo(x + 17 * unit, y + 15 * unit); icon.lineTo(x + 17 * unit, y + 21 * unit);
+                icon.lineTo(x + 15 * unit, y + 21 * unit);
             }
             else
             {
-                Path wave = new Path(gc.getDevice());
-                try
-                {
-                    float amplitude = Math.max(10, size / 2);
-                    wave.moveTo(left, middleY);
-                    wave.cubicTo(left + (right - left) / 3f, middleY - amplitude,
-                        right - (right - left) / 3f, middleY + amplitude, right, middleY);
-                    gc.drawPath(wave);
-                }
-                finally { wave.dispose(); }
+                icon.moveTo(x + 3 * unit, y + 12 * unit);
+                icon.cubicTo(x + 9 * unit, y + 2 * unit, x + 15 * unit, y + 22 * unit, x + 21 * unit, y + 12 * unit);
             }
+            gc.drawPath(icon);
         }
-        finally { gc.setLineWidth(oldWidth); gc.setLineCap(oldCap); gc.setAntialias(oldAntialias); }
+        finally
+        {
+            icon.dispose(); gc.setLineWidth(oldWidth); gc.setLineCap(oldCap);
+            gc.setLineJoin(oldJoin); gc.setAntialias(oldAntialias);
+        }
     }
 
     private void refresh()
