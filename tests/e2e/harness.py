@@ -129,6 +129,9 @@ OPTIONAL_FIXTURE_PROJECTS = (EXT_OBJECTS_PROJECT, SUPPORTED_PROJECT)
 # SKIP (E2ESkip) unless this is set, so a normal `run_all.py` stays green without an
 # infobase. Set EDT_MCP_LIVE_INFOBASE=1 (attended) to actually run them.
 LIVE_INFOBASE = os.environ.get("EDT_MCP_LIVE_INFOBASE", "").strip() not in ("", "0", "false", "no")
+# Explicit declaration that the EDT stand has no registered 1C platform runtime.
+# Absence of live-test permission does not establish absence of the platform.
+NO_PLATFORM = os.environ.get("EDT_MCP_NO_PLATFORM", "").strip() == "1"
 # Launch configuration name the live suite drives (a runtime-client config that points
 # at the TestConfiguration infobase). Override with MCP_LIVE_LAUNCH_CONFIG.
 LIVE_LAUNCH_CONFIG = os.environ.get("MCP_LIVE_LAUNCH_CONFIG", "TestConfiguration Thin Client")
@@ -359,6 +362,14 @@ def requires_live_infobase(reason=""):
         raise E2ESkip(
             "live-infobase round-trip skipped (set EDT_MCP_LIVE_INFOBASE=1 to run)"
             + (": " + reason if reason else ""))
+
+
+def requires_no_platform():
+    """Gate refusal probes before they can create a database on an undeclared stand."""
+    if LIVE_INFOBASE or not NO_PLATFORM:
+        raise E2ESkip(
+            "no-platform probe requires EDT_MCP_NO_PLATFORM=1 on an EDT stand with no "
+            "registered 1C platform runtime and EDT_MCP_LIVE_INFOBASE disabled")
 
 
 # ──────────────────────────────────────────────────────────────────────────────

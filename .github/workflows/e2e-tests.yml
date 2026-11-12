@@ -443,6 +443,8 @@ jobs:
 
       - name: Run E2E tests
         env:
+          # This cloud stand has no registered 1C platform; keep its refusal probes active.
+          EDT_MCP_NO_PLATFORM: "1"
           # Cold cloud runner indexes the whole config from scratch (the EDT INSTALL is
           # cached, the workspace index is not), so give readiness a generous ceiling
           # before run_all aborts with a single clear error.
