@@ -3,8 +3,29 @@ name: Build
 on:
   push:
     branches: [master]
+    # Keep prose-only changes out of the Maven/Tycho build.
+    paths:
+      - 'mcp/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/build.yml'
+      - '.forgejo/workflows/build.yml'
+      - 'docs/**/*.py'
+      - 'tests/e2e/**'
+      - 'agent/**'
+      - '.gitattributes'
   pull_request:
     branches: [master]
+    paths:
+      - 'mcp/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/build.yml'
+      - '.forgejo/workflows/build.yml'
+      - 'docs/**/*.py'
+      - 'tests/e2e/**'
+      - 'agent/**'
+      - '.gitattributes'
   workflow_dispatch: {}
 
 jobs:

@@ -3,6 +3,17 @@ name: Build
 on:
   push:
     branches: [master]
+    # Match the GitHub build inputs; ordinary documentation does not need Tycho.
+    paths:
+      - 'mcp/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - '.github/workflows/build.yml'
+      - '.forgejo/workflows/build.yml'
+      - 'docs/**/*.py'
+      - 'tests/e2e/**'
+      - 'agent/**'
+      - '.gitattributes'
   workflow_dispatch: {}
 
 jobs:
