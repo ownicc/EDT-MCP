@@ -47,6 +47,7 @@ final class BslDiffOverview
     private final Map<String, MethodAwareBslDiff.Move> moveByLabel = new HashMap<>();
     private List<MethodAwareBslDiff.MethodChange> methods = List.of();
     private MethodAwareBslDiff.MethodChange selectedMethod;
+    private int selectedRow = -1;
     private java.util.function.Consumer<MethodAwareBslDiff.MethodChange> methodSelection = method -> { };
     private int dragOffset = -1;
     private boolean syncing;
@@ -159,6 +160,7 @@ final class BslDiffOverview
         changes.clear();
         selected = null;
         moveByLabel.clear();
+        selectedRow = -1;
         setMethod(null);
         Map<Integer, Integer> a = new HashMap<>(), b = new HashMap<>();
         for (int i = 0; i < result.rows().size(); i++)
@@ -210,6 +212,7 @@ final class BslDiffOverview
     {
         selected = change;
         int row = change.kind == 4 ? change.badgeRow : change.start;
+        selectedRow = row;
         var a = methodAt(row, true);
         var b = methodAt(row, false);
         setMethod(change.kind == 4 ? (change.left ? a : b)
@@ -222,7 +225,7 @@ final class BslDiffOverview
         if (settingCaret) return;
         int row = text.getLineAtOffset(text.getCaretOffset());
         var target = methodAt(row, lhs);
-        if (selectedMethod == target) return;
+        selectedRow = row;
         selected = changes.stream().filter(change -> change.start <= row && row < change.end
             && (change.kind != 4 || change.left == lhs)).findFirst().orElse(null);
         setMethod(target);
@@ -256,6 +259,25 @@ final class BslDiffOverview
     }
 
     MethodAwareBslDiff.MethodChange selectedMethod() { return selectedMethod; }
+    int selectedRow() { return selectedRow; }
+
+    void selectEntry(BslMethodNavigation.Entry entry)
+    {
+        if (entry.method() != null && entry.changedRows().isEmpty()
+            && (entry.method().kind() == MethodAwareBslDiff.MethodKind.MOVED
+                || entry.method().kind() == MethodAwareBslDiff.MethodKind.MOVED_CHANGED))
+        {
+            Change endpoint = changes.stream().filter(change -> change.kind == 4 && !change.left
+                && moveByLabel.get(change.id).key().equals(entry.method().key())).findFirst().orElse(null);
+            if (endpoint != null) { select(endpoint); return; }
+        }
+        selectedRow = entry.row();
+        selected = changes.stream().filter(change -> change.start <= selectedRow && selectedRow < change.end
+            && (entry.changedRows().isEmpty() || change.kind != 4)).findFirst().orElse(null);
+        setMethod(entry.method());
+        jump(selectedRow);
+        redraw();
+    }
 
     private void jump(int row)
     {

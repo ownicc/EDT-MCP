@@ -63,6 +63,7 @@ final class BslStructuralCompare
     private final Map<RGB, Color> colors = new HashMap<>();
     private final BslDiffOverview overview;
     private final BslDiffSearchBar search;
+    private final BslMethodNavigationPanel navigation;
     private List<StructuralBslDiff.Row> searchRows = List.of();
     private List<MethodAwareBslDiff.Move> movePairs = List.of();
     private List<MethodAwareBslDiff.MethodChange> methodChanges = List.of();
@@ -72,6 +73,7 @@ final class BslStructuralCompare
     };
     private boolean dark;
     private String fallbackReason;
+    private String navigationFallback;
     private boolean byteChanges;
 
     private BslStructuralCompare(Composite parent, String before, String after) throws Exception
@@ -89,10 +91,17 @@ final class BslStructuralCompare
         root.setLayout(new GridLayout(1, false));
         Composite toolbar = new Composite(root, SWT.NONE);
         toolbar.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-        toolbar.setLayout(new GridLayout(5, false));
+        toolbar.setLayout(new GridLayout(6, false));
         summary = new Label(toolbar, SWT.WRAP);
         summary.setText(Messages.BslDiff_Computing);
         summary.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        Button methodsToggle = new Button(toolbar, SWT.TOGGLE);
+        methodsToggle.setText(Messages.BslDiff_Methods);
+        methodsToggle.setSelection(true);
+        GridData toggleData = new GridData();
+        toggleData.exclude = !allowMethodComparison;
+        methodsToggle.setLayoutData(toggleData);
+        methodsToggle.setVisible(allowMethodComparison);
         Combo theme = new Combo(toolbar, SWT.DROP_DOWN | SWT.READ_ONLY);
         theme.setItems(Messages.BslDiff_Light, Messages.BslDiff_Dark);
         theme.select(0);
@@ -131,35 +140,38 @@ final class BslStructuralCompare
         compareMethod = new Button(methodPanel, SWT.PUSH);
         compareMethod.setText(Messages.BslDiff_CompareMethod);
         compareMethod.setEnabled(false);
-        SashForm columns = new SashForm(root, SWT.HORIZONTAL);
-        columns.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        SashForm content = new SashForm(root, SWT.HORIZONTAL);
+        content.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        Composite navigationHost = new Composite(content, SWT.NONE);
+        navigationHost.setLayout(new org.eclipse.swt.layout.FillLayout());
+        SashForm columns = new SashForm(content, SWT.HORIZONTAL);
         Injector injector = bslInjector();
         left = new Side(columns, Messages.BslReview_Current, before, injector, false, leftOffset);
         right = new Side(columns, Messages.BslReview_Proposed, after, injector, true, rightOffset);
         columns.setWeights(1, 1);
         overview = new BslDiffOverview(left.text, right.text, right.overview, this::color, () -> dark);
+        navigation = new BslMethodNavigationPanel(navigationHost, overview::selectEntry, this::openMethod);
+        content.setWeights(24, 76);
+        if (!allowMethodComparison) content.setMaximizedControl(columns);
+        methodsToggle.addListener(SWT.Selection, event -> content.setMaximizedControl(methodsToggle.getSelection() ? null : columns));
         search = new BslDiffSearchBar(root,
             (query, scope, matchCase) -> BslDiffSearch.find(before, after, searchRows, query, scope, matchCase),
             overview::revealMatch, List.of(left.text, right.text));
-        search.row.moveAbove(columns);
+        search.row.moveAbove(content);
         find.addListener(SWT.Selection, event -> search.open());
         compareMethod.addListener(SWT.Selection, event -> {
             var method = overview.selectedMethod();
-            if (method != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(method, this.before, this.after));
+            openMethod(method);
         });
         overview.onMethodSelection(method -> {
+            navigation.select(method, overview.selectedRow());
             compareMethod.setEnabled(allowMethodComparison && method != null);
-            String name = method == null ? Messages.BslDiff_NoMethodSelected : method.name();
+            var entry = navigation.selectedEntry();
+            String name = method != null ? method.name() : entry != null ? entry.name() : Messages.BslDiff_NoMethodSelected;
             selectedMethod.setText(name);
             selectedMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : name);
             compareMethod.setToolTipText(method == null ? Messages.BslDiff_SelectMethodHint : Messages.BslDiff_CompareMethod + ": " + name); //$NON-NLS-1$
-            methodKind.setText(method == null ? "" : switch (method.kind()) { //$NON-NLS-1$
-                case CHANGED -> Messages.BslDiff_MethodChanged;
-                case MOVED -> Messages.BslDiff_MethodMoved;
-                case MOVED_CHANGED -> Messages.BslDiff_MethodMovedChanged;
-                case ADDED -> Messages.BslDiff_MethodAdded;
-                case REMOVED -> Messages.BslDiff_MethodRemoved;
-            });
+            methodKind.setText(method == null ? "" : BslMethodNavigationPanel.kindLabel(method.kind())); //$NON-NLS-1$
             methodRoute.setText(method == null ? "" : org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_MethodRoute, //$NON-NLS-1$
                 methodRange(method.left(), leftOffset), methodRange(method.right(), rightOffset)));
             methodPanel.layout(true, true);
@@ -210,6 +222,8 @@ final class BslStructuralCompare
             side.text.redrawRange(0, side.text.getCharCount(), true);
             side.text.redraw();
         }
+        navigation.applyTheme(color(dark ? DARK_BACKGROUND : new RGB(255, 255, 255)),
+            color(dark ? darkForeground(null) : new RGB(0, 0, 0)));
         overview.redraw();
     }
 
@@ -224,6 +238,7 @@ final class BslStructuralCompare
     {
         if (executable == null) MethodAwareBslDiff.validateInput(before, after);
         BslStructuralCompare comparison = new BslStructuralCompare(parent, before, after, leftOffset, rightOffset, allowMethodComparison);
+        if (executable != null) comparison.navigationFallback = "external-comparison:method-identities-unavailable"; //$NON-NLS-1$
         Display display = parent.getDisplay();
         Job job = Job.create(Messages.BslDiff_Computing, monitor -> {
             try
@@ -313,12 +328,19 @@ final class BslStructuralCompare
         left.show(result, true);
         right.show(result, false);
         overview.show(result, movePairs, methodChanges);
+        navigation.show(BslMethodNavigation.entries(result, methodChanges,
+            fallbackReason == null ? navigationFallback : fallbackReason));
         searchRows = result.rows();
     }
 
     private void navigate(boolean forward) { overview.navigate(forward); }
 
-    private static String methodRange(List<Span> spans, int offset)
+    private void openMethod(MethodAwareBslDiff.MethodChange method)
+    {
+        if (method != null) org.eclipse.compare.CompareUI.openCompareEditor(new BslMethodCompareInput(method, before, after));
+    }
+
+    static String methodRange(List<Span> spans, int offset)
     {
         return spans.isEmpty() ? "—" : (spans.get(0).line() + offset + 1) + "–" //$NON-NLS-1$ //$NON-NLS-2$
             + (spans.get(spans.size() - 1).line() + offset + 1);
