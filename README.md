@@ -1276,6 +1276,8 @@ The plugin is a Maven/Tycho project under [mcp/](mcp/). [GitHub Actions](.github
 
 Automatic plugin builds on both platforms use path filters: changes to `mcp/`, shared actions/scripts, either build workflow, Python checks in `docs/`, E2E test inputs, the `agent/` skill pack or `.gitattributes` trigger the build. Changes only to README, changelogs, documentation pages, plans, reports or mockups skip it. GitHub pull requests use the same filter. Manual **Run workflow** remains available regardless of changed paths.
 
+GitHub's E2E and Conformance gates also filter automatic pushes and pull requests by their plugin, test and workflow inputs. Documentation-only commits skip these gates as well, so they do not start the downstream Coverage build. Release and Pages workflows keep their release/manual triggers; Proxy already filters changes to its own inputs.
+
 ### Forgejo mirror CI
 
 The mirror builds its own `master` commit after synchronization; it also supports a manual run from the Actions tab. Each successful run provides an `MCP-EDT.v<version>` artifact containing the p2 update site. Download it from the run to install using EDT's **Help → Install New Software → Add → Archive…**. Surefire test reports are available as a separate artifact, including after test failures. GitHub keeps its existing workflows, SonarCloud analysis, releases and Pages deployment.
