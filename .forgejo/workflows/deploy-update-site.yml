@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Stable release tag vX.Y.Z; empty selects latest stable release'
+        description: 'Stable release tag vX.Y.Z to build from this mirror'
         type: string
-        required: false
+        required: true
 
 concurrency:
   group: forgejo-update-site
@@ -17,28 +17,126 @@ concurrency:
 jobs:
   deploy:
     runs-on: edt-build
-    timeout-minutes: 40
+    timeout-minutes: 60
     container:
       image: node:24-bookworm
     steps:
-      - name: Prepare publication tools
+      - name: Prepare build tools
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates git python3
+          apt-get install -y --no-install-recommends ca-certificates curl git libgtk-3-0 python3 unzip xz-utils zip zstd
 
-      # Publication code comes from master; the released source tag can predate it.
-      - name: Checkout publication scripts
+      - name: Validate release tag
+        id: release
+        env:
+          REQUESTED_TAG: ${{ inputs.tag || forgejo.ref_name }}
+        run: |
+          set -eu
+          printf '%s\n' "$REQUESTED_TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || {
+            echo 'Expected stable release tag vX.Y.Z' >&2
+            exit 1
+          }
+          echo "tag=$REQUESTED_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${REQUESTED_TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tagged source from mirror
+        uses: https://data.forgejo.org/actions/checkout@v7
+        with:
+          repository: ${{ forgejo.repository }}
+          github-server-url: ${{ forgejo.server_url }}
+          token: ${{ forgejo.token }}
+          ref: refs/tags/${{ steps.release.outputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify released source belongs to master
+        env:
+          EVENT_NAME: ${{ forgejo.event_name }}
+          EVENT_SHA: ${{ forgejo.sha }}
+        run: |
+          set -eu
+          SOURCE_SHA=$(git rev-parse HEAD)
+          if [ "$EVENT_NAME" = push ] && [ "$SOURCE_SHA" != "$EVENT_SHA" ]; then
+            echo 'Release tag moved after the push event' >&2
+            exit 1
+          fi
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/master
+          echo "Building source $SOURCE_SHA"
+
+      # Older tags predate the shared action; tools and plugin source stay separate.
+      - name: Checkout current CI tools
         uses: https://data.forgejo.org/actions/checkout@v7
         with:
           repository: ${{ forgejo.repository }}
           github-server-url: ${{ forgejo.server_url }}
           token: ${{ forgejo.token }}
           ref: master
-          fetch-depth: 0
+          path: .release-tools
+          sparse-checkout: .github
           persist-credentials: false
 
-      - name: Publish validated stable release
+      - name: Verify publication tools
+        run: python3 -m unittest discover -s .release-tools/.github/scripts -p 'test_*.py' -v
+
+      - name: Set up JDK 25
+        uses: https://data.forgejo.org/actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+
+      - name: Set up Maven
+        uses: ./.release-tools/.github/actions/setup-maven
+
+      - name: EDT channel guard
+        id: edt-channel
+        uses: ./.release-tools/.github/actions/edt-channel-guard
+
+      - name: Cache Tycho P2 repositories
+        uses: https://data.forgejo.org/actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository/.cache/tycho
+            ~/.m2/repository/p2
+          key: ${{ runner.os }}-tycho-p2-${{ hashFiles('**/*.target') }}-${{ steps.edt-channel.outputs.edt-build }}
+          restore-keys: |
+            ${{ runner.os }}-tycho-p2-${{ hashFiles('**/*.target') }}-
+            ${{ runner.os }}-tycho-p2-
+
+      - name: Set version from release tag
+        working-directory: mcp
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -eu
+          TYCHO=$(sed -n 's|.*<tycho\.version>\(.*\)</tycho\.version>.*|\1|p' bom/pom.xml)
+          test -n "$TYCHO"
+          mvn "org.eclipse.tycho:tycho-versions-plugin:$TYCHO:set-version" \
+            "-DnewVersion=$RELEASE_VERSION" --batch-mode --no-transfer-progress
+
+      - name: Build and test tagged plugin
+        uses: ./.release-tools/.github/actions/build-plugin
+
+      - name: Upload built release artifact
+        uses: https://data.forgejo.org/actions/upload-artifact@v3-node20
+        with:
+          name: MCP-EDT.v${{ steps.release.outputs.version }}
+          path: mcp/repositories/com.ditrix.edt.mcp.server.repository/target/repository/
+          if-no-files-found: error
+
+      - name: Publish validated local release
         env:
           UPDATE_SITE_TOKEN: ${{ secrets.UPDATE_SITE_TOKEN }}
-          REQUESTED_TAG: ${{ inputs.tag || (forgejo.event_name == 'push' && forgejo.ref_name) || '' }}
-        run: python3 .github/scripts/publish-forgejo-update-site.py --tag "$REQUESTED_TAG"
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          python3 .release-tools/.github/scripts/publish-forgejo-update-site.py \
+            --tag "$RELEASE_TAG" \
+            --site mcp/repositories/com.ditrix.edt.mcp.server.repository/target/repository
+
+      - name: Upload test reports
+        if: always()
+        uses: https://data.forgejo.org/actions/upload-artifact@v3-node20
+        with:
+          name: unit-test-results
+          path: mcp/tests/**/target/surefire-reports/
+          if-no-files-found: ignore
