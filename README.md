@@ -1281,7 +1281,7 @@ The mirror builds its own `master` commit after synchronization; it also support
 Before enabling the Forgejo workflow:
 
 1. Make sure the mirror has synchronized `.forgejo/workflows/build.yml`. Without that directory, Forgejo falls back to `.github/workflows`, whose service-specific actions are not the Forgejo build configuration.
-2. Provide a Linux x86_64 Docker runner that supports Node 24 JavaScript actions. Set the repository Actions variable `BUILD_RUNNER` to its actual runner label in **Settings → Actions → Variables**. The workflow uses the `node:24-bookworm` job image and installs its Python and archive tools; it needs permission to run those package-install steps as root inside the job container.
+2. Provide a Linux x86_64 Docker runner that supports Node 24 JavaScript actions and declares the `edt-build` label (for example, `edt-build:docker://node:24-bookworm`). The workflow uses the `node:24-bookworm` job image and installs its Python and archive tools; it needs permission to run those package-install steps as root inside the job container.
 3. Configure the runner cache service so the job container can reach it. Allow network access to this Forgejo instance, Docker Hub, `data.forgejo.org`, the Temurin JDK download locations, Maven Central, `edt.1c.ru`, and `download.eclipse.org`.
 4. Enable Actions on the Forgejo server and in the repository, then run the workflow and check that a subsequent mirror synchronization also starts it automatically. Checkout uses Forgejo's per-job token; no personal access token needs to be added as a CI secret.
 

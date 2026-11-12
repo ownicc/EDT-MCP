@@ -7,8 +7,7 @@ on:
 
 jobs:
   build:
-    # Set BUILD_RUNNER to an available Linux x86_64 Docker runner label.
-    runs-on: ${{ vars.BUILD_RUNNER }}
+    runs-on: edt-build
     timeout-minutes: 60
     container:
       image: node:24-bookworm
