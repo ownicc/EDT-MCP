@@ -6,18 +6,16 @@
 > Release history: [CHANGELOG.md](CHANGELOG.md).
 
 
-[![Build & Unit Tests](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/build.yml)
-[![Proxy](https://github.com/DitriXNew/EDT-MCP/actions/workflows/proxy.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/proxy.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=DitriXNew_EDT-MCP&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=DitriXNew_EDT-MCP)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=DitriXNew_EDT-MCP&metric=bugs)](https://sonarcloud.io/summary/new_code?id=DitriXNew_EDT-MCP)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=DitriXNew_EDT-MCP&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=DitriXNew_EDT-MCP)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=DitriXNew_EDT-MCP&metric=coverage)](https://sonarcloud.io/summary/new_code?id=DitriXNew_EDT-MCP)
+CI results below belong to **ownicc/EDT-MCP**, branch **master**.
 
-[![E2E 2026.2](https://github.com/DitriXNew/EDT-MCP/actions/workflows/e2e-2026.2.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/e2e-2026.2.yml)
+[![Build & Unit Tests](https://github.com/ownicc/EDT-MCP/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/ownicc/EDT-MCP/actions/workflows/build.yml)
+[![Proxy](https://github.com/ownicc/EDT-MCP/actions/workflows/proxy.yml/badge.svg?branch=master)](https://github.com/ownicc/EDT-MCP/actions/workflows/proxy.yml)
 
-[![Conformance 2026.2](https://github.com/DitriXNew/EDT-MCP/actions/workflows/conformance-2026.2.yml/badge.svg)](https://github.com/DitriXNew/EDT-MCP/actions/workflows/conformance-2026.2.yml)
+[![E2E 2026.2](https://github.com/ownicc/EDT-MCP/actions/workflows/e2e-2026.2.yml/badge.svg?branch=master)](https://github.com/ownicc/EDT-MCP/actions/workflows/e2e-2026.2.yml)
 
-> **Build & Unit Tests**, **E2E**, and **MCP Conformance** all run on stock GitHub-hosted runners (cloud CI) — no docker image, no self-hosted runner. E2E and Conformance run against **EDT 2026.2** (build 2026.2, Eclipse 4.38 / Java 25): the setup step installs a headless EDT of that version on the runner via `p2 director`. E2E additionally imports the test fixtures into an empty workspace via the plugin's headless bootstrap (`EDT_MCP_IMPORT_PROJECTS`) and skips the live-infobase tools, so no 1C platform is needed. Each badge reflects its latest run.
+[![Conformance 2026.2](https://github.com/ownicc/EDT-MCP/actions/workflows/conformance-2026.2.yml/badge.svg?branch=master)](https://github.com/ownicc/EDT-MCP/actions/workflows/conformance-2026.2.yml)
+
+> **Build & Unit Tests**, **E2E**, and **MCP Conformance** all run on stock GitHub-hosted runners (cloud CI) — no docker image, no self-hosted runner. E2E and Conformance run against **EDT 2026.2** (build 2026.2, Eclipse 4.38 / Java 25): the setup step installs a headless EDT of that version on the runner via `p2 director`. E2E additionally imports the test fixtures into an empty workspace via the plugin's headless bootstrap (`EDT_MCP_IMPORT_PROJECTS`) and skips the live-infobase tools, so no 1C platform is needed. Each badge reflects the latest run for this fork's `master` branch; path filters can skip commits that do not affect that workflow.
 
 # EDT MCP Server
 
