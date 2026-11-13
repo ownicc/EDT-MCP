@@ -245,7 +245,7 @@ public class ProblemSnapshotsTool implements IMcpTool
         return parsed;
     }
 
-    private static Map<String, Object> row(Change change)
+    static Map<String, Object> row(Change change)
     {
         Diagnostic diagnostic = change.after() != null ? change.after() : change.before();
         Map<String, Object> row = new LinkedHashMap<>();

@@ -13,6 +13,7 @@ import com.ditrix.edt.mcp.server.Activator;
 import com.ditrix.edt.mcp.server.tools.impl.AdoptMetadataObjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.CloneMetadataObjectTool;
 import com.ditrix.edt.mcp.server.tools.impl.ApplyQuickFixTool;
+import com.ditrix.edt.mcp.server.tools.impl.VerificationReportTool;
 import com.ditrix.edt.mcp.server.tools.impl.AskWorkmateTool;
 import com.ditrix.edt.mcp.server.tools.impl.BuildExternalObjectsTool;
 import com.ditrix.edt.mcp.server.tools.impl.CancelJobTool;
@@ -176,6 +177,7 @@ public final class BuiltInToolRegistrar
         catalogue.add(new ApplyQuickFixTool());
         catalogue.add(new GetProjectErrorsTool());
         catalogue.add(new ProblemSnapshotsTool());
+        catalogue.add(new VerificationReportTool());
         catalogue.add(new GetMarkersTool());
         catalogue.add(new GetEventLogTool());
         catalogue.add(new GetMcpHistoryTool());

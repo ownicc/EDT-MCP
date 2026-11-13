@@ -53,6 +53,77 @@ public final class JUnitXmlParser
         return parseDocument(doc);
     }
 
+    /** Strict complete evidence for verification; legacy YAXUnit parsing remains permissive. */
+    public static JUnitTestResults parseComplete(InputStream in) throws Exception
+    {
+        Element root = newSecureBuilder().parse(in).getDocumentElement();
+        JUnitTestResults results = new JUnitTestResults();
+        int[] counts = completeSuite(root, results);
+        results.addToTotals(counts[0], counts[1], counts[2], counts[3] + counts[4]);
+        return results;
+    }
+
+    private static int[] completeSuite(Element suite, JUnitTestResults results)
+    {
+        String tag = suite.getTagName();
+        if (!"testsuite".equals(tag) && !"testsuites".equals(tag)) //$NON-NLS-1$ //$NON-NLS-2$
+            throw new IllegalArgumentException("Expected JUnit testsuite/testsuites, got " + tag); //$NON-NLS-1$
+        int[] counts = new int[5];
+        var children = suite.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++)
+        {
+            if (!(children.item(i) instanceof Element child)) continue;
+            if ("testsuite".equals(child.getTagName()) || "testsuites".equals(child.getTagName())) //$NON-NLS-1$ //$NON-NLS-2$
+            {
+                int[] nested = completeSuite(child, results);
+                for (int j = 0; j < counts.length; j++) counts[j] += nested[j];
+            }
+            else if ("testcase".equals(child.getTagName())) //$NON-NLS-1$
+            {
+                counts[0]++;
+                String name = child.getAttribute("classname"); //$NON-NLS-1$
+                name = (name.isEmpty() ? "" : name + ".") + child.getAttribute("name"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                int kind = 0;
+                StringBuilder messages = new StringBuilder();
+                var content = child.getChildNodes();
+                for (int j = 0; j < content.getLength(); j++)
+                {
+                    if (!(content.item(j) instanceof Element outcome)) continue;
+                    int next = switch (outcome.getTagName()) {
+                        case "failure" -> 1; //$NON-NLS-1$
+                        case "error" -> 2; //$NON-NLS-1$
+                        case "skipped" -> 3; //$NON-NLS-1$
+                        default -> 0;
+                    };
+                    if (next == 0) continue;
+                    if (kind != 0 && kind != next)
+                        throw new IllegalArgumentException("JUnit testcase has conflicting outcomes: " + name); //$NON-NLS-1$
+                    kind = next;
+                    if (!messages.isEmpty()) messages.append('\n');
+                    messages.append(outcome.getAttribute(MESSAGE));
+                }
+                if (kind == 0 && ("notrun".equals(child.getAttribute("status")) //$NON-NLS-1$ //$NON-NLS-2$
+                    || "suppressed".equals(child.getAttribute("result")))) kind = 4; //$NON-NLS-1$ //$NON-NLS-2$
+                if (kind == 0 && "skipped".equals(child.getAttribute("result"))) kind = 3; //$NON-NLS-1$ //$NON-NLS-2$
+                if (kind > 0)
+                {
+                    counts[kind]++;
+                    var detail = new JUnitTestResults.TestCase(name, messages.toString(), null);
+                    if (kind == 1) results.addFailure(detail);
+                    else if (kind == 2) results.addError(detail);
+                    else results.addSkipped(detail);
+                }
+            }
+        }
+        String[] attributes = {"tests", "failures", "errors", "skipped", "disabled"}; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        for (int i = 0; i < counts.length; i++)
+        {
+            if (suite.hasAttribute(attributes[i]) && Integer.parseInt(suite.getAttribute(attributes[i])) != counts[i])
+                throw new IllegalArgumentException("Incomplete or inconsistent JUnit " + attributes[i] + " count"); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        return counts;
+    }
+
     private static JUnitTestResults parseDocument(Document doc)
     {
         doc.getDocumentElement().normalize();
