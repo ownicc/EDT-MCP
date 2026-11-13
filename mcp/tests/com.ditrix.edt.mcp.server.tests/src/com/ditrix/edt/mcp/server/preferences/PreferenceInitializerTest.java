@@ -35,6 +35,7 @@ public class PreferenceInitializerTest
             assertFalse(store.getDefaultBoolean("bslMethodDiffEnabled"));
             assertTrue("The new diff must have an initialized preference",
                 store.contains("bslMethodDiffEnabled"));
+            assertEquals(10, store.getInt("bslDiffTimeoutSeconds"));
         }
         finally { plugin.set(null, previous); }
     }

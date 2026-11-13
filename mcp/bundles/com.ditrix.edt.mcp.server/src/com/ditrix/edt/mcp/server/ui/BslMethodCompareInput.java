@@ -105,13 +105,14 @@ final class BslMethodCompareInput extends CompareEditorInput
             standard.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
             area.layout(true, true);
         };
+        long startedNanos = System.nanoTime();
         try
         {
             Control viewer = BslStructuralCompare.create(area, before.text, after.text, null, fallback,
                 Math.max(0, before.firstLine - 1), Math.max(0, after.firstLine - 1), false);
             viewer.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         }
-        catch (Exception e) { fallback.accept(Messages.BslDiff_Unavailable); }
+        catch (Exception e) { fallback.accept(BslStructuralCompare.unavailable(e, startedNanos)); }
         root.addDisposeListener(event -> {
             Control tail = root;
             while (tail instanceof Composite composite && composite.getChildren().length > 0)

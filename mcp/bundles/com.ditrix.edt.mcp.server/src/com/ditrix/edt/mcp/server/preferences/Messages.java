@@ -152,6 +152,8 @@ public class Messages extends NLS {
     public static String GeneralTab_BslWriteReview_Tooltip; // NOSONAR Eclipse NLS field
     public static String GeneralTab_BslMethodDiff; // NOSONAR Eclipse NLS field
     public static String GeneralTab_BslMethodDiff_Tooltip; // NOSONAR Eclipse NLS field
+    public static String GeneralTab_BslDiffTimeout; // NOSONAR Eclipse NLS field
+    public static String GeneralTab_BslDiffTimeout_Tooltip; // NOSONAR Eclipse NLS field
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, Messages.class);

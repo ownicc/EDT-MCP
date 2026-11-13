@@ -117,6 +117,28 @@ public class GeneralTabTest
     }
 
     @Test
+    public void diffBudgetIsSavedByApplyAndRestoredWithoutSaving() throws Exception
+    {
+        Spinner budget = field("bslDiffTimeoutSpinner", Spinner.class);
+        assertEquals(10, budget.getSelection());
+        assertEquals(1, budget.getMinimum());
+        assertEquals(60, budget.getMaximum());
+        budget.setSelection(30);
+        assertEquals("Unsaved edits must not affect comparisons", 10, store.getInt("bslDiffTimeoutSeconds"));
+        applyPage();
+        assertEquals(30, store.getInt("bslDiffTimeoutSeconds"));
+        tab.dispose();
+        tab.getControl().dispose();
+        tab = new GeneralTab(shell);
+        assertEquals(30, field("bslDiffTimeoutSpinner", Spinner.class).getSelection());
+        tab.performDefaults();
+        assertEquals(10, field("bslDiffTimeoutSpinner", Spinner.class).getSelection());
+        assertEquals("Defaults must wait for Apply", 30, store.getInt("bslDiffTimeoutSeconds"));
+        applyPage();
+        assertEquals(10, store.getInt("bslDiffTimeoutSeconds"));
+    }
+
+    @Test
     public void checkboxHidesHttpChildrenAndImmediatelyChangesCopyLabel() throws Exception
     {
         Group group = field("httpGroup", Group.class);

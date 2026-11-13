@@ -166,6 +166,7 @@ public final class BslWriteReviewInput extends CompareEditorInput
             standard.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
             area.layout(true, true);
         };
+        long startedNanos = System.nanoTime();
         try
         {
             Control structural = BslStructuralCompare.create(area, baseText, proposedText,
@@ -174,9 +175,9 @@ public final class BslWriteReviewInput extends CompareEditorInput
         }
         catch (Exception e)
         {
-            com.ditrix.edt.mcp.server.Activator.logInfo("BSL structural viewer unavailable: " + e.getMessage()); //$NON-NLS-1$
-            fallback.accept(Messages.BslDiff_Unavailable
-                + (e.getMessage() == null ? "" : " " + e.getMessage()));
+            String reason = BslStructuralCompare.unavailable(e, startedNanos);
+            com.ditrix.edt.mcp.server.Activator.logInfo("BSL structural viewer unavailable: " + reason); //$NON-NLS-1$
+            fallback.accept(reason);
         }
         return area;
     }

@@ -2,8 +2,8 @@
 package com.ditrix.edt.mcp.server.ui;
 
 import java.io.StringReader;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import com._1c.g5.v8.dt.bsl.model.Method;
 import org.eclipse.core.runtime.*;
 import org.eclipse.emf.common.util.URI;
@@ -17,6 +17,7 @@ import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.parser.*;
 import org.eclipse.xtext.resource.IResourceServiceProvider;
 import com.ditrix.edt.mcp.server.ui.StructuralBslDiff.*;
+import com.ditrix.edt.mcp.server.preferences.PreferenceConstants;
 
 /** Detached BSL snapshots; only immutable text ranges escape the worker. */
 final class MethodAwareBslDiff
@@ -38,15 +39,29 @@ final class MethodAwareBslDiff
         String fallback, boolean byteChanges, List<Move> moves, List<MethodChange> methods) { }
     private final IParser parser;
     private final IProgressMonitor monitor;
-    private final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+    private final Duration timeout;
+    private final long deadline;
 
     MethodAwareBslDiff(IParser parser, IProgressMonitor monitor)
     {
+        this(parser, monitor, Duration.ofSeconds(PreferenceConstants.DEFAULT_BSL_DIFF_TIMEOUT_SECONDS));
+    }
+
+    MethodAwareBslDiff(IParser parser, IProgressMonitor monitor, Duration timeout)
+    {
         this.parser = parser;
         this.monitor = monitor;
+        this.timeout = timeout;
+        deadline = System.nanoTime() + timeout.toNanos();
     }
 
     static Comparison compute(String before, String after, IProgressMonitor monitor) throws Exception
+    {
+        return compute(before, after, monitor,
+            Duration.ofSeconds(PreferenceConstants.DEFAULT_BSL_DIFF_TIMEOUT_SECONDS));
+    }
+
+    static Comparison compute(String before, String after, IProgressMonitor monitor, Duration timeout) throws Exception
     {
         validateInput(before, after);
         if (monitor.isCanceled()) throw new OperationCanceledException();
@@ -54,7 +69,7 @@ final class MethodAwareBslDiff
         var provider = IResourceServiceProvider.Registry.INSTANCE
             .getResourceServiceProvider(URI.createURI("memory:/review.bsl"));
         if (provider == null) throw new IllegalStateException("BSL parser is not installed");
-        return new MethodAwareBslDiff(provider.get(IParser.class), monitor).compare(before, after);
+        return new MethodAwareBslDiff(provider.get(IParser.class), monitor, timeout).compare(before, after);
     }
 
     static void validateInput(String before, String after)
@@ -104,7 +119,8 @@ final class MethodAwareBslDiff
     private void checkpoint()
     {
         if (monitor.isCanceled() || Thread.currentThread().isInterrupted()) throw new OperationCanceledException();
-        if (System.nanoTime() >= deadline) throw new IllegalStateException("Method-aware comparison exceeded its two-second budget");
+        if (System.nanoTime() >= deadline) throw new IllegalStateException(
+            org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_Timeout, Long.toString(timeout.toSeconds())));
     }
 
     Parsed parse(String source) {

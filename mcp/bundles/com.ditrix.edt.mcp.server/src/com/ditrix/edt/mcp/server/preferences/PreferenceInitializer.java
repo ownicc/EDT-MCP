@@ -59,6 +59,8 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer
 
         store.setDefault(PreferenceConstants.PREF_BSL_WRITE_REVIEW_ENABLED, true);
         store.setDefault(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED, false);
+        store.setDefault(PreferenceConstants.PREF_BSL_DIFF_TIMEOUT_SECONDS,
+            PreferenceConstants.DEFAULT_BSL_DIFF_TIMEOUT_SECONDS);
 
         // Destructive-operation consent (default: always ask)
         store.setDefault(PreferenceConstants.PREF_DESTRUCTIVE_CONSENT_LEVEL,

@@ -170,6 +170,12 @@ public final class PreferenceConstants
     /** Opt in to the method-aware viewer for MCP BSL write reviews. */
     public static final String PREF_BSL_METHOD_DIFF_ENABLED = "bslMethodDiffEnabled"; //$NON-NLS-1$
 
+    /** Cooperative computation budget for the method-aware BSL viewer, in seconds. */
+    public static final String PREF_BSL_DIFF_TIMEOUT_SECONDS = "bslDiffTimeoutSeconds"; //$NON-NLS-1$
+    public static final int DEFAULT_BSL_DIFF_TIMEOUT_SECONDS = 10;
+    public static final int MIN_BSL_DIFF_TIMEOUT_SECONDS = 1;
+    public static final int MAX_BSL_DIFF_TIMEOUT_SECONDS = 60;
+
     /**
      * Consent level for destructive MCP write operations. One of the level tokens
      * below; controls whether the human is asked for consent before a destructive

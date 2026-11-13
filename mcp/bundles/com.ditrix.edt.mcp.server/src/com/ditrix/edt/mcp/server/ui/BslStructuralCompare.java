@@ -35,6 +35,7 @@ import org.eclipse.xtext.ui.editor.syntaxcoloring.AbstractAntlrTokenToAttributeI
 import org.eclipse.xtext.ui.editor.syntaxcoloring.ITextAttributeProvider;
 
 import com.ditrix.edt.mcp.server.Activator;
+import com.ditrix.edt.mcp.server.preferences.PreferenceConstants;
 import com.ditrix.edt.mcp.server.ui.StructuralBslDiff.Result;
 import com.ditrix.edt.mcp.server.ui.StructuralBslDiff.Span;
 import com.google.inject.Injector;
@@ -238,7 +239,13 @@ final class BslStructuralCompare
     static Composite create(Composite parent, String before, String after, Path executable,
         Consumer<String> fallback, int leftOffset, int rightOffset, boolean allowMethodComparison) throws Exception
     {
+        long startedNanos = System.nanoTime();
         if (executable == null) MethodAwareBslDiff.validateInput(before, after);
+        int seconds = Activator.getDefault().getPreferenceStore()
+            .getInt(PreferenceConstants.PREF_BSL_DIFF_TIMEOUT_SECONDS);
+        java.time.Duration timeout = java.time.Duration.ofSeconds(Math.max(
+            PreferenceConstants.MIN_BSL_DIFF_TIMEOUT_SECONDS,
+            Math.min(PreferenceConstants.MAX_BSL_DIFF_TIMEOUT_SECONDS, seconds)));
         BslStructuralCompare comparison = new BslStructuralCompare(parent, before, after, leftOffset, rightOffset, allowMethodComparison);
         if (executable != null) comparison.navigationFallback = "external-comparison:method-identities-unavailable"; //$NON-NLS-1$
         Display display = parent.getDisplay();
@@ -247,7 +254,7 @@ final class BslStructuralCompare
             {
                 if (executable == null)
                 {
-                    var result = MethodAwareBslDiff.compute(before, after, monitor);
+                    var result = MethodAwareBslDiff.compute(before, after, monitor, timeout);
                     dispatch(display, () -> {
                         if (!comparison.root.isDisposed())
                         {
@@ -277,9 +284,10 @@ final class BslStructuralCompare
             }
             catch (Exception e)
             {
-                Activator.logInfo("Structural BSL comparison unavailable: " + e.getMessage()); //$NON-NLS-1$
+                String reason = unavailable(e, startedNanos);
+                Activator.logInfo("Structural BSL comparison unavailable: " + reason); //$NON-NLS-1$
                 dispatch(display, () -> {
-                    if (!comparison.root.isDisposed()) fallback.accept(Messages.BslDiff_Unavailable + " " + e.getMessage());
+                    if (!comparison.root.isDisposed()) fallback.accept(reason);
                 });
             }
             return Status.OK_STATUS;
@@ -289,6 +297,14 @@ final class BslStructuralCompare
         job.setSystem(true);
         job.schedule();
         return comparison.root;
+    }
+
+    static String unavailable(Exception error, long startedNanos)
+    {
+        long elapsedMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedNanos);
+        String detail = error.getMessage() == null ? error.toString() : error.getMessage();
+        return org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_FallbackDetails,
+            new Object[] {Messages.BslDiff_Unavailable, detail, Long.toString(elapsedMillis)});
     }
 
     private static void dispatch(Display display, Runnable update)

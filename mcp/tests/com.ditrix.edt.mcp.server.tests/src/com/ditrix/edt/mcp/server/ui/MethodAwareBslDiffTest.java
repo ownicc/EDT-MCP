@@ -3,6 +3,7 @@ package com.ditrix.edt.mcp.server.ui;
 import static org.junit.Assert.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.junit.Test;
@@ -117,6 +118,21 @@ public class MethodAwareBslDiffTest
         var monitor = new NullProgressMonitor();
         monitor.setCanceled(true);
         assertThrows(OperationCanceledException.class, () -> new MethodAwareBslDiff(null, monitor).compare("a", "b"));
+    }
+
+    @Test public void configuredBudgetExpiresBeforeEnteringParser()
+    {
+        var engine = new MethodAwareBslDiff(null, new NullProgressMonitor(), Duration.ZERO);
+        var error = assertThrows(IllegalStateException.class, () -> engine.compare("a", "b"));
+        assertEquals(org.eclipse.osgi.util.NLS.bind(Messages.BslDiff_Timeout, 0L), error.getMessage());
+    }
+
+    @Test public void cancellationTakesPrecedenceOverExpiredBudget()
+    {
+        var monitor = new NullProgressMonitor();
+        monitor.setCanceled(true);
+        var engine = new MethodAwareBslDiff(null, monitor, Duration.ZERO);
+        assertThrows(OperationCanceledException.class, () -> engine.compare("a", "b"));
     }
     private static String method(String name, String body)
     {

@@ -73,6 +73,7 @@ public class GeneralTab
     private Combo consentLevelCombo;
     private Button bslWriteReviewCheck;
     private Button bslMethodDiffCheck;
+    private Spinner bslDiffTimeoutSpinner;
     private Combo updateCheckCombo;
     private Label statusLabel;
     private Label endpointLabel;
@@ -377,6 +378,15 @@ public class GeneralTab
         GridData diffData = new GridData(SWT.FILL, SWT.CENTER, true, false);
         diffData.horizontalSpan = 3;
         bslMethodDiffCheck.setLayoutData(diffData);
+
+        createLabel(Messages.GeneralTab_BslDiffTimeout);
+        bslDiffTimeoutSpinner = new Spinner(composite, SWT.BORDER);
+        bslDiffTimeoutSpinner.setMinimum(PreferenceConstants.MIN_BSL_DIFF_TIMEOUT_SECONDS);
+        bslDiffTimeoutSpinner.setMaximum(PreferenceConstants.MAX_BSL_DIFF_TIMEOUT_SECONDS);
+        bslDiffTimeoutSpinner.setSelection(store.getInt(PreferenceConstants.PREF_BSL_DIFF_TIMEOUT_SECONDS));
+        bslDiffTimeoutSpinner.setToolTipText(Messages.GeneralTab_BslDiffTimeout_Tooltip);
+        bslDiffTimeoutSpinner.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
+        createLabel(""); //$NON-NLS-1$
 
         // The PII redaction master toggle lives on the dedicated Privacy tab
         // (see PrivacyTab); it is not duplicated here.
@@ -797,6 +807,7 @@ public class GeneralTab
     {
         ConsentSettingsService.getInstance().setBslWriteReviewEnabled(bslWriteReviewCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED, bslMethodDiffCheck.getSelection());
+        store.setValue(PreferenceConstants.PREF_BSL_DIFF_TIMEOUT_SECONDS, bslDiffTimeoutSpinner.getSelection());
         store.setValue(PreferenceConstants.PREF_HTTP_ENABLED, httpEnabledCheck.getSelection());
         store.setValue(PreferenceConstants.PREF_PORT, portSpinner.getSelection());
         store.setValue(PreferenceConstants.PREF_AUTO_START, autoStartCheck.getSelection());
@@ -843,6 +854,7 @@ public class GeneralTab
     {
         bslWriteReviewCheck.setSelection(true);
         bslMethodDiffCheck.setSelection(store.getDefaultBoolean(PreferenceConstants.PREF_BSL_METHOD_DIFF_ENABLED));
+        bslDiffTimeoutSpinner.setSelection(store.getDefaultInt(PreferenceConstants.PREF_BSL_DIFF_TIMEOUT_SECONDS));
         httpEnabledCheck.setSelection(PreferenceConstants.DEFAULT_HTTP_ENABLED);
         updateHttpVisibility();
         portSpinner.setSelection(PreferenceConstants.DEFAULT_PORT);
