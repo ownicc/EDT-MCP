@@ -1,9 +1,12 @@
 # get_server_status
 
-Diagnose the EDT MCP server and its feature configuration. Parameters and examples: get_tool_guide('get_server_status').
+Diagnose the EDT MCP server, feature configuration, and optional project prerequisites. Parameters and examples: get_tool_guide('get_server_status').
 
 ## Parameters
-No parameters.
+| Parameter | Required | Type | Description |
+| --- | --- | --- | --- |
+| projectName | — | string | Optional explicit EDT project to probe; omitted = server snapshot only. |
+| operation | — | string (one of: metadata, diagnostics, runtime) | Project prerequisite profile; requires projectName. Default: metadata. |
 
 ## Guide
 A self-diagnosis snapshot of the running MCP server. Reach for it when something behaves oddly and you want the facts instead of guessing - especially a blank form screenshot or a JSON tool that came back as plain text.
@@ -13,9 +16,28 @@ A self-diagnosis snapshot of the running MCP server. Reach for it when something
 - A JSON-response tool gave you plain text - check `plainTextMode`.
 - You want to confirm the port, protocol version, plugin/EDT version, or how many tools are enabled vs. registered (e.g. when progressive disclosure is hiding tools).
 - Quick "is the server actually up and reachable" check.
+- Explain why a named project's metadata, diagnostics, or local-runtime prerequisites are unavailable.
 
 ## Parameter details
-None.
+- Omit both parameters for the existing server-only snapshot; no project or runtime is queried.
+- `projectName`: explicit workspace project name. A blank name is an error.
+- `operation`: `metadata` (default), `diagnostics`, or `runtime`; requires `projectName`.
+
+## Project readiness
+
+Example: `get_server_status(projectName="Demo", operation="diagnostics")` adds a `readiness` object without changing the server fields. The probe returns within two seconds of waiting for EDT. At most one probe is admitted; another call receives `unavailable` with reason `probe_busy` until the earlier platform call actually exits, even if that call ignored interruption after a timeout.
+
+The three profiles check **project prerequisites**, not every argument or possible failure of a tool:
+
+- `metadata`: EDT project context and derived-data readiness, BM model service, and registered BM model.
+- `diagnostics`: the metadata prerequisites plus `IMarkerManager` and `ICheckRepository`. This does not rerun validation or require a platform installation.
+- `runtime`: the metadata prerequisites plus availability of a registered local 1C:Enterprise installation supported by EDT on this OS. This only reads the installation registry. It does not search for, resolve, refresh, download, install, or execute a runtime. Remote execution environments are outside this profile.
+
+`readiness` contains `projectName`, `operation`, `state`, `ready`, machine-readable `reason`, explanatory `message`, recovery `actions`, and `runtimeRequired`. States are `ready`, `building`, `missing`, `unsupported`, and `unavailable`. Missing project/installation is distinct from unsupported project/installation and unavailable services, closed projects, incomplete context registration, or a timed-out probe. The first blocker is reported; resolve it and retry to inspect subsequent prerequisites. `success:true` means the diagnostic returned a snapshot, including a snapshot with `ready:false`.
+
+`ready:true` records only the observed prerequisites. State can change immediately afterward. Runtime availability does not verify project/platform version or component compatibility, application binding, database access, credentials, or licensing. Use `get_applications` and the intended tool's guide for operation-specific requirements. A missing platform does not block the `metadata` or `diagnostics` profiles.
+
+The check is read-only: it does not save editors, build a project, change settings, connect to an infobase, or start a database update. Platform exception messages and installation paths are not included in the response.
 
 ## What you get
 

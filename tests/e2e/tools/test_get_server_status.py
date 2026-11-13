@@ -23,25 +23,16 @@ Stable, code-anchored expectations (from the real impl, verified against source)
     atStartup records the mode at MCP activation; optional requested is the raw
     current system property. Changing the launch configuration requires an EDT restart.
 
-NEGATIVE MATRIX — why it is minimal (documented, not fudged):
-  The tool has NO parameters: no required param to omit, no enum to violate, no
-  path/object/projectName to make non-existent, and no XOR/conditional branch.
-  execute() never reads the params map, and its only failure path is an internal
-  `catch (Exception)` that a well-formed client request cannot reach. There is
-  therefore NO client-reachable validation error to assert error-quality against
-  (same situation as get_edt_version). Fabricating a "negative" that cannot occur
-  would be a cheat (§6).
-  What we CAN and DO assert as robustness coverage: passing an UNEXPECTED extra
-  argument must be ignored gracefully (the tool must still succeed and return the
-  same well-formed snapshot) — a tool that choked on an unknown key would be a
-  real bug, so this test fails if that robustness regressed.
+Optional project probes check metadata, diagnostics, or local-runtime prerequisites.
+The negative matrix covers missing project handles and invalid parameter combinations.
+Unknown extra arguments retain the existing compatibility behavior.
 
 Every test ends with assert_no_diff(): a read/diagnosis tool must never mutate
 the project on disk.
 """
 
 from harness import (
-    call, assert_ok, assert_no_diff, e2e_test,
+    PROJECT, call, assert_ok, assert_error, assert_contains, assert_no_diff, e2e_test,
 )
 
 # Code-anchored constant from McpConstants.PROTOCOL_VERSION; if the server spoke a
@@ -64,6 +55,9 @@ def test_returns_live_server_snapshot_and_does_not_mutate():
         raise AssertionError(
             "get_server_status must return a JSON object in structuredContent; got: %r"
             % (s,))
+
+    if "readiness" in s:
+        raise AssertionError("A server-only snapshot must not request project readiness")
 
     if s.get("hostKind") != "WINDOWED":
         raise AssertionError("Windowed HTTP e2e must report hostKind=WINDOWED")
@@ -192,3 +186,45 @@ def test_ignores_unexpected_argument_gracefully():
             % (EXPECTED_PROTOCOL_VERSION, s.get("protocolVersion")))
 
     assert_no_diff("an ignored-arg call must not touch the project on disk")
+
+
+@e2e_test(tool="get_server_status", kind="read")
+def test_ready_project_metadata_and_diagnostics_prerequisites():
+    for operation in ("metadata", "diagnostics"):
+        r = call("get_server_status", {"projectName": PROJECT, "operation": operation})
+        assert_ok(r, operation + " prerequisites")
+        readiness = r.structured["readiness"]
+        assert readiness["projectName"] == PROJECT, readiness
+        assert readiness["operation"] == operation, readiness
+        assert readiness["state"] == "ready", readiness
+        assert readiness["ready"] is True, readiness
+        assert readiness["runtimeRequired"] is False, readiness
+        assert readiness["actions"] == [], readiness
+    assert_no_diff("project readiness must not change project files")
+
+
+@e2e_test(tool="get_server_status", kind="read")
+def test_missing_project_reports_recovery_without_failing_server_snapshot():
+    r = call("get_server_status", {"projectName": "E2E_Missing_Readiness_Project"})
+    assert_ok(r, "missing project is a successful diagnostic snapshot")
+    readiness = r.structured["readiness"]
+    assert readiness["state"] == "missing", readiness
+    assert readiness["reason"] == "project_missing", readiness
+    assert readiness["ready"] is False, readiness
+    assert readiness["operation"] == "metadata", readiness
+    assert "list_projects" in " ".join(readiness["actions"]), readiness
+    assert "transports" in r.structured and "formRenderFlags" in r.structured
+    assert_no_diff("probing a missing project must not create one")
+
+
+@e2e_test(tool="get_server_status", kind="read")
+def test_project_probe_rejects_invalid_parameters():
+    cases = (
+        ({"operation": "runtime"}, "projectName"),
+        ({"projectName": " "}, "projectName"),
+        ({"projectName": PROJECT, "operation": "unknown"}, "operation"),
+    )
+    for arguments, expected in cases:
+        error = assert_error(call("get_server_status", arguments), "invalid readiness parameters")
+        assert_contains(error, expected, "error names the invalid argument")
+    assert_no_diff("invalid readiness parameters must not change project files")

@@ -20,6 +20,7 @@ import com.ditrix.edt.mcp.server.Activator;
 import com.ditrix.edt.mcp.server.McpServer;
 import com.ditrix.edt.mcp.server.preferences.PreferenceConstants;
 import com.ditrix.edt.mcp.server.protocol.JsonSchemaBuilder;
+import com.ditrix.edt.mcp.server.protocol.JsonUtils;
 import com.ditrix.edt.mcp.server.protocol.McpConstants;
 import com.ditrix.edt.mcp.server.protocol.ToolResult;
 import com.ditrix.edt.mcp.server.tools.IMcpTool;
@@ -30,6 +31,7 @@ import com.ditrix.edt.mcp.server.transport.TransportStatus;
 import com.ditrix.edt.mcp.server.utils.CheckDescriptionLoader;
 import com.ditrix.edt.mcp.server.utils.NativeRenderModeProbe;
 import com.ditrix.edt.mcp.server.utils.NativeRenderModeProbe.NativeRenderMode;
+import com.ditrix.edt.mcp.server.utils.ProjectReadiness;
 
 /**
  * Self-diagnosis tool: returns the running MCP server's introspection snapshot
@@ -85,7 +87,7 @@ public class GetServerStatusTool implements IMcpTool
     @Override
     public String getDescription()
     {
-        return "Diagnose the EDT MCP server and its feature configuration. Parameters and examples: " //$NON-NLS-1$
+        return "Diagnose the EDT MCP server, feature configuration, and optional project prerequisites. Parameters and examples: " //$NON-NLS-1$
             + "get_tool_guide('get_server_status')."; //$NON-NLS-1$
     }
 
@@ -98,7 +100,11 @@ public class GetServerStatusTool implements IMcpTool
     @Override
     public String getInputSchema()
     {
-        return JsonSchemaBuilder.object().build();
+        return JsonSchemaBuilder.object()
+            .stringProperty("projectName", "Optional explicit EDT project to probe; omitted = server snapshot only.")
+            .enumProperty("operation", "Project prerequisite profile; requires projectName. Default: metadata.",
+                "metadata", "diagnostics", "runtime")
+            .build();
     }
 
     @Override
@@ -124,13 +130,41 @@ public class GetServerStatusTool implements IMcpTool
             .objectProperty("formRenderFlags", //$NON-NLS-1$
                 "atStartup is the mode when this plugin activated; requested is the current " //$NON-NLS-1$
                     + "system property. EDT binds these modes at class initialization; changing them " //$NON-NLS-1$
-                    + "requires an EDT restart") //$NON-NLS-1$
+                      + "requires an EDT restart") //$NON-NLS-1$
+              .objectProperty("readiness", "Optional bounded project prerequisite snapshot, not a full operation preflight",
+                  JsonSchemaBuilder.object()
+                      .stringProperty("projectName", "Requested workspace project", true)
+                      .enumProperty("operation", "Checked prerequisite profile", true, "metadata", "diagnostics", "runtime")
+                      .enumProperty("state", "Observed readiness", true,
+                          "ready", "building", "missing", "unsupported", "unavailable")
+                      .booleanProperty("ready", "Whether the checked prerequisites are available", true)
+                      .stringProperty("reason", "Machine-readable reason for this verdict", true)
+                      .stringProperty("message", "Explanation without secrets or local installation paths", true)
+                      .stringArrayProperty("actions", "Suggested recovery steps; empty when ready", true)
+                      .booleanProperty("runtimeRequired", "Whether this profile requires a registered local platform", true), false)
             .build();
     }
 
     @Override
     public String execute(Map<String, String> params)
     {
+        String projectName = JsonUtils.extractStringArgument(params, "projectName");
+        String operation = JsonUtils.extractStringArgument(params, "operation");
+        boolean probeRequested = params != null
+            && (params.containsKey("projectName") || params.containsKey("operation"));
+        if (probeRequested)
+        {
+            if (projectName == null || projectName.isBlank())
+            {
+                return ToolResult.error("Provide a non-blank projectName to request project readiness; "
+                    + "omit projectName and operation for the server snapshot only.").toJson();
+            }
+            if (operation == null && !params.containsKey("operation")) operation = "metadata";
+            if (!java.util.Set.of("metadata", "diagnostics", "runtime").contains(operation == null ? "" : operation))
+            {
+                return ToolResult.error("operation must be metadata, diagnostics, or runtime.").toJson();
+            }
+        }
         try
         {
             Activator activator = Activator.getDefault();
@@ -199,6 +233,11 @@ public class GetServerStatusTool implements IMcpTool
                 createRenderFlagState(NativeRenderModeProbe.getStartupBufferedRenderMode(),
                     System.getProperty(FLAG_BUFFERED_LAYOUT_RENDER)));
             result.put("formRenderFlags", formRenderFlags); //$NON-NLS-1$
+
+            if (probeRequested)
+            {
+                result.put("readiness", ProjectReadiness.check(projectName, operation));
+            }
 
             return result.toJson();
         }

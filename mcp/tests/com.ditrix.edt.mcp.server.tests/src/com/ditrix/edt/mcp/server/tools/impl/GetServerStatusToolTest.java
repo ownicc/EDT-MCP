@@ -21,7 +21,7 @@ import com.google.gson.JsonParser;
 /**
  * Tests for {@link GetServerStatusTool}.
  * <p>
- * The tool takes no parameters and reads its snapshot from the registry,
+ * Without parameters the tool reads its snapshot from the registry,
  * preferences and system properties. The headless surface is the static
  * contract plus the null-safe {@code execute()}: with no {@link
  * com.ditrix.edt.mcp.server.Activator} and no running server it must still
@@ -93,13 +93,64 @@ public class GetServerStatusToolTest
     }
 
     @Test
-    public void testSchemaIsEmptyObject()
+    public void testSchemaKeepsProjectProbeOptional()
     {
         String schema = new GetServerStatusTool().getInputSchema();
         assertNotNull(schema);
         assertTrue(schema.contains("object")); //$NON-NLS-1$
-        // No parameters: the tool reads nothing from params.
-        assertFalse(schema.contains("\"properties\":{\"")); //$NON-NLS-1$
+        JsonObject parsed = JsonParser.parseString(schema).getAsJsonObject();
+        assertEquals(JsonParser.parseString("[]"), parsed.getAsJsonArray("required"));
+        assertTrue(parsed.getAsJsonObject("properties").has("projectName"));
+        assertEquals(JsonParser.parseString("[\"metadata\",\"diagnostics\",\"runtime\"]"),
+            parsed.getAsJsonObject("properties").getAsJsonObject("operation").get("enum"));
+    }
+
+    @Test
+    public void testServerSnapshotDoesNotIncludeUnrequestedProjectProbe()
+    {
+        JsonObject result = JsonParser.parseString(new GetServerStatusTool().execute(java.util.Map.of()))
+            .getAsJsonObject();
+        assertTrue(result.get("success").getAsBoolean());
+        assertFalse(result.has("readiness"));
+    }
+
+    @Test
+    public void testExplicitProjectAddsReadinessWithoutLosingServerFields()
+    {
+        JsonObject result = JsonParser.parseString(new GetServerStatusTool()
+            .execute(java.util.Map.of("projectName", "Demo"))).getAsJsonObject();
+        assertTrue(result.get("success").getAsBoolean());
+        assertTrue(result.has("transports"));
+        assertTrue(result.has("formRenderFlags"));
+        assertTrue(result.has("readiness"));
+        JsonObject readiness = result.getAsJsonObject("readiness");
+        assertEquals("Demo", readiness.get("projectName").getAsString());
+        assertEquals("metadata", readiness.get("operation").getAsString());
+        assertTrue(readiness.has("reason"));
+        assertTrue(readiness.get("actions").isJsonArray());
+    }
+
+    @Test
+    public void testOperationRequiresAnExplicitProject()
+    {
+        JsonObject result = JsonParser.parseString(new GetServerStatusTool()
+            .execute(java.util.Map.of("operation", "runtime"))).getAsJsonObject();
+        assertFalse(result.get("success").getAsBoolean());
+        assertTrue(result.get("error").getAsString().contains("projectName"));
+    }
+
+    @Test
+    public void testUnknownOperationAndBlankProjectFailBeforePlatformAccess()
+    {
+        for (java.util.Map<String, String> params : java.util.List.of(
+            java.util.Map.of("projectName", "Demo", "operation", "launch_everything"),
+            java.util.Map.of("projectName", " ")))
+        {
+            JsonObject result = JsonParser.parseString(new GetServerStatusTool().execute(params))
+                .getAsJsonObject();
+            assertFalse(result.get("success").getAsBoolean());
+            assertFalse(result.has("readiness"));
+        }
     }
 
     @Test
