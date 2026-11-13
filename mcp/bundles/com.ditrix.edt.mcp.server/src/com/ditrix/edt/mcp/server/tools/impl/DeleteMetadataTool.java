@@ -6,6 +6,8 @@
 
 package com.ditrix.edt.mcp.server.tools.impl;
 
+import static com.ditrix.edt.mcp.server.utils.BmObjectAddress.findTopContainer;
+
 import java.io.ByteArrayInputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -1122,7 +1124,7 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
      * <p>
      * Taken from the model, never derived from the caller's FQN string:
      * {@link MetadataNodeResolver.MetadataNode#owner} is the {@code Configuration} for a top object
-     * and the owning {@code MdObject} for a member, and {@link #findTopContainer} climbs a member's
+     * and the owning {@code MdObject} for a member, and {@link BmObjectAddress#findTopContainer(IBmObject)} climbs a member's
      * owner to the top object it is serialized into (a WebService operation parameter's owner is the
      * operation, whose file is the web service's). So a top-object delete names
      * {@code Configuration.mdo} and a member delete names the owning object's own {@code .mdo}.
@@ -4339,42 +4341,6 @@ public class DeleteMetadataTool extends AbstractMetadataWriteTool
         }
         IBmObject top = findTopContainer(source);
         return top != null && top.bmGetId() == ownerTopId;
-    }
-
-    /**
-     * Walks {@code object}'s container chain up to (and including) its own top {@link IBmObject} -
-     * mirrors {@code MetadataReferenceService.ReferenceCollector#findTopContainer} (private to a
-     * different package, so this is a small, deliberate duplicate: the owner-self exclusion belongs in
-     * THIS delete path, not the shared find_references service - see {@link #isOwnerSelfReference}).
-     * Guarded by an IDENTITY visited-set (not a depth cap): a genuine {@code eContainer()} CYCLE
-     * terminates and returns {@code null}, while every finite chain reaches its real top. Returns
-     * {@code null} on a top-less / cyclic chain - NOT the last reached non-top object:
-     * {@link #isOwnerSelfReference} then treats it as "not owner-self" and KEEPS the reference (a
-     * delete over-blocks rather than deleting a possibly referenced item - the fail-safe direction).
-     * The ONLY non-null return is a real top object.
-     */
-    private static IBmObject findTopContainer(IBmObject object)
-    {
-        if (object == null)
-        {
-            return null;
-        }
-        if (object.bmIsTop())
-        {
-            return object;
-        }
-        java.util.Set<EObject> visited =
-            java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-        EObject current = (EObject)object;
-        while (current != null && visited.add(current))
-        {
-            if (current instanceof IBmObject && ((IBmObject)current).bmIsTop())
-            {
-                return (IBmObject)current;
-            }
-            current = current.eContainer();
-        }
-        return null;
     }
 
     /**

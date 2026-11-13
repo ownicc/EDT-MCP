@@ -11,6 +11,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 import java.io.InputStream;
 import java.net.URL;
@@ -68,6 +69,13 @@ import com.ditrix.edt.mcp.server.utils.SecureXml;
  */
 public class GroupNavigatorContentDeclarationTest
 {
+    @Test
+    public void collectionMatcherRejectsNullAndUnrelatedObjects()
+    {
+        assertFalse(CollectionAdapterUtils.isCollectionAdapter(null));
+        assertFalse(CollectionAdapterUtils.isCollectionAdapter(new Object()));
+    }
+
     private static final String GROUPS_CONTENT_ID = "com.ditrix.edt.mcp.server.groups.navigatorContent"; //$NON-NLS-1$
 
     private static final String EDT_NAVIGATOR_VIEWER_ID = "com._1c.g5.v8.dt.ui2.navigator"; //$NON-NLS-1$
@@ -333,6 +341,8 @@ public class GroupNavigatorContentDeclarationTest
             + CollectionAdapterUtils.COLLECTION_ADAPTER_CLASS_NAME //$NON-NLS-1$
             + " - either it was renamed, or CollectionAdapterUtils is matching a name that no " //$NON-NLS-1$
             + "longer exists", collectionAdapter); //$NON-NLS-1$
+
+        assertTrue(CollectionAdapterUtils.isCollectionAdapter(mock(collectionAdapter)));
 
         List<String> triggers = instanceOfValuesUnder(groupsNavigatorContent(), "triggerPoints"); //$NON-NLS-1$
         boolean matched = false;

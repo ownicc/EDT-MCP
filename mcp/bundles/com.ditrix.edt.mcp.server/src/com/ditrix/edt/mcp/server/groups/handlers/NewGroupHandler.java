@@ -6,6 +6,8 @@
 
 package com.ditrix.edt.mcp.server.groups.handlers;
 
+import static com.ditrix.edt.mcp.server.groups.ui.CollectionAdapterUtils.isCollectionAdapter;
+
 import java.lang.reflect.Method;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -34,9 +36,6 @@ import com.ditrix.edt.mcp.server.groups.ui.GroupNavigatorAdapter;
  * Nested groups (groups inside groups) are not supported.
  */
 public class NewGroupHandler extends AbstractHandler {
-    
-    private static final String COLLECTION_ADAPTER_CLASS_NAME = 
-        "com._1c.g5.v8.dt.navigator.adapters.CollectionNavigatorAdapterBase";
     
     @Override
     public void setEnabled(Object evaluationContext) {
@@ -164,23 +163,6 @@ public class NewGroupHandler extends AbstractHandler {
         return null;
     }
 
-    /**
-     * Checks if the element is a collection adapter.
-     */
-    private boolean isCollectionAdapter(Object element) {
-        if (element == null) {
-            return false;
-        }
-        Class<?> clazz = element.getClass();
-        while (clazz != null) {
-            if (COLLECTION_ADAPTER_CLASS_NAME.equals(clazz.getName())) {
-                return true;
-            }
-            clazz = clazz.getSuperclass();
-        }
-        return false;
-    }
-    
     /**
      * Gets the collection path for a collection adapter.
      * Only returns top-level collection types (CommonModule, Catalog, Document, etc.)

@@ -6,6 +6,8 @@
 
 package com.ditrix.edt.mcp.server.tools.reference;
 
+import static com.ditrix.edt.mcp.server.utils.BmObjectAddress.findTopContainer;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -1387,47 +1389,6 @@ public class MetadataReferenceService
             // Skip paths starting with technical/derived features
             return path.startsWith("Produced types") || path.startsWith("Form context") //$NON-NLS-1$ //$NON-NLS-2$
                 || path.startsWith("Db view defs") || path.startsWith("Standard commands"); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-
-        /**
-         * Finds the top-level container of an object.
-         *
-         * <p>Guarded against a self-containing / cyclic {@code eContainer()} graph (issue #293 P2): this
-         * runs inside the caller's own read transaction (e.g. delete_metadata's predefined-item
-         * reference scan), so an unbounded walk would hold that transaction open forever on a malformed
-         * model. The guard is an IDENTITY visited-set (not a depth
-         * cap): a genuine {@code eContainer()} CYCLE terminates and returns {@code null}, while EVERY
-         * finite chain - however deep - still reaches its real top exactly as HEAD did. Returns
-         * {@code null} on a top-less or cyclic chain - NOT the last reached non-top object: callers
-         * ({@link #getFullReferencePath}) treat a non-null result as a TOP object and call the top-only
-         * {@code bmGetFqn()} on it, so returning a non-top would throw. {@code null} is the "no top
-         * found" signal every caller already degrades on (a bmIsTop object is the ONLY non-null return).
-         */
-        private IBmObject findTopContainer(IBmObject object)
-        {
-            if (object == null)
-            {
-                return null;
-            }
-
-            if (object.bmIsTop())
-            {
-                return object;
-            }
-
-            java.util.Set<EObject> visited =
-                java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
-            EObject current = (EObject) object;
-            while (current != null && visited.add(current))
-            {
-                if (current instanceof IBmObject && ((IBmObject) current).bmIsTop())
-                {
-                    return (IBmObject) current;
-                }
-                current = current.eContainer();
-            }
-
-            return null;
         }
 
         /**

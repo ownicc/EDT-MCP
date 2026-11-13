@@ -8,6 +8,7 @@ package com.ditrix.edt.mcp.server.utils;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import java.lang.reflect.Method;
 
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.ENamedElement;
+import org.eclipse.emf.ecore.EObject;
 import org.junit.Test;
 
 import com._1c.g5.v8.bm.core.IBmObject;
@@ -30,10 +32,68 @@ public class BmObjectAddressTest
     @Test
     public void testNullObjectsHaveNoAddressOrLabel()
     {
+        assertNull(BmObjectAddress.findTopContainer(null));
         assertNull(BmObjectAddress.topFqnOrNull(null));
         assertNull(BmObjectAddress.metadataAddressOrNull(null));
         assertNull(BmObjectAddress.uriOrNull(null));
         assertNull(BmObjectAddress.labelOrNull(null));
+    }
+
+    @Test
+    public void testTopContainerIsTheObjectItselfWhenAlreadyTop()
+    {
+        IBmObject object = top();
+        assertSame(object, BmObjectAddress.findTopContainer(object));
+        verify(object, never()).bmGetTopObject();
+    }
+
+    @Test
+    public void testTopContainerWalksThroughNonBmContainers()
+    {
+        IBmObject owner = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        when(owner.bmIsTop()).thenReturn(true);
+        EObject middle = mock(EObject.class);
+        when(middle.eContainer()).thenReturn((EObject)owner);
+        IBmObject object = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        when(((EObject)object).eContainer()).thenReturn(middle);
+
+        assertSame(owner, BmObjectAddress.findTopContainer(object));
+        verify(object, never()).bmGetTopObject();
+    }
+
+    @Test
+    public void testToplessChainDoesNotReturnItsLastNonTopObject()
+    {
+        IBmObject object = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        when(((EObject)object).eContainer()).thenReturn(mock(EObject.class));
+        assertNull(BmObjectAddress.findTopContainer(object));
+    }
+
+    @Test(timeout = 10000)
+    public void testTopContainerTerminatesOnACycle()
+    {
+        IBmObject object = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        EObject middle = mock(EObject.class);
+        when(((EObject)object).eContainer()).thenReturn(middle);
+        when(middle.eContainer()).thenReturn((EObject)object);
+        assertNull(BmObjectAddress.findTopContainer(object));
+    }
+
+    @Test
+    public void testTopContainerDoesNotTruncateADeepFiniteChain()
+    {
+        IBmObject owner = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        when(owner.bmIsTop()).thenReturn(true);
+        EObject parent = (EObject)owner;
+        for (int i = 0; i < 1024; i++)
+        {
+            EObject child = mock(EObject.class);
+            when(child.eContainer()).thenReturn(parent);
+            parent = child;
+        }
+        IBmObject object = mock(IBmObject.class, withSettings().extraInterfaces(EObject.class));
+        when(((EObject)object).eContainer()).thenReturn(parent);
+        assertSame(owner, BmObjectAddress.findTopContainer(object));
     }
 
     @Test

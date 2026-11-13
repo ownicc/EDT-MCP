@@ -6,6 +6,8 @@
 
 package com.ditrix.edt.mcp.server.pictures.handlers;
 
+import static com.ditrix.edt.mcp.server.groups.ui.CollectionAdapterUtils.isCollectionAdapter;
+
 import java.lang.reflect.Method;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -46,7 +48,7 @@ import com.ditrix.edt.mcp.server.utils.ProjectContext;
  * <b>Reflective navigator detection (no md.ui/navigator compile import).</b> The CommonPictures folder
  * is a {@code com._1c.g5.v8.dt.navigator.adapters.CollectionNavigatorAdapterBase<Configuration>}; this
  * handler must NOT compile against {@code com._1c.g5.v8.dt.md.ui} / the navigator adapter types. Exactly
- * like {@link com.ditrix.edt.mcp.server.groups.handlers.NewGroupHandler#isCollectionAdapter}, it walks
+ * like {@link com.ditrix.edt.mcp.server.groups.ui.CollectionAdapterUtils#isCollectionAdapter}, it walks
  * the selection's superclass chain for that base class and narrows via the reflective
  * {@code getModelObjectName()} equal to {@code "CommonPicture"}.
  * <p>
@@ -59,14 +61,6 @@ import com.ditrix.edt.mcp.server.utils.ProjectContext;
  */
 public class ShowCommonPicturesHandler extends AbstractHandler
 {
-    /**
-     * The collection navigator adapter base class (resolved reflectively). The CommonPictures folder
-     * node is a subclass of this. Matched by walking the selection's superclass chain, exactly like
-     * {@code NewGroupHandler}.
-     */
-    private static final String COLLECTION_ADAPTER_CLASS_NAME =
-        "com._1c.g5.v8.dt.navigator.adapters.CollectionNavigatorAdapterBase"; //$NON-NLS-1$
-
     /** The model-object name a CommonPictures folder adapter reports via {@code getModelObjectName()}. */
     private static final String COMMON_PICTURE_MODEL_NAME = "CommonPicture"; //$NON-NLS-1$
 
@@ -168,7 +162,7 @@ public class ShowCommonPicturesHandler extends AbstractHandler
     /**
      * Reports whether the selected element is the CommonPictures folder adapter: a subclass of
      * {@code CollectionNavigatorAdapterBase} whose reflective {@code getModelObjectName()} is
-     * {@code "CommonPicture"}. Mirrors {@code NewGroupHandler.isCollectionAdapter}; entirely reflective,
+     * {@code "CommonPicture"}. Uses {@code CollectionAdapterUtils.isCollectionAdapter}; entirely reflective,
      * so this bundle never compiles against the md.ui / navigator adapter types.
      *
      * @param element the first selected element (may be {@code null})
@@ -178,31 +172,6 @@ public class ShowCommonPicturesHandler extends AbstractHandler
     {
         return isCollectionAdapter(element)
             && COMMON_PICTURE_MODEL_NAME.equals(invokeGetModelObjectName(element));
-    }
-
-    /**
-     * Walks the element's superclass chain for {@link #COLLECTION_ADAPTER_CLASS_NAME}. Reflective by
-     * design (no navigator compile import), exactly like {@code NewGroupHandler.isCollectionAdapter}.
-     *
-     * @param element the selected element (may be {@code null})
-     * @return {@code true} when it is (a subclass of) the collection navigator adapter base
-     */
-    private static boolean isCollectionAdapter(Object element)
-    {
-        if (element == null)
-        {
-            return false;
-        }
-        Class<?> clazz = element.getClass();
-        while (clazz != null)
-        {
-            if (COLLECTION_ADAPTER_CLASS_NAME.equals(clazz.getName()))
-            {
-                return true;
-            }
-            clazz = clazz.getSuperclass();
-        }
-        return false;
     }
 
     /**

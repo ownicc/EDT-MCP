@@ -6,7 +6,12 @@
 
 package com.ditrix.edt.mcp.server.utils;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Set;
+
 import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.EObject;
 
 import com._1c.g5.v8.bm.core.BmUriUtil;
 import com._1c.g5.v8.bm.core.IBmObject;
@@ -18,6 +23,43 @@ public final class BmObjectAddress
     private BmObjectAddress()
     {
         // utility class
+    }
+
+    /**
+     * Walks the container chain up to (and including) its own top {@link IBmObject}.
+     * The caller must hold the model's read or write transaction.
+     * <p>
+     * Guarded by an IDENTITY visited-set (not a depth cap): a genuine {@code eContainer()} CYCLE
+     * terminates and returns {@code null}, while every finite chain reaches its real top. Returns
+     * {@code null} on a top-less or cyclic chain - NOT the last reached non-top object: callers use
+     * top-only BM operations on a non-null result. The ONLY non-null return is a real top object.
+     * This also preserves delete's fail-safe direction: a missing top cannot prove an owner-self
+     * reference, so the reference is kept rather than allowing deletion of a possibly referenced item.
+     *
+     * @param object the top object or contained child, possibly {@code null}
+     * @return the owning top object, or {@code null} when the chain has no top
+     */
+    public static IBmObject findTopContainer(IBmObject object)
+    {
+        if (object == null)
+        {
+            return null;
+        }
+        if (object.bmIsTop())
+        {
+            return object;
+        }
+        Set<EObject> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        EObject current = (EObject)object;
+        while (current != null && visited.add(current))
+        {
+            if (current instanceof IBmObject && ((IBmObject)current).bmIsTop())
+            {
+                return (IBmObject)current;
+            }
+            current = current.eContainer();
+        }
+        return null;
     }
 
     /**

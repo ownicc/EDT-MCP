@@ -52,6 +52,7 @@ public final class CollectionAdapterUtils {
     
     /**
      * Checks if the element is a collection adapter.
+     * Walks the superclass chain by name so callers need no navigator adapter compile dependency.
      * 
      * @param element the element to check
      * @return true if it's a collection adapter
