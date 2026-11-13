@@ -1,0 +1,16 @@
+{
+  "//": "Run jscpd from the repository root with jscpd 5.4.1 or newer. Add --similarity 0.90 for manual review of structurally similar methods.",
+  "path": [
+    "mcp/bundles/com.ditrix.edt.mcp.server/src",
+    "proxy/src/main/java"
+  ],
+  "format": ["java"],
+  "mode": "weak",
+  "minLines": 10,
+  "minTokens": 100,
+  "ignorePattern": ["(?m)^\\s*(?:package|import)\\s+[^;\\n]+;"],
+  "reporters": ["console", "json", "html"],
+  "output": ".jscpd",
+  "failOnEmpty": true,
+  "noTips": true
+}

@@ -44,3 +44,9 @@ tmp/
 hs_err_pid*.log
 hs_err_pid*.mdmp
 replay_pid*.log
+
+# jscpd configuration is shared; reports, caches and baselines stay local.
+.jscpd*
+!.jscpd.json
+jscpd-report*
+**/.cache/jscpd/
