@@ -30,7 +30,12 @@ the baseline.
 ## Baseline (`baseline.yml`)
 Captured 2026-06-07: **8 passed / 24 failed**, the 24 all intentional.
 - **Passing (8):** server-initialize, ping, tools-list, server-sse-multiple-streams (2), resources-list, dns-rebinding-protection (2).
-- **Pinned failures (24):** the `tools-call-*` conformance-fixture-tool scenarios (a production server doesn't ship test fixtures) + unadvertised capabilities (logging, completion, elicitation, resources-read, prompts). See the comments in `baseline.yml`.
+- **Pinned failures (24):** the `tools-call-*` conformance-fixture-tool scenarios (a production server doesn't ship test fixtures), unsupported capabilities, and prompt/completion scenarios in the default-off profile. Existing `guide://` resources do not provide the suite's fixture resources. See the comments in `baseline.yml`.
+
+Guided workflows have a separate opt-in E2E job in `e2e-tests.yml`; this official
+conformance job keeps `EDT_MCP_GUIDED_WORKFLOWS` unset. Enabling workflows does not
+prove the named conformance scenarios pass, so their expected-failure IDs stay
+pinned until a live official run verifies otherwise.
 
 One real bug was found and fixed during the first run: `ping` returned
 `-32601 Method not found` (it MUST return `{}`) — fixed in commit `6935ee9`.

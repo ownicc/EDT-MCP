@@ -28,11 +28,14 @@ server:
   - tools-call-sampling
   - tools-call-elicitation
 
-  # --- Bucket 2: capabilities EDT-MCP does not advertise ----------------------
-  # Logging, completion, elicitation, resources-READ, and prompts are not
-  # implemented by design (see the protocol-upgrade epic — elicitation/tasks are
-  # client-gated and deferred; resources/prompts are not part of this server's
-  # surface). resources-LIST passes (empty list); only resources-READ fails.
+  # --- Bucket 2: unsupported capabilities or conformance fixture shapes --------
+  # This baseline is for the default-off profile: EDT_MCP_GUIDED_WORKFLOWS is unset.
+  # Prompts and completion are opt-in; their enabled profile is checked separately
+  # by the Guided workflows (enabled) E2E job. Existing guide:// resource reads work
+  # even without that flag, but do not supply the official suite's fixture resources.
+  # Logging, elicitation and resource subscriptions remain unsupported. Keep these
+  # scenario IDs until a live official conformance run proves a pinned gap closed;
+  # enabling production workflows alone does not satisfy named fixture scenarios.
   - logging-set-level
   - completion-complete
   - elicitation-sep1034-defaults

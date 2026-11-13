@@ -141,14 +141,19 @@ Protocol references: [prompts](https://modelcontextprotocol.io/specification/202
    and `ref/tool` completion return `-32602`. Restart without the opt-in flag:
    no prompt/completion capabilities, templates empty, default tool catalog unchanged.
 
-Automated live checks (not run by the implementer): launch EDT with the flag,
+Automated live checks: launch EDT with the flag,
 then from `tests/e2e` run `python -m tools.test_guided_workflows`, or use
 `run_all.py --filter guided_workflows` under the normal fixture orchestrator.
+Direct execution waits for project readiness and fails on a skipped check.
+The reusable E2E workflow runs the three checks in a separate
+**Guided workflows (enabled)** job. Its job-level opt-in flag reaches both EDT
+and the Python client; the ordinary E2E and conformance jobs retain the default-off
+profile. The enabled job reuses the built plugin and the existing EDT setup action,
+imports `TestConfiguration`, and uploads the EDT log even when acceptance fails.
 The Java suite tests wire dispatch, access revocation, strict URI parsing,
 fresh reads, ordering/limits, rate reset, and existing-service delegation.
 
-`tests/conformance/baseline.yml` is deliberately unchanged: default-off conformance
+The scenario IDs in `tests/conformance/baseline.yml` are deliberately unchanged: default-off conformance
 still has no prompts/completion and the named fixture scenarios are not proved by
 this production workflow. No pinned gap is claimed closed without a live official
-conformance run. The opt-in workflow and actual client UI checks above remain
-orchestrator acceptance work.
+conformance run. Actual client UI checks above remain orchestrator acceptance work.

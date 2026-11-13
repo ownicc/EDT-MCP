@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 from harness import (
     E2ESkip, PROJECT, _post, assert_no_diff, assert_ok, call, e2e_test,
-    initialize, wait_for_server,
+    initialize, settle_or_fail, wait_for_server,
 )
 
 PROBLEMS = "edt://projects/{projectName}/problems"
@@ -108,6 +108,7 @@ def test_guided_workflows_invalid_arguments_are_jsonrpc_errors():
 if __name__ == "__main__":
     wait_for_server()
     initialize()
+    settle_or_fail("guided workflow acceptance")
     for test in (test_guided_workflows_health_prompt_and_resource_reuse_live_report,
                  test_guided_workflows_completion_supports_prompt_and_contextual_template_shapes,
                  test_guided_workflows_invalid_arguments_are_jsonrpc_errors):

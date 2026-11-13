@@ -555,6 +555,61 @@ jobs:
         if: always()
         run: kill "${edt_pid:-0}" 2>/dev/null || true
 
+  guided-workflows:
+    name: Guided workflows (enabled)
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      # Both the EDT process and the Python client must require the opt-in surface.
+      EDT_MCP_GUIDED_WORKFLOWS: "true"
+      E2E_PROJECT_READY_TIMEOUT: "1200"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up the JDK EDT ${{ inputs.edt }} runs on
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java }}
+
+      - name: Download plugin p2 repository
+        uses: actions/download-artifact@v8
+        with:
+          name: mcp-plugin-p2
+          path: plugin-p2
+
+      - name: Set up EDT with guided workflows enabled
+        uses: ./.github/actions/setup-edt
+        with:
+          plugin-repo: plugin-p2
+          edt-p2: "https://edt.1c.ru/downloads/releases/ruby/${{ inputs.edt }}/"
+          java-runtime: ${{ inputs.java }}
+          eclipse-archive: ${{ inputs.eclipse-archive }}
+          eclipse-p2: ${{ inputs.eclipse-p2 }}
+          orbit-simrel-p2: ${{ inputs.orbit-simrel-p2 }}
+          platform-support-iu: "com._1c.g5.v8.dt.platform.support_v8.5.1.feature.feature.group"
+          import-projects: "${{ github.workspace }}/tests/TestConfiguration"
+
+      - name: Verify the enabled prompt, resource templates and completion
+        working-directory: tests/e2e
+        # Direct execution makes an E2ESkip an error, so a default-off server cannot pass.
+        run: python3 -u -m tools.test_guided_workflows
+
+      - name: Upload guided workflows EDT log
+        if: ${{ always() && env.edt_log != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: guided-workflows-edt-log-${{ inputs.edt }}
+          path: ${{ env.edt_log }}
+          if-no-files-found: ignore
+
+      - name: Stop EDT
+        if: always()
+        run: kill "${edt_pid:-0}" 2>/dev/null || true
+
   # ONE check for the whole gate, assembled after every shard has reported. The shards are four
   # jobs, but the question a reader has is one question - "did the e2e suite pass?" - and the
   # check name is unchanged from the pre-sharding gate so any branch protection keeps working.
