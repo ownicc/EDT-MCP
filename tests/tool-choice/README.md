@@ -259,3 +259,6 @@ sharply: multi-step work drives far more guide fetches than one-liners do. The 5
 numbers supersede it.
 
 `results.json` and `detail_<arm>.json` carry the per-question record.
+## Current-release benchmark
+
+The separate [current-catalog benchmark](current/README.md) pins the full registered catalog and adds simulated execution-protocol scenarios. Its report explicitly distinguishes unrun questions and excluded tools. The historical baseline, questions, answers, and measurements below remain unchanged.

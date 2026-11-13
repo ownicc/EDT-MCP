@@ -1,0 +1,1399 @@
+{
+  "cases": [
+    {
+      "id": "c001",
+      "request": "Покажи граф маршрута существующего бизнес-процесса BusinessProcess.Approval проекта Demo, без изменения маршрута.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "business_process_route_map"
+      ],
+      "label": "choice-business_process_route_map",
+      "argument_contracts": {
+        "business_process_route_map": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "get"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c002",
+      "request": "Отмени ожидающую правку BSL с reviewId=r1; исходники не применяй.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "cancel_write_review"
+      ],
+      "label": "choice-cancel_write_review",
+      "argument_contracts": {
+        "cancel_write_review": {
+          "type": "object",
+          "properties": {
+            "reviewId": {
+              "const": "r1"
+            }
+          },
+          "required": [
+            "reviewId"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c003",
+      "request": "В Demo создай копию существующего Catalog.Source под именем Catalog.Copy, сохранив исходный объект.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "clone_metadata_object"
+      ],
+      "label": "choice-clone_metadata_object"
+    },
+    {
+      "id": "c004",
+      "request": "Сравни рабочее дерево проекта Demo с git-веткой release/new и общим предком release/base. Обе ссылки существуют. Не объединяй конфигурации и не меняй исходники.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "compare_configurations"
+      ],
+      "label": "choice-compare_configurations",
+      "argument_contracts": {
+        "compare_configurations": {
+          "type": "object",
+          "properties": {
+            "projectName": {
+              "const": "Demo"
+            },
+            "otherRevision": {
+              "const": "release/new"
+            },
+            "ancestorRevision": {
+              "const": "release/base"
+            }
+          },
+          "required": [
+            "projectName",
+            "otherRevision",
+            "ancestorRevision"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c005",
+      "request": "Прочитай структуру существующей СКД Report.Sales.Template.Main в Demo. Ничего не записывай.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "dcs"
+      ],
+      "label": "choice-dcs",
+      "argument_contracts": {
+        "dcs": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "get"
+            },
+            "projectName": {
+              "const": "Demo"
+            },
+            "type": {
+              "const": "schema"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c006",
+      "request": "Уже запущенное отлаживаемое приложение app1 работает; приостанови его для просмотра стека, не запускай новую сессию.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "debug_pause"
+      ],
+      "label": "choice-debug_pause",
+      "argument_contracts": {
+        "debug_pause": {
+          "type": "object",
+          "properties": {
+            "applicationId": {
+              "const": "app1"
+            }
+          },
+          "required": [
+            "applicationId"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c007",
+      "request": "Покажи сведения о модальном окне, которое сейчас мешает автоматизации EDT; не закрывай его вслепую.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "edt_dialog"
+      ],
+      "label": "choice-edt_dialog",
+      "argument_contracts": {
+        "edt_dialog": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "c008",
+      "request": "Выгрузи текущую конфигурацию из базы приложения app1 проекта Demo в новый /tmp/demo.cf. Все подключения уже настроены.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "export_configuration_to_file"
+      ],
+      "label": "choice-export_configuration_to_file"
+    },
+    {
+      "id": "c009",
+      "request": "Прочитай корень уже готового сравнения comparisonId=cmp1, не запускай второе сравнение.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "get_comparison_node"
+      ],
+      "label": "choice-get_comparison_node",
+      "argument_contracts": {
+        "get_comparison_node": {
+          "type": "object",
+          "properties": {
+            "comparisonId": {
+              "const": "cmp1"
+            }
+          },
+          "required": [
+            "comparisonId"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c010",
+      "request": "Узнай состояние уже отправленной BSL-правки с requestId=req-1, не отправляя её повторно.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "get_write_review_status"
+      ],
+      "label": "choice-get_write_review_status",
+      "argument_contracts": {
+        "get_write_review_status": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "const": "req-1"
+            }
+          },
+          "required": [
+            "requestId"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c011",
+      "request": "Импортируй /tmp/demo.cf как новый проект ImportedDemo, используя уже установленную платформу.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "import_project_from_file"
+      ],
+      "label": "choice-import_project_from_file"
+    },
+    {
+      "id": "c012",
+      "request": "Покажи установленные расширения в базе настроенного приложения app1 проекта Demo.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "infobase_extensions"
+      ],
+      "label": "choice-infobase_extensions",
+      "argument_contracts": {
+        "infobase_extensions": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c013",
+      "request": "Покажи активные сеансы базы приложения app1 проекта Demo. Не завершай их.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "infobase_sessions"
+      ],
+      "label": "choice-infobase_sessions",
+      "argument_contracts": {
+        "infobase_sessions": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c014",
+      "request": "Запусти уже настроенное приложение app1 проекта Demo обычным запуском без отладки.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "launch"
+      ],
+      "label": "choice-launch",
+      "argument_contracts": {
+        "launch": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "run"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName",
+            "mode"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c015",
+      "request": "Прочитай существующие правила объединения из /tmp/rules.zip. Не перезаписывай файл.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "merge_rules"
+      ],
+      "label": "choice-merge_rules",
+      "argument_contracts": {
+        "merge_rules": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "read"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "c016",
+      "request": "Открой существующий Catalog.Products проекта Demo именно в редакторе метаданных EDT для человека.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them.",
+        "ui_navigation_allowed": true
+      },
+      "expected_tools": [
+        "open_editor"
+      ],
+      "label": "choice-open_editor",
+      "argument_contracts": {
+        "open_editor": {
+          "type": "object",
+          "properties": {
+            "projectName": {
+              "const": "Demo"
+            },
+            "fqn": {
+              "enum": [
+                "Catalog.Products",
+                "Справочник.Products"
+              ]
+            }
+          },
+          "required": [
+            "projectName",
+            "fqn"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c017",
+      "request": "Открой BSL-модуль CommonModules/Utilities/Module.bsl проекта Demo в редакторе EDT и поставь курсор точно на строку 5, столбец 3. Несохранённые правки не сохраняй и не сбрасывай.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them.",
+        "ui_navigation_allowed": true
+      },
+      "expected_tools": [
+        "open_in_editor"
+      ],
+      "label": "choice-open_in_editor",
+      "argument_contracts": {
+        "open_in_editor": {
+          "type": "object",
+          "properties": {
+            "projectName": {
+              "const": "Demo"
+            },
+            "line": {
+              "const": 5
+            },
+            "column": {
+              "const": 3
+            }
+          },
+          "required": [
+            "projectName",
+            "line",
+            "column"
+          ],
+          "anyOf": [
+            {
+              "required": [
+                "modulePath"
+              ],
+              "properties": {
+                "modulePath": {
+                  "const": "CommonModules/Utilities/Module.bsl"
+                }
+              }
+            },
+            {
+              "required": [
+                "objectName"
+              ],
+              "properties": {
+                "objectName": {
+                  "enum": [
+                    "CommonModule.Utilities",
+                    "ОбщийМодуль.Utilities"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c018",
+      "request": "Сохрани снимок текущей диагностики проекта Demo, чтобы позже сравнить ошибки до и после изменений.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "problem_snapshots"
+      ],
+      "label": "choice-problem_snapshots",
+      "argument_contracts": {
+        "problem_snapshots": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "capture"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c019",
+      "request": "Покажи доступные настройки проверок проекта Demo и их текущее состояние. Ничего не переключай.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "project_checks"
+      ],
+      "label": "choice-project_checks",
+      "argument_contracts": {
+        "project_checks": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "list"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c020",
+      "request": "Найди употребления поля Customer в СКД проекта Demo без изменения схем.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "search_in_dcs"
+      ],
+      "label": "choice-search_in_dcs"
+    },
+    {
+      "id": "c021",
+      "request": "Включи в EDT остановку отладчика на исключениях. Активна только отладочная сессия проекта Demo.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "set_error_breakpoint"
+      ],
+      "label": "choice-set_error_breakpoint",
+      "argument_contracts": {
+        "set_error_breakpoint": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "const": true
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c022",
+      "request": "В Demo отсортируй коллекцию Configuration.Catalogs по программному имени, не меняя другие коллекции.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "sort_metadata"
+      ],
+      "label": "choice-sort_metadata",
+      "argument_contracts": {
+        "sort_metadata": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "alphabetical"
+            },
+            "projectName": {
+              "const": "Demo"
+            },
+            "fqn": {
+              "enum": [
+                "Configuration.Catalogs",
+                "Конфигурация.Справочники"
+              ]
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c023",
+      "request": "Покажи состояние уже настроенного автономного сервера. Не запускай и не останавливай его.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "standalone_server"
+      ],
+      "label": "choice-standalone_server",
+      "argument_contracts": {
+        "standalone_server": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "status"
+            },
+            "projectName": {
+              "const": "Demo"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    },
+    {
+      "id": "c024",
+      "request": "Проверь текущую модель существующей формы Catalog.Products.Form.ItemForm проекта Demo и объясни ошибки, не исправляя её.",
+      "initial_state": {
+        "projectName": "Demo",
+        "assumption": "Named projects, objects, applications and files already exist unless the request explicitly creates them."
+      },
+      "expected_tools": [
+        "validate_form_model"
+      ],
+      "label": "choice-validate_form_model"
+    },
+    {
+      "id": "c025",
+      "request": "Удалить тестовый проект Scratch вместе с файлами. Сначала посмотреть предварительный результат; применить только тот же набор действий.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "delete_project"
+      ],
+      "steps": [
+        {
+          "tool": "delete_project",
+          "args": {
+            "projectName": "Scratch",
+            "deleteContent": true
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "action": "preview",
+              "confirmationRequired": true,
+              "project": "Scratch",
+              "deleteContent": true
+            }
+          }
+        },
+        {
+          "tool": "delete_project",
+          "args": {
+            "projectName": "Scratch",
+            "deleteContent": true,
+            "confirm": true
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "action": "deleted",
+              "project": "Scratch",
+              "deleteContent": true,
+              "state": "released"
+            }
+          }
+        }
+      ],
+      "final_status": "completed",
+      "two_phase_tool": "delete_project",
+      "label": "preview-confirm"
+    },
+    {
+      "id": "c026",
+      "request": "Подготовь только preview добавления Message(\"x\"); к модулю Utilities. Исходник не применять, review не создавать.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "read_module_source",
+        "write_module_source"
+      ],
+      "steps": [
+        {
+          "tool": "read_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "contentHash": "e7bddfe8fcf61e70",
+              "source": "Message(\"old\");"
+            }
+          }
+        },
+        {
+          "tool": "write_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl",
+            "mode": "append",
+            "source": "Message(\"x\");",
+            "expectedHash": "e7bddfe8fcf61e70",
+            "preview": true
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "applied": false,
+              "mutationCommitted": false,
+              "wouldChange": true
+            }
+          }
+        }
+      ],
+      "final_status": "previewed",
+      "label": "bsl-preview"
+    },
+    {
+      "id": "c027",
+      "request": "Добавь Message(\"x\"); с requestId=req-1. Дождись решения человека в EDT и сообщи завершение только после applied; исходный hash=e7bddfe8fcf61e70.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "write_module_source",
+        "get_write_review_status"
+      ],
+      "steps": [
+        {
+          "tool": "write_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl",
+            "mode": "append",
+            "source": "Message(\"x\");",
+            "expectedHash": "e7bddfe8fcf61e70",
+            "requestId": "req-1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "awaitingApproval",
+              "applied": false
+            }
+          }
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "awaitingApproval",
+              "applied": false
+            }
+          },
+          "min_wait_ms": 3000
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "applied",
+              "applied": true,
+              "mutationCommitted": true
+            }
+          },
+          "min_wait_ms": 3000
+        }
+      ],
+      "final_status": "completed",
+      "label": "review-wait"
+    },
+    {
+      "id": "c028",
+      "request": "Добавь Message(\"x\"); с requestId=req-1. Если подтверждение связи потеряется, запроси receipt только по requestId, не пересылая исходник. При неизвестном результате прочитай исходник и остановись для сверки. Не повторяй append вслепую.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "write_module_source",
+        "get_write_review_status",
+        "read_module_source"
+      ],
+      "steps": [
+        {
+          "tool": "write_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl",
+            "mode": "append",
+            "source": "Message(\"x\");",
+            "expectedHash": "e7bddfe8fcf61e70",
+            "requestId": "req-1"
+          },
+          "result": {
+            "isError": true,
+            "data": {
+              "kind": "transport_error",
+              "mutationOutcomeUnknown": true
+            }
+          }
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "requestId": "req-1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "status": "unknown",
+              "mutationOutcomeUnknown": true
+            }
+          }
+        },
+        {
+          "tool": "read_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "contentHash": "48bef99df66300d6",
+              "source": "Message(\"old\");\nMessage(\"x\");"
+            }
+          }
+        }
+      ],
+      "final_status": "needs_recovery",
+      "label": "unknown-write"
+    },
+    {
+      "id": "c029",
+      "request": "Добавь Message(\"x\"); с requestId=req-1. Если человек видит stale, перечитай модуль и создай новую защищённую заявку с новым ID; дождись применения.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "write_module_source",
+        "get_write_review_status",
+        "read_module_source"
+      ],
+      "steps": [
+        {
+          "tool": "write_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl",
+            "mode": "append",
+            "source": "Message(\"x\");",
+            "expectedHash": "e7bddfe8fcf61e70",
+            "requestId": "req-1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "awaitingApproval",
+              "applied": false
+            }
+          }
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "stale",
+              "applied": false
+            }
+          },
+          "min_wait_ms": 3000
+        },
+        {
+          "tool": "read_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "contentHash": "ba6009df75366718",
+              "source": "Message(\"changed\");"
+            }
+          }
+        },
+        {
+          "tool": "write_module_source",
+          "args": {
+            "projectName": "Demo",
+            "modulePath": "CommonModules/Utilities/Module.bsl",
+            "mode": "append",
+            "source": "Message(\"x\");",
+            "expectedHash": "ba6009df75366718"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r2",
+              "status": "awaitingApproval",
+              "applied": false
+            }
+          },
+          "fresh_request_id": true
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r2"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r2",
+              "status": "applied",
+              "applied": true,
+              "mutationCommitted": true
+            }
+          },
+          "min_wait_ms": 3000
+        }
+      ],
+      "final_status": "completed",
+      "label": "stale-review"
+    },
+    {
+      "id": "c030",
+      "request": "Узнай состояние review r1 и отмени ожидающую заявку. Проверь cancelled; ничего не применяй.",
+      "initial_state": {
+        "projectName": "Demo",
+        "modulePath": "CommonModules/Utilities/Module.bsl",
+        "contentHash": "e7bddfe8fcf61e70",
+        "source": "Message(\"old\");",
+        "write_source": "Message(\"x\");",
+        "requestId": "req-1",
+        "review_enabled": true
+      },
+      "expected_tools": [
+        "get_write_review_status",
+        "cancel_write_review"
+      ],
+      "steps": [
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "awaitingApproval",
+              "applied": false
+            }
+          }
+        },
+        {
+          "tool": "cancel_write_review",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "cancelled",
+              "applied": false
+            }
+          }
+        },
+        {
+          "tool": "get_write_review_status",
+          "args": {
+            "reviewId": "r1"
+          },
+          "result": {
+            "isError": false,
+            "data": {
+              "reviewId": "r1",
+              "status": "cancelled",
+              "applied": false
+            }
+          }
+        }
+      ],
+      "final_status": "cancelled",
+      "label": "cancel-review"
+    },
+    {
+      "id": "c031",
+      "request": "Почему проект Demo не готов к чтению метаданных? Выполни read-only диагностику готовности, не запускай сборку.",
+      "initial_state": {
+        "projectName": "Demo"
+      },
+      "expected_tools": [
+        "get_server_status"
+      ],
+      "label": "choice-project-readiness",
+      "argument_contracts": {
+        "get_server_status": {
+          "type": "object",
+          "properties": {
+            "projectName": {
+              "const": "Demo"
+            },
+            "operation": {
+              "const": "metadata"
+            }
+          },
+          "required": [
+            "projectName"
+          ]
+        }
+      }
+    }
+  ],
+  "exclusions": [
+    {
+      "tool": "adopt_metadata_object",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "apply_quick_fix",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "ask_workmate",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "build_external_objects",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "cancel_job",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "clean_project",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "create_git_branch",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "create_infobase",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "create_launch_config",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "create_metadata",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "create_project",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "debug_status",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "debug_yaxunit_tests",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "delete_infobase",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "delete_launch_config",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "delete_metadata",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "enable_toolset",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "evaluate_expression",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "export_common_picture",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "export_configuration_to_xml",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "find_references",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "generate_translation_strings",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_applications",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_check_description",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_configuration_properties",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_content_assist",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_edt_version",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_event_log",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_form_layout_snapshot",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_form_screenshot",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_job_status",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_markers",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_mcp_history",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_metadata_details",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_metadata_objects",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_method_call_hierarchy",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_module_structure",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_objects_by_tags",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_outgoing_structures",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_platform_documentation",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_problem_summary",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_profiling_results",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_project_errors",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_subsystem_content",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_symbol_info",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_tags",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_template_screenshot",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_tool_guide",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_translation_project_info",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "get_variables",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "git",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "go_to_definition",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "import_configuration_from_xml",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_breakpoints",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_common_pictures",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_configurations",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_git_branches",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_modules",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_projects",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_subsystems",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "list_toolsets",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "modify_metadata",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "read_method_source",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "remove_breakpoint",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "rename_metadata_object",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "resume",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "resync_to_disk",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "revalidate_objects",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "run_yaxunit_tests",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "search_in_code",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "set_branch_infobase",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "set_breakpoint",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "set_infobase_credentials",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "set_variable",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "start_profiling",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "step",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "stop_profiling",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "switch_git_branch",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "terminate_launch",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "translate_configuration",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "update_database",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "validate_query",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "validate_xdto_package",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    },
+    {
+      "tool": "wait_for_break",
+      "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+    }
+  ]
+}

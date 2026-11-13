@@ -1,0 +1,556 @@
+{
+  "run_status": "not_run",
+  "provider": null,
+  "model": null,
+  "model_version": null,
+  "source_commit": "e10941f83d57c1f9327abe5cde4030f9fb46564b",
+  "catalog_sha256": "832f2165220a7785fbc9545ad1a6c49dcf2073a4832646ea583c7cbd4d236f7c",
+  "dataset_sha256": "bf301777d5fb7732d5f1a78e069c8c1ef6fdb9fd0b705c6b71894480ce7aa628",
+  "guides_sha256": "5d7eaeccf8c313b2e9197611159837931ff94861e1bea6ea2f39754aea880b3d",
+  "coverage": {
+    "catalog_tools": 112,
+    "covered_tools": 28,
+    "covered_tool_names": [
+      "business_process_route_map",
+      "cancel_write_review",
+      "clone_metadata_object",
+      "compare_configurations",
+      "dcs",
+      "debug_pause",
+      "delete_project",
+      "edt_dialog",
+      "export_configuration_to_file",
+      "get_comparison_node",
+      "get_server_status",
+      "get_write_review_status",
+      "import_project_from_file",
+      "infobase_extensions",
+      "infobase_sessions",
+      "launch",
+      "merge_rules",
+      "open_editor",
+      "open_in_editor",
+      "problem_snapshots",
+      "project_checks",
+      "read_module_source",
+      "search_in_dcs",
+      "set_error_breakpoint",
+      "sort_metadata",
+      "standalone_server",
+      "validate_form_model",
+      "write_module_source"
+    ],
+    "excluded_tools": 84,
+    "unclassified_tools": [],
+    "unknown_tools": [],
+    "exclusions": [
+      {
+        "tool": "adopt_metadata_object",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "apply_quick_fix",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "ask_workmate",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "build_external_objects",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "cancel_job",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "clean_project",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "create_git_branch",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "create_infobase",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "create_launch_config",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "create_metadata",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "create_project",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "debug_status",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "debug_yaxunit_tests",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "delete_infobase",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "delete_launch_config",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "delete_metadata",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "enable_toolset",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "evaluate_expression",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "export_common_picture",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "export_configuration_to_xml",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "find_references",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "generate_translation_strings",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_applications",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_check_description",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_configuration_properties",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_content_assist",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_edt_version",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_event_log",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_form_layout_snapshot",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_form_screenshot",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_job_status",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_markers",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_mcp_history",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_metadata_details",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_metadata_objects",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_method_call_hierarchy",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_module_structure",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_objects_by_tags",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_outgoing_structures",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_platform_documentation",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_problem_summary",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_profiling_results",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_project_errors",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_subsystem_content",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_symbol_info",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_tags",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_template_screenshot",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_tool_guide",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_translation_project_info",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "get_variables",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "git",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "go_to_definition",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "import_configuration_from_xml",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_breakpoints",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_common_pictures",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_configurations",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_git_branches",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_modules",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_projects",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_subsystems",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "list_toolsets",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "modify_metadata",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "read_method_source",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "remove_breakpoint",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "rename_metadata_object",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "resume",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "resync_to_disk",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "revalidate_objects",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "run_yaxunit_tests",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "search_in_code",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "set_branch_infobase",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "set_breakpoint",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "set_infobase_credentials",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "set_variable",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "start_profiling",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "step",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "stop_profiling",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "switch_git_branch",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "terminate_launch",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "translate_configuration",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "update_database",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "validate_query",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "validate_xdto_package",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      },
+      {
+        "tool": "wait_for_break",
+        "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
+      }
+    ]
+  },
+  "cases_total": 31,
+  "answered": 0,
+  "passed": 0,
+  "pass_rate_answered": null,
+  "unrun_ids": [
+    "c001",
+    "c002",
+    "c003",
+    "c004",
+    "c005",
+    "c006",
+    "c007",
+    "c008",
+    "c009",
+    "c010",
+    "c011",
+    "c012",
+    "c013",
+    "c014",
+    "c015",
+    "c016",
+    "c017",
+    "c018",
+    "c019",
+    "c020",
+    "c021",
+    "c022",
+    "c023",
+    "c024",
+    "c025",
+    "c026",
+    "c027",
+    "c028",
+    "c029",
+    "c030",
+    "c031"
+  ],
+  "details": [
+    {
+      "id": "c001",
+      "status": "unrun"
+    },
+    {
+      "id": "c002",
+      "status": "unrun"
+    },
+    {
+      "id": "c003",
+      "status": "unrun"
+    },
+    {
+      "id": "c004",
+      "status": "unrun"
+    },
+    {
+      "id": "c005",
+      "status": "unrun"
+    },
+    {
+      "id": "c006",
+      "status": "unrun"
+    },
+    {
+      "id": "c007",
+      "status": "unrun"
+    },
+    {
+      "id": "c008",
+      "status": "unrun"
+    },
+    {
+      "id": "c009",
+      "status": "unrun"
+    },
+    {
+      "id": "c010",
+      "status": "unrun"
+    },
+    {
+      "id": "c011",
+      "status": "unrun"
+    },
+    {
+      "id": "c012",
+      "status": "unrun"
+    },
+    {
+      "id": "c013",
+      "status": "unrun"
+    },
+    {
+      "id": "c014",
+      "status": "unrun"
+    },
+    {
+      "id": "c015",
+      "status": "unrun"
+    },
+    {
+      "id": "c016",
+      "status": "unrun"
+    },
+    {
+      "id": "c017",
+      "status": "unrun"
+    },
+    {
+      "id": "c018",
+      "status": "unrun"
+    },
+    {
+      "id": "c019",
+      "status": "unrun"
+    },
+    {
+      "id": "c020",
+      "status": "unrun"
+    },
+    {
+      "id": "c021",
+      "status": "unrun"
+    },
+    {
+      "id": "c022",
+      "status": "unrun"
+    },
+    {
+      "id": "c023",
+      "status": "unrun"
+    },
+    {
+      "id": "c024",
+      "status": "unrun"
+    },
+    {
+      "id": "c025",
+      "status": "unrun"
+    },
+    {
+      "id": "c026",
+      "status": "unrun"
+    },
+    {
+      "id": "c027",
+      "status": "unrun"
+    },
+    {
+      "id": "c028",
+      "status": "unrun"
+    },
+    {
+      "id": "c029",
+      "status": "unrun"
+    },
+    {
+      "id": "c030",
+      "status": "unrun"
+    },
+    {
+      "id": "c031",
+      "status": "unrun"
+    }
+  ],
+  "limitations": [
+    "Focused authored sample; excluded tools are not measured.",
+    "Full registered catalog, not a preset, progressive-disclosure or headless-filtered client catalog.",
+    "Recorded simulations are not live EDT executions or evidence of resulting project state.",
+    "Schema and selected protocol guards do not model every EDT business constraint.",
+    "Results and elapsed waits must be recorded by the external host, not invented by the model.",
+    "No model run is performed by this CLI; absent answers are unrun, not passes."
+  ]
+}
