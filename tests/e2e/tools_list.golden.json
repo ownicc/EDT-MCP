@@ -3608,9 +3608,21 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Diagnose the EDT MCP server and its feature configuration. Parameters and examples: get_tool_guide('get_server_status').",
+    "description": "Diagnose the EDT MCP server, feature configuration, and optional project prerequisites. Parameters and examples: get_tool_guide('get_server_status').",
     "inputSchema": {
-      "properties": {},
+      "properties": {
+        "operation": {
+          "enum": [
+            "metadata",
+            "diagnostics",
+            "runtime"
+          ],
+          "type": "string"
+        },
+        "projectName": {
+          "type": "string"
+        }
+      },
       "required": [],
       "type": "object"
     },
@@ -3646,6 +3658,60 @@
         },
         "protocolVersion": {
           "type": "string"
+        },
+        "readiness": {
+          "properties": {
+            "actions": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "message": {
+              "type": "string"
+            },
+            "operation": {
+              "enum": [
+                "metadata",
+                "diagnostics",
+                "runtime"
+              ],
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "ready": {
+              "type": "boolean"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "runtimeRequired": {
+              "type": "boolean"
+            },
+            "state": {
+              "enum": [
+                "ready",
+                "building",
+                "missing",
+                "unsupported",
+                "unavailable"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "projectName",
+            "operation",
+            "state",
+            "ready",
+            "reason",
+            "message",
+            "actions",
+            "runtimeRequired"
+          ],
+          "type": "object"
         },
         "running": {
           "type": "boolean"
