@@ -152,10 +152,16 @@ public final class DiagnosticSnapshots
             before = require(baselineId);
             after = require(snapshotId);
         }
+        return compare(before, after, limit, offset);
+    }
+
+    /** Compare admitted immutable references even if retention evicts their IDs meanwhile. */
+    public static Comparison compare(Snapshot before, Snapshot after, int limit, int offset)
+    {
         if (!before.scope().equals(after.scope()))
         {
-            throw new IllegalArgumentException("Snapshot scope mismatch between baselineId '" + baselineId //$NON-NLS-1$
-                + "' and snapshotId '" + snapshotId //$NON-NLS-1$
+            throw new IllegalArgumentException("Snapshot scope mismatch between baselineId '" + before.id() //$NON-NLS-1$
+                + "' and snapshotId '" + after.id() //$NON-NLS-1$
                 + "'. Capture both with the same projectName, severity, checkId and modulePaths."); //$NON-NLS-1$
         }
         if (offset < 0)

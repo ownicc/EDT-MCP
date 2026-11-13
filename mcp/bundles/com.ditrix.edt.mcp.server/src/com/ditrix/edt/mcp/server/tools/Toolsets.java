@@ -189,6 +189,7 @@ public final class Toolsets
             "import_project_from_file", //$NON-NLS-1$
             "get_problem_summary", "get_project_errors", "validate_xdto_package", "get_markers", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
             "problem_snapshots", //$NON-NLS-1$
+            "verification_report", //$NON-NLS-1$
             "get_event_log", //$NON-NLS-1$
             "get_mcp_history", //$NON-NLS-1$
             "list_git_branches", "switch_git_branch", "set_branch_infobase", "create_git_branch", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$

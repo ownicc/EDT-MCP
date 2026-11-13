@@ -1392,6 +1392,10 @@
       "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
     },
     {
+      "tool": "verification_report",
+      "reason": "Added after this focused sample was authored. No tool-choice request has been authored for unified verification reports; exclusion is explicit and does not imply a model measurement."
+    },
+    {
       "tool": "wait_for_break",
       "reason": "Outside this focused current-capability sample. Historical questions are retained separately and do not count as current measurements."
     }

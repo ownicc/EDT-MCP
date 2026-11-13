@@ -7360,6 +7360,94 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true
+    },
+    "description": "Verify changes against a pre-edit diagnostic baseline: observe validation, compare new/fixed/remaining problems and read explicitly selected JUnit reports. No test launch or database update. Parameters: get_tool_guide('verification_report').",
+    "inputSchema": {
+      "properties": {
+        "baselineId": {
+          "type": "string"
+        },
+        "limit": {
+          "type": "integer"
+        },
+        "testReports": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "waitSeconds": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "baselineId"
+      ],
+      "type": "object"
+    },
+    "name": "verification_report",
+    "outputSchema": {
+      "properties": {
+        "baselineCapturedAt": {
+          "type": "string"
+        },
+        "baselineId": {
+          "type": "string"
+        },
+        "capturedAt": {
+          "type": "string"
+        },
+        "diagnostics": {
+          "type": "object"
+        },
+        "limitations": {
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "object"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "tests": {
+          "type": "object"
+        },
+        "validation": {
+          "type": "object"
+        },
+        "verdict": {
+          "enum": [
+            "regression",
+            "incomplete",
+            "noNewProblems"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "success",
+        "verdict",
+        "baselineId",
+        "baselineCapturedAt",
+        "observedAt",
+        "summary",
+        "limitations"
+      ],
+      "type": "object"
+    }
+  },
+  {
+    "annotations": {
       "idempotentHint": true,
       "openWorldHint": false,
       "readOnlyHint": true

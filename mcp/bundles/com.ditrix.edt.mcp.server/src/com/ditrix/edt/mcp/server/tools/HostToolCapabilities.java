@@ -36,6 +36,7 @@ public final class HostToolCapabilities
         define("apply_quick_fix", Capability.HEADLESS_DEGRADED, "EDT 2026.2.2 real headless host applied the native md-object-duplicate-uuid fix and rewrote .mdo bytes; interactive BSL fixes require their native UI context");
         define("get_project_errors", Capability.HEADLESS, "Core/file service path; platform readiness and ordinary tool preconditions still apply");
         define("problem_snapshots", Capability.HEADLESS, "Stored validation markers inside a BM read boundary; no workbench required");
+        define("verification_report", Capability.HEADLESS, "Bounded metadata validation and stored diagnostic/JUnit evidence; no workbench required");
         define("get_markers", Capability.HEADLESS, "Core/file service path; platform readiness and ordinary tool preconditions still apply");
         define("get_event_log", Capability.HEADLESS, "Core/file service path; platform readiness and ordinary tool preconditions still apply");
         define("get_mcp_history", Capability.HEADLESS, "Core/file service path; platform readiness and ordinary tool preconditions still apply");

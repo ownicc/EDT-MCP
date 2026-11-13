@@ -2,7 +2,7 @@
 
 One page per tool: what it does, every parameter, and how it works. Generated from the live server by `docs/generate_tool_docs.py` (re-run to refresh; the source of truth is each tool's Java).
 
-**112 tools.**
+**113 tools.**
 
 ## Core
 
@@ -180,6 +180,7 @@ One page per tool: what it does, every parameter, and how it works. Generated fr
 | [`standalone_server`](standalone_server.md) | Report, stop or start the EDT standalone server (ibsrv) of a wst-server application. DESTRUCTIVE for stop/restart: it ends every session and client of that s… |
 | [`switch_git_branch`](switch_git_branch.md) | Change the active version of an EDT project through Git branch checkout. Parameters and examples: get_tool_guide('switch_git_branch'). |
 | [`update_database`](update_database.md) | Apply the current EDT configuration to an infobase. Before applying, call infobase_sessions(action='list'); any non-agent session blocks the update, so clear… |
+| [`verification_report`](verification_report.md) | Verify changes against a pre-edit diagnostic baseline: observe validation, compare new/fixed/remaining problems and read explicitly selected JUnit reports. N… |
 | [`validate_xdto_package`](validate_xdto_package.md) | Check an XDTO package for configuration validation problems. Reads the markers EDT computed EARLIER - it does not validate on demand, so a verdict right afte… |
 
 ## Comparison
